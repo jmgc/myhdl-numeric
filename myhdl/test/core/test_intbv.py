@@ -18,7 +18,7 @@
 #  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 
 """ Run the intbv unit tests. """
-from __future__ import absolute_import
+from __future__ import absolute_import, division
 
 
 import unittest
@@ -341,8 +341,8 @@ class TestIntBvAsInt(TestCase):
     def testMul(self):
         self.binaryCheck(operator.mul, imax=maxint) # XXX doesn't work for long i???
 
-    def testDiv(self):
-        self.binaryCheck(operator.div, jmin=1)
+    #def testDiv(self):
+    #    self.binaryCheck(operator.div, jmin=1)
         
     def testFloorDiv(self):
         self.binaryCheck(operator.floordiv, jmin=1)

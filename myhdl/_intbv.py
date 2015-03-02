@@ -19,6 +19,7 @@
 
 """ Module with the intbv class """
 from __future__ import absolute_import
+from __future__ import division
 
 import operator
 
@@ -511,7 +512,7 @@ class intbv(object):
       '''
 
       # value is considered unsigned
-      if self.min >= 0 and self._nrbits > 0:
+      if self.min != None and self.min >= 0 and self._nrbits > 0:
 
         # get 2's complement value of bits
         msb = self._nrbits-1

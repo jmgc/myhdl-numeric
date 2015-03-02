@@ -28,6 +28,7 @@ negedge -- callable to model a falling edge on a signal in a yield statement
 """
 from __future__ import absolute_import
 from __future__ import print_function
+from __future__ import division
 
 from inspect import currentframe, getouterframes
 from copy import copy, deepcopy
@@ -511,11 +512,12 @@ class _Signal(object):
         return self._name
 
     # augmented assignment not supported
-    def _augm(self):
+    def _augm(self, val):
         raise TypeError("Signal object doesn't support augmented assignment")
 
     __iadd__ = __isub__ = __idiv__ = __imul__ = __ipow__ = __imod__ = _augm
     __ior__ = __iand__ = __ixor__ = __irshift__ = __ilshift__ = _augm
+    __ifloordiv__ = __itruediv__ = _augm
 
     # index and slice assignment not supported
     def __setitem__(self, key, val):

@@ -18,8 +18,7 @@
 #  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 
 """ Run the unit tests for Signal """
-from __future__ import absolute_import
-
+from __future__ import absolute_import, division
 
 import operator
 import random
@@ -176,10 +175,9 @@ class SigTest(TestCase):
         s1._posedgeWaiters = self.posedgeWaiters[:]
         s1._negedgeWaiters = self.negedgeWaiters[:]
         waiters = s1._update()
-        print(waiters)
         expected = self.eventWaiters + self.posedgeWaiters
-        waiters.sort()
-        expected.sort()
+        waiters.sort(key=lambda x: id(x))
+        expected.sort(key=lambda x: id(x))
         self.assertEqual(waiters, expected)
         self.assertEqual(s1._eventWaiters, [])
         self.assertEqual(s1._posedgeWaiters, [])
@@ -196,8 +194,8 @@ class SigTest(TestCase):
         s1._negedgeWaiters = self.negedgeWaiters[:]
         waiters = s1._update()
         expected = self.eventWaiters + self.negedgeWaiters
-        waiters.sort()
-        expected.sort()
+        waiters.sort(key=lambda x: id(x))
+        expected.sort(key=lambda x: id(x))
         self.assertEqual(waiters, expected)
         self.assertEqual(s1._eventWaiters, [])
         self.assertEqual(s1._posedgeWaiters, self.posedgeWaiters)
@@ -214,8 +212,8 @@ class SigTest(TestCase):
         s1._negedgeWaiters = self.negedgeWaiters[:]
         waiters = s1._update()
         expected = self.eventWaiters
-        waiters.sort()
-        expected.sort()
+        waiters.sort(key=lambda x: id(x))
+        expected.sort(key=lambda x: id(x))
         self.assertEqual(waiters, expected)
         self.assertEqual(s1._eventWaiters, [])
         self.assertEqual(s1._posedgeWaiters, self.posedgeWaiters)
@@ -368,7 +366,7 @@ class TestSignalAsNum(TestCase):
         self.binaryCheck(operator.mul, imax=maxint) # XXX doesn't work for long i???
 
     def testDiv(self):
-        self.binaryCheck(operator.div, jmin=1)
+        self.binaryCheck(operator.floordiv, jmin=1)
         
     def testMod(self):
         self.binaryCheck(operator.mod, jmin=1)
@@ -401,7 +399,7 @@ class TestSignalAsNum(TestCase):
         self.augmentedAssignCheck(operator.imul, imax=maxint) #XXX doesn't work for long i???
 
     def testIDiv(self):
-        self.augmentedAssignCheck(operator.idiv, jmin=1)
+        self.augmentedAssignCheck(operator.ifloordiv, jmin=1)
 
     def testIMod(self):
         self.augmentedAssignCheck(operator.imod, jmin=1)
