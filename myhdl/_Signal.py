@@ -460,6 +460,9 @@ class _Signal(object):
         
     # conversions
     
+    def __bool__(self):
+        return bool(self._val)
+    
     def __int__(self):
         return int(self._val)
         
