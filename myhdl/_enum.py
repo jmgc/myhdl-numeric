@@ -124,6 +124,8 @@ def enum(*names, **kwargs):
                 raise TypeError("Type mismatch in enum item comparison")
             return self is not other
 
+        def __hash__(self):
+            return int(self._val)
 
     class Enum(EnumType):
         def __init__(self, names, codedict, nrbits, encoding):
