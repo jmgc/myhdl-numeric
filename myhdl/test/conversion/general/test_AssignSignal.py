@@ -13,7 +13,7 @@ def bench_AssignSignal():
 
     @instance
     def stimulus():
-        a.next = 0
+        a.next = False
         b.next = 0
         yield delay(10)
         for i in range(len(b)):
@@ -28,3 +28,5 @@ def bench_AssignSignal():
 def test_AssignSignal():
     assert conversion.verify(bench_AssignSignal) == 0
 
+if __name__ == '__main__':
+    test_AssignSignal()

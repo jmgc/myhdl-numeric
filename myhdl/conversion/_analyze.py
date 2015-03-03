@@ -20,7 +20,7 @@
 """ MyHDL conversion analysis module.
 
 """
-from __future__ import absolute_import
+from __future__ import absolute_import, print_function
 
 import inspect
 # import compiler
@@ -46,7 +46,7 @@ from myhdl._Signal import _Signal, _WaiterList
 from myhdl._ShadowSignal import _ShadowSignal, _SliceSignal
 from myhdl._util import _isTupleOfInts, _dedent, _flatten
 from myhdl._resolverefs import _AttrRefTransformer
-from myhdl._compat import builtins, integer_types
+from myhdl._compat import builtins, integer_types, PY2
 
 myhdlObjects = myhdl.__dict__.values()
 builtinObjects = builtins.__dict__.values()
@@ -536,7 +536,9 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
                 self.raiseError(node, _error.ShadowingVar)
             obj = self.getObj(value)
             if obj is None:
-                self.raiseError(node, _error.TypeInfer, n)
+                obj = self.getValue(value)
+                if obj is None:
+                    self.raiseError(node, _error.TypeInfer, n)
             if isinstance(obj, intbv):
                 if len(obj) == 0:
                     self.raiseError(node, _error.IntbvBitWidth, n)
@@ -604,6 +606,9 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
         ### suprize: identity comparison on unbound methods doesn't work in python 2.5??
         elif f == intbv.signed:
             node.obj = int(-1)
+        elif f is print:
+            argsAreInputs = False
+            self.visit_Print(node)
         elif f in myhdlObjects:
             pass
         elif f in builtinObjects:
@@ -914,7 +919,13 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
         f = []
         nr = 0
         a = []
-        for n in node.values:
+        if PY2 and isinstance(node, ast.Print):
+            node_args = node.values
+            if (len(node_args) == 1) and isinstance(node_args[0], ast.Tuple):
+                node_args = node_args[0].elts
+        else:
+            node_args = node.args
+        for n in node_args:
             if isinstance(n, ast.BinOp) and isinstance(n.op, ast.Mod) and \
                isinstance(n.left, ast.Str):
                 if isinstance(n.right, ast.Tuple):
@@ -1023,7 +1034,8 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
         y = node.body[0]
         if isinstance(y, ast.Expr):
             y = y.value
-        if node.test.obj == True and \
+        if ((PY2 and (node.test.obj == True)) or \
+            ((not PY2) and (self.getObj(node.test) == True))) and \
            isinstance(y, ast.Yield) and \
            not self.tree.hasYield > 1 and \
            not isinstance(self.getObj(y.value), delay):

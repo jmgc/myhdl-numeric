@@ -52,8 +52,9 @@ from myhdl.conversion._analyze import (_analyzeSigs, _analyzeGens, _analyzeTopFu
 from myhdl._Signal import _Signal,_WaiterList
 from myhdl.conversion._toVHDLPackage import _package
 from myhdl._util import  _flatten
-from myhdl._compat import integer_types, class_types, StringIO
+from myhdl._compat import integer_types, class_types, StringIO, PY2
 
+from collections import Callable
 
 _version = myhdl.__version__.replace('.','')
 _shortversion = _version.replace('dev','')
@@ -124,7 +125,7 @@ class _ToVHDLConvertor(object):
         from myhdl import _traceSignals
         if _traceSignals._tracing:
             raise ToVHDLError("Cannot use toVHDL while tracing signals")
-        if not callable(func):
+        if not isinstance(func, Callable):
             raise ToVHDLError(_error.FirstArgType, "got %s" % type(func))
 
         _converting = 1
@@ -366,7 +367,7 @@ def _writeConstants(f):
 def _writeTypeDefs(f):
     f.write("\n")
     sortedList = list(_enumTypeSet)
-    sortedList.sort(cmp=lambda a, b: cmp(a._name, b._name))
+    sortedList.sort(key=lambda a: a._name)
     for t in sortedList:
         f.write("%s\n" % t._toVHDL())
     f.write("\n")
@@ -756,6 +757,15 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
         self.write(")")
 
     def visit_UnaryOp(self, node):
+        if isinstance(node.op, ast.USub):
+            if isinstance(node.operand, ast.Num):
+                n = node.operand.n
+                newnode = copy(node.operand)
+                newnode.n = -n
+                newnode.vhd = node.vhd
+                newnode.vhdOri = node.vhdOri
+                self.visit(newnode)
+                return
         pre, suf = self.inferCast(node.vhd, node.vhdOri)
         self.write(pre)
         self.write("(")
@@ -920,7 +930,13 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
         self.write("exit;")
 
     def visit_Call(self, node):
-        fn = node.func
+        if isinstance(node.func, ast.Name):
+            fn = node.func
+            if fn.id == 'print':
+                self.visit_Print(node)
+                return
+        else:
+            fn = node.func
         # assert isinstance(fn, astNode.Name)
         f = self.getObj(fn)
         fname = ''
@@ -1132,16 +1148,20 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
         if start is None:
             self.write("0")
         else:
+            self.write("integer(")
             self.visit(start)
             if f is downrange:
                 self.write("-1")
+            self.write(")")
         self.write(" %s " % op)
+        self.write("integer(")
         if stop is None:
             self.write("0")
         else:
             self.visit(stop)
             if f is range:
                 self.write("-1")
+        self.write(")")
         self.write(" loop")
         self.indent()
         self.visit_stmt(node.body)
@@ -1246,11 +1266,17 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
         else:
             self.getName(node)
 
+    def visit_NameConstant(self, node):
+        self.getName(node)
+
     def setName(self, node):
         self.write(node.id)
 
     def getName(self, node):
-        n = node.id
+        if (not PY2) and isinstance(node, ast.NameConstant):
+            n = str(node.value)
+        else:
+            n = node.id
         if n == 'False':
             if isinstance(node.vhd, vhd_std_logic):
                 s = "'0'"
@@ -1972,7 +1998,7 @@ def inferVhdlObj(obj):
     if (isinstance(obj, _Signal) and obj._type is intbv) or \
        isinstance(obj, intbv):
         ls = getattr(obj, 'lenStr', False)
-        if obj.min < 0:
+        if obj.min == None or obj.min < 0:
             vhd = vhd_signed(size=len(obj), lenStr=ls)
         else:
             vhd = vhd_unsigned(size=len(obj), lenStr=ls)
@@ -2102,6 +2128,10 @@ class _AnnotateTypesVisitor(ast.NodeVisitor, _ConversionMixin):
         if node.id in self.tree.vardict:
             node.obj = self.tree.vardict[node.id]
         node.vhd = inferVhdlObj(node.obj)
+        node.vhdOri = copy(node.vhd)
+
+    def visit_NameConstant(self, node):
+        node.vhd = inferVhdlObj(node.value)
         node.vhdOri = copy(node.vhd)
 
     def visit_BinOp(self, node):

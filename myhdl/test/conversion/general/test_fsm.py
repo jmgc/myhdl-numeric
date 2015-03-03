@@ -71,12 +71,12 @@ def FSMBench(FramerCtrl, t_State):
 
     @instance
     def clkgen():
-        clk.next = 0
-        reset_n.next = 1
+        clk.next = False
+        reset_n.next = True
         yield delay(10)
-        reset_n.next = 0
+        reset_n.next = False
         yield delay(10)
-        reset_n.next = 1
+        reset_n.next = True
         yield delay(10)
         for i in range(1000):
             yield delay(10)
@@ -112,3 +112,5 @@ def FSMBench(FramerCtrl, t_State):
 def test():
     assert verify(FSMBench, FramerCtrl, t_State_b) == 0
 
+if __name__ == '__main__':
+    test()
