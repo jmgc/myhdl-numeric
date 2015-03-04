@@ -140,7 +140,7 @@ def binaryBench(Ll, Ml, Lr, Mr):
 
     @instance
     def check():
-        while 1:
+        while True:
             yield left, right
             aBit.next = not aBit
             yield delay(1)
