@@ -414,6 +414,9 @@ class intbv(object):
         else:
             return type(self)(~self._val)
     
+    def __bool__(self):
+        return bool(self._val)
+
     def __int__(self):
         return int(self._val)
         

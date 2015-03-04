@@ -1240,6 +1240,8 @@ class _AnalyzeFuncVisitor(_AnalyzeVisitor):
             obj = None
         elif isinstance(node.value, ast.Name) and node.value.id == 'None':
             obj = None
+        elif (not PY2) and isinstance(node.value, ast.NameConstant):
+            obj = node.value.value
         elif node.value.obj is not None:
             obj = node.value.obj
         else:

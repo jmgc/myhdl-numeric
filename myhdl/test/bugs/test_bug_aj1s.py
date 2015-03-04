@@ -1,4 +1,5 @@
 from __future__ import absolute_import
+from __future__ import print_function
 from myhdl import *
 from myhdl.conversion import verify
 
@@ -11,7 +12,7 @@ def dut():
         count.next = 50
         for i in range(300):
             yield delay(10)
-            print count
+            print(count)
             if count-1 < 0:
                count.next = 97
             else:

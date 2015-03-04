@@ -3,6 +3,7 @@
 """Failed VHDL code example
 """
 from __future__ import absolute_import
+from __future__ import print_function
 
 from myhdl import *
 from myhdl.conversion import verify
@@ -34,7 +35,7 @@ def Logic(flags, position):
         yield delay(10)
         conc.next = concat(flags, position)
         yield delay(10)
-        print conc 
+        print(conc) 
     return doit
 
 def test_issue_10_2():
