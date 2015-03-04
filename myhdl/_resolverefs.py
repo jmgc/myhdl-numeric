@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 import ast
+from types import FunctionType
+
 from myhdl._util import _flatten, _makeAST, _genfunc
 from myhdl._enum import EnumType
 from myhdl._Signal import SignalType
@@ -43,7 +45,7 @@ class _AttrRefTransformer(ast.NodeTransformer):
 
         obj = self.data.symdict[node.value.id]
         #Don't handle enums, handle signals as long as it a new attribute
-        if isinstance(obj, EnumType):
+        if isinstance(obj, (EnumType, FunctionType)):
             return node
         elif isinstance(obj, SignalType):
             if hasattr(SignalType, node.attr):
