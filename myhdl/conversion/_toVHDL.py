@@ -276,7 +276,7 @@ def _writeCustomPackage(f, intf):
     print("attribute enum_encoding: string;", file=f)
     print(file=f)
     sortedList = list(_enumPortTypeSet)
-    sortedList.sort(cmp=lambda a, b: cmp(a._name, b._name))
+    sortedList.sort(key=lambda a: a._name)
     for t in sortedList:
         print("    %s" % t._toVHDL(), file=f)
     print(file=f)
@@ -414,7 +414,7 @@ def _writeSigDecls(f, intf, siglist, memlist):
         r = _getRangeString(m.elObj)
         p = _getTypeString(m.elObj)
         t = "t_array_%s" % m.name
-        print("type %s is array(0 to %s-1) of %s%s;" % (t, m.depth, p, r), file=f)
+        print("type %s is array(0 to %s) of %s%s;" % (t, m.depth - 1, p, r), file=f)
         print("signal %s: %s;" % (m.name, t), file=f)
     print(file=f)
 
@@ -623,7 +623,7 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
         elif isinstance(obj, _Ram):
             tipe = "t_array_%s" % name
             elt = inferVhdlObj(obj.elObj).toStr(True)
-            self.write("type %s is array(0 to %s-1) of %s;" % (tipe, obj.depth, elt))
+            self.write("type %s is array(0 to %s) of %s;" % (tipe, obj.depth - 1, elt))
             self.writeline()
         else:
             vhd = inferVhdlObj(obj)
@@ -1446,12 +1446,12 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
         if lower is None and upper is None:
             self.write(suf)
             return
-        self.write("(")
+        self.write("((")
         if lower is None:
-            self.write("%s" % node.obj._nrbits)
+            self.write("%s" % (node.obj._nrbits - 1))
         else:
             self.visit(lower)
-        self.write("-1 downto ")
+        self.write("-1) downto ")
         if upper is None:
             self.write("0")
         else:
@@ -1946,7 +1946,7 @@ class vhd_unsigned(vhd_vector):
         if constr:
             ls = self.lenStr
             if ls:
-                return "unsigned(%s-1 downto 0)" % ls
+                return "unsigned(%s downto 0)" % (ls-1)
             else:
                 return "unsigned(%s downto 0)" % (self.size-1)
         else:
@@ -1957,7 +1957,7 @@ class vhd_signed(vhd_vector):
         if constr:
             ls = self.lenStr
             if ls:
-                return "signed(%s-1 downto 0)" % ls
+                return "signed(%s downto 0)" % (ls-1)
             else:
                 return "signed(%s downto 0)" % (self.size-1)
         else:

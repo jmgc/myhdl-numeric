@@ -205,9 +205,9 @@ class  _VerificationClass(object):
             pass
 
         s = "".join(g)
-        f = open(MyHDLLog, 'w')
-        g = open(HDLLog, 'w')
-        d = open('diff.log', 'w')
+        f = open(MyHDLLog, 'w+')
+        g = open(HDLLog, 'w+')
+        d = open('diff.log', 'w+')
         f.writelines(flines)
         g.writelines(glines)
         d.write(s)

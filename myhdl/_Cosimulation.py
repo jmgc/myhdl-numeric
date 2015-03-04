@@ -20,6 +20,7 @@
 """ Module that provides the Cosimulation class """
 from __future__ import absolute_import
 
+from ._compat import PY2, long
 
 import sys
 import os
@@ -54,6 +55,12 @@ class Cosimulation(object):
         self._rt, self._wt = rt, wt = os.pipe()
         self._rf, self._wf = rf, wf = os.pipe()
 
+        if not PY2:
+            os.set_inheritable(rt, True)
+            os.set_inheritable(wt, True)
+            os.set_inheritable(rf, True)
+            os.set_inheritable(wf, True)
+
         self._fromSignames = fromSignames = []
         self._fromSizes = fromSizes = []
         self._fromSigs = fromSigs = []
@@ -68,6 +75,9 @@ class Cosimulation(object):
         child_pid = self._child_pid = os.fork()
 
         if child_pid == 0:
+            if not PY2:
+                os.set_inheritable(rt, False)
+                os.set_inheritable(wf, False)
             os.close(rt)
             os.close(wf)
             os.environ['MYHDL_TO_PIPE'] = str(wt)
@@ -81,12 +91,17 @@ class Cosimulation(object):
             except OSError as e:
                 raise CosimulationError(_error.OSError, str(e))
         else:
+            if not PY2:
+                os.set_inheritable(wt, False)
+                os.set_inheritable(rf, False)
             os.close(wt)
             os.close(rf)
             while 1:
                 s = os.read(rt, _MAXLINE)
                 if not s:
                     raise CosimulationError(_error.SimulationEnd)
+                if not PY2:
+                    s = str(s, encoding='ascii')
                 e = s.split()
                 if e[0] == "FROM":
                     if long(e[1]) != 0:
@@ -100,7 +115,7 @@ class Cosimulation(object):
                         fromSignames.append(n)
                         fromSigs.append(kwargs[n])
                         fromSizes.append(int(e[i+1]))
-                    os.write(wf, "OK")
+                    os.write(wf, b"OK")
                 elif e[0] == "TO":
                     if long(e[1]) != 0:
                         raise CosimulationError(_error.TimeZero, "$to_myhdl")
@@ -114,11 +129,11 @@ class Cosimulation(object):
                         toSigs.append(kwargs[n])
                         toSigDict[n] = kwargs[n]
                         toSizes.append(int(e[i+1]))
-                    os.write(wf, "OK")
+                    os.write(wf, b"OK")
                 elif e[0] == "START":
                     if not toSignames:
                         raise CosimulationError(_error.NoCommunication)
-                    os.write(wf, "OK")
+                    os.write(wf, b"OK")
                     break
                 else:
                     raise CosimulationError("Unexpected cosim input")
@@ -129,6 +144,8 @@ class Cosimulation(object):
         buf = os.read(self._rt, _MAXLINE)
         if not buf:
             raise CosimulationError(_error.SimulationEnd)
+        if not PY2:
+            buf = str(buf, encoding='ascii')
         e = buf.split()
         for i in range(1, len(e), 2):
             s, v = self._toSigDict[e[i]], e[i+1]
@@ -160,7 +177,12 @@ class Cosimulation(object):
                 if buf[-1] == 'L':
                     buf = buf[:-1] # strip trailing L
                 buflist.append(buf)
-        os.write(self._wf, " ".join(buflist))
+        
+        msg = " ".join(buflist)
+        if not PY2:
+            msg = bytes(msg, encoding='ascii')
+
+        os.write(self._wf, msg)
         self._getMode = 1
 
     def _waiter(self):

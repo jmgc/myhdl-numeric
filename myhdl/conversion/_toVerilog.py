@@ -39,7 +39,7 @@ import warnings
 
 import myhdl
 from myhdl import *
-from myhdl._compat import integer_types, class_types
+from myhdl._compat import integer_types, class_types, PY2
 from myhdl import ToVerilogError, ToVerilogWarning
 from myhdl._extractHierarchy import (_HierExtr, _isMem, _getMemInfo,
                                      _UserVerilogCode, _userCodeMap)
@@ -51,6 +51,7 @@ from myhdl.conversion._analyze import (_analyzeSigs, _analyzeGens, _analyzeTopFu
                                        _Ram, _Rom)
 from myhdl._Signal import _Signal
 
+from collections import Callable
 
 _converting = 0
 _profileFunc = None
@@ -120,7 +121,7 @@ class _ToVerilogConvertor(object):
         from myhdl import _traceSignals
         if _traceSignals._tracing:
             raise ToVerilogError("Cannot use toVerilog while tracing signals")
-        if not callable(func):
+        if not isinstance(func, Callable):
             raise ToVerilogError(_error.FirstArgType, "got %s" % type(func))
 
         _converting = 1
@@ -550,6 +551,10 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
         self.write(senslist[-1]._toVerilog())
         self.write(")")
 
+    def visit_NameConstant(self, node):
+        node.vhd = inferVhdlObj(node.value)
+        node.vhdOri = copy(node.vhd)
+
     def visit_BinOp(self, node):
         if isinstance(node.op, ast.Mod) and self.context == _context.PRINT:
             self.visit(node.left)
@@ -707,7 +712,13 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
 
     def visit_Call(self, node):
         self.context = None
-        fn = node.func
+        if isinstance(node.func, ast.Name):
+            fn = node.func
+            if fn.id == 'print':
+                self.visit_Print(node)
+                return
+        else:
+            fn = node.func
         # assert isinstance(fn, astNode.Name)
         f = self.getObj(fn)
         opening, closing = '(', ')'
@@ -982,13 +993,21 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
         else:
             self.getName(node)
 
+    def visit_NameConstant(self, node):
+        self.getName(node)
+
     def setName(self, node):
         self.write(node.id)
 
     def getName(self, node):
         addSignBit = False
-        isMixedExpr = (not node.signed) and (self.context == _context.SIGNED)
-        n = node.id
+        if (not PY2) and isinstance(node, ast.NameConstant):
+            n = str(node.value)
+            isMixedExpr = False
+        else:
+            isMixedExpr = (not node.signed) and \
+                    (self.context == _context.SIGNED)
+            n = node.id
         if n == 'False':
             s = "1'b0"
         elif n == 'True':
