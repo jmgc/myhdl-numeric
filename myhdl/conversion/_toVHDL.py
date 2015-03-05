@@ -974,9 +974,15 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
             pre, post = "", ""
             arg = node.args[0]
             if isinstance(node.vhd, vhd_unsigned):
-                pre, post = "to_unsigned(", ", %s)" % node.vhd.size
+                if isinstance(arg.vhdOri, vhd_unsigned):
+                    pre, post = "resize(", ", %s)" % node.vhd.size
+                else:
+                    pre, post = "to_unsigned(", ", %s)" % node.vhd.size
             elif isinstance(node.vhd, vhd_signed):
-                pre, post = "to_signed(", ", %s)" % node.vhd.size
+                if isinstance(arg.vhd, vhd_signed):
+                    pre, post = "resize(", ", %s)" % node.vhd.size
+                else:
+                    pre, post = "to_signed(", ", %s)" % node.vhd.size
             self.write(pre)
             self.visit(arg)
             self.write(post)
@@ -1201,13 +1207,8 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
             else:
                 itemRepr = self.BitRepr(item, obj)
             comment = ""
-            # potentially use default clause for last test
-            if (i == len(node.tests)-1) and not node.else_:
-                self.write("when others")
-                comment = " -- %s" % itemRepr
-            else:
-                self.write("when ")
-                self.write(itemRepr)
+            self.write("when ")
+            self.write(itemRepr)
             self.write(" =>%s" % comment)
             self.indent()
             self.visit_stmt(suite)
@@ -1217,6 +1218,13 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
             self.write("when others =>")
             self.indent()
             self.visit_stmt(node.else_)
+            self.dedent()
+        else:
+            self.writeline()
+            self.write("when others =>")
+            self.indent()
+            self.writeline()
+            self.write("null;")
             self.dedent()
         self.dedent()
         self.writeline()
