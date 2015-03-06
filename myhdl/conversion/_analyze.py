@@ -443,16 +443,16 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
         self.kind = _kind.NORMAL
 
     def _add_sub_size(self, node, l, r):
-        node.obj = l + r
+        node.obj = abs(l) + abs(r)
 
     def _div_size(self, node, l, r):
-        node.obj = l // r
+        node.obj = abs(l) // abs(r)
 
     def _mod_size(self, node, l, r):
-        node.obj = l % r
+        node.obj = abs(l) % abs(r)
 
     def _mul_size(self, node, l, r):
-        node.obj = l * r
+        node.obj = abs(l) * abs(r)
         
     def visit_BinOp(self, node):
         self.visit(node.left)
@@ -465,9 +465,9 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
             r = r._val
         if isinstance(node.op, (ast.Add, ast.Sub)):
             self._add_sub_size(node, l, r)
-        elif isinstance(node.op, (ast.FloorDiv, ast.Mod)):
+        elif isinstance(node.op, ast.FloorDiv):
             self._div_size(node, l, r)
-        elif isinstance(node.op, (ast.FloorDiv, ast.Mod)):
+        elif isinstance(node.op, ast.Mod):
             self._mod_size(node, l, r)
         elif isinstance(node.op, ast.Mult):
             self._mul_size(node, l, r)
