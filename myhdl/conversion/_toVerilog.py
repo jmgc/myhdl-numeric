@@ -551,10 +551,6 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
         self.write(senslist[-1]._toVerilog())
         self.write(")")
 
-    def visit_NameConstant(self, node):
-        node.vhd = inferVhdlObj(node.value)
-        node.vhdOri = copy(node.vhd)
-
     def visit_BinOp(self, node):
         if isinstance(node.op, ast.Mod) and self.context == _context.PRINT:
             self.visit(node.left)
