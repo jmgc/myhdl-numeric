@@ -285,8 +285,6 @@ class _Signal(object):
             val = val._val
         elif not isinstance(val, integer_types):
             raise TypeError("Expected int or intbv, got %s" % type(val))
-#        if self._next is self._val:
-#            self._next = type(self._val)(self._val)
         self._next._val = val
         self._next._handleBounds()
 

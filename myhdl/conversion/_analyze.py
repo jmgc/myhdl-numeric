@@ -641,6 +641,8 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
             self.visit_Print(node)
         elif f in myhdlObjects:
             pass
+        elif f is repr:
+            self.raiseError(node, _error.NotSupported, "backquote")
         elif f in builtinObjects:
             pass
         elif type(f) is FunctionType:
