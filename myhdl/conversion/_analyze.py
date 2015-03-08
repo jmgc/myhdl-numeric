@@ -457,20 +457,23 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
     def visit_BinOp(self, node):
         self.visit(node.left)
         self.visit(node.right)
-        l = node.left.obj
-        if isinstance(l, _Signal):
-            l = l._val
-        r = node.right.obj
-        if isinstance(r, _Signal):
-            r = r._val
-        if isinstance(node.op, (ast.Add, ast.Sub)):
-            self._add_sub_size(node, l, r)
-        elif isinstance(node.op, ast.FloorDiv):
-            self._div_size(node, l, r)
-        elif isinstance(node.op, ast.Mod):
-            self._mod_size(node, l, r)
-        elif isinstance(node.op, ast.Mult):
-            self._mul_size(node, l, r)
+        if hasattr(node.left, 'obj') and hasattr(node.right, 'obj'):
+            l = node.left.obj
+            if isinstance(l, _Signal):
+                l = l._val
+            r = node.right.obj
+            if isinstance(r, _Signal):
+                r = r._val
+            if isinstance(node.op, (ast.Add, ast.Sub)):
+                self._add_sub_size(node, l, r)
+            elif isinstance(node.op, ast.FloorDiv):
+                self._div_size(node, l, r)
+            elif isinstance(node.op, ast.Mod):
+                self._mod_size(node, l, r)
+            elif isinstance(node.op, ast.Mult):
+                self._mul_size(node, l, r)
+            else:
+                node.obj = int(-1)
         else:
             node.obj = int(-1)
 
