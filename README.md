@@ -2,7 +2,7 @@ MyHDL 0.9
 =========
 
 [![Documentation Status](https://readthedocs.org/projects/myhdl/badge/?version=master)](http://docs.myhdl.org/en/latest/manual)
-[![Build Status](https://travis-ci.org/jandecaluwe/myhdl.svg?branch=master)](https://travis-ci.org/jandecaluwe/myhdl)
+[![Build Status](https://travis-ci.org/jmgc/myhdl.svg?branch=py3)](https://travis-ci.org/jmgc/myhdl)
 
 What is MyHDL?
 --------------
