@@ -621,6 +621,8 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
                     pass
                 elif isinstance(curObj, type(obj)):
                     self.tree.vardict[n] = obj
+                elif isinstance(obj, integer_types) and isinstance(curObj, bool):
+                    self.tree.vardict[n] = obj
                 else:
                     self.raiseError(node, _error.TypeMismatch, n)
                 if getNrBits(obj) != getNrBits(curObj):
