@@ -46,7 +46,7 @@ from myhdl._Signal import _Signal, _WaiterList
 from myhdl._ShadowSignal import _ShadowSignal, _SliceSignal
 from myhdl._util import _isTupleOfInts, _dedent, _flatten
 from myhdl._resolverefs import _AttrRefTransformer
-from myhdl._compat import builtins, integer_types, PY2, ast_parse, long
+from myhdl._compat import builtins, integer_types, string_types, PY2, ast_parse, long
 
 myhdlObjects = myhdl.__dict__.values()
 builtinObjects = builtins.__dict__.values()
@@ -440,7 +440,11 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
         self.kind = _kind.NORMAL
 
     def _add_sub_size(self, node, l, r):
-        node.obj = abs(l) + abs(r)
+        result = abs(l) + abs(r)
+        if isinstance(result, integer_types):
+            node.obj = long(-1)
+        else:
+            node.obj = result
 
     def _div_size(self, node, l, r):
         if r == 0:
@@ -454,7 +458,11 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
                 r_obj = r
         else:
             r_obj = r
-        node.obj = l // r_obj
+        result = l // r_obj
+        if isinstance(result, integer_types):
+            node.obj = long(-1)
+        else:
+            node.obj = result
 
     def _mod_size(self, node, l, r):
         if r == 0:
@@ -468,10 +476,18 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
                 r_obj = r
         else:
             r_obj = r
-        node.obj = l % r_obj
+        result = l % r_obj
+        if isinstance(result, integer_types):
+            node.obj = long(-1)
+        else:
+            node.obj = result
 
     def _mul_size(self, node, l, r):
-        node.obj = abs(l) * abs(r)
+        result = abs(l) * abs(r)
+        if isinstance(result, integer_types):
+            node.obj = long(-1)
+        else:
+            node.obj = result
         
     def visit_BinOp(self, node):
         self.visit(node.left)
@@ -488,7 +504,7 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
                 self._add_sub_size(node, l, r)
             elif isinstance(node.op, ast.FloorDiv):
                 self._div_size(node, l, r)
-            elif isinstance(node.op, ast.Mod):
+            elif (not isinstance(l, string_types)) and isinstance(node.op, ast.Mod):
                 self._mod_size(node, l, r)
             elif isinstance(node.op, ast.Mult):
                 self._mul_size(node, l, r)
