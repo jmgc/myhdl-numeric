@@ -20,7 +20,7 @@
 """ MyHDL conversion analysis module.
 
 """
-from __future__ import absolute_import, print_function
+from __future__ import absolute_import, print_function, division
 
 import inspect
 # import compiler
@@ -46,7 +46,7 @@ from myhdl._Signal import _Signal, _WaiterList
 from myhdl._ShadowSignal import _ShadowSignal, _SliceSignal
 from myhdl._util import _isTupleOfInts, _dedent, _flatten
 from myhdl._resolverefs import _AttrRefTransformer
-from myhdl._compat import builtins, integer_types, PY2
+from myhdl._compat import builtins, integer_types, PY2, ast_parse, long
 
 myhdlObjects = myhdl.__dict__.values()
 builtinObjects = builtins.__dict__.values()
@@ -194,7 +194,7 @@ def _analyzeGens(top, absnames):
             f = g.gen.gi_frame
             s = inspect.getsource(f)
             s = _dedent(s)
-            tree = ast.parse(s)
+            tree = ast_parse(s)
             # print ast.dump(tree)
             tree.sourcefile = inspect.getsourcefile(f)
             tree.lineoffset = inspect.getsourcelines(f)[1]-1
@@ -352,9 +352,6 @@ class _FirstPassVisitor(ast.NodeVisitor, _ConversionMixin):
             self.raiseError(node, _error.NotSupported, "printing without newline")
 
 
-
-
-
 def getNrBits(obj):
     if hasattr(obj, '_nrbits'):
         return obj._nrbits
@@ -446,10 +443,32 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
         node.obj = abs(l) + abs(r)
 
     def _div_size(self, node, l, r):
-        node.obj = abs(l) // abs(r)
+        if r == 0:
+            if isinstance(r, intbv):
+                if r.max != 0:
+                    r_val = r.max
+                else:
+                    r_val = r.min
+                r_obj = type(r)(r_val, r)
+            else:
+                r_obj = r
+        else:
+            r_obj = r
+        node.obj = l // r_obj
 
     def _mod_size(self, node, l, r):
-        node.obj = abs(l) % abs(r)
+        if r == 0:
+            if isinstance(r, intbv):
+                if r.max != 0:
+                    r_val = r.max
+                else:
+                    r_val = r.min
+                r_obj = type(r)(r_val, r)
+            else:
+                r_obj = r
+        else:
+            r_obj = r
+        node.obj = l % r_obj
 
     def _mul_size(self, node, l, r):
         node.obj = abs(l) * abs(r)
@@ -457,6 +476,7 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
     def visit_BinOp(self, node):
         self.visit(node.left)
         self.visit(node.right)
+        # Not compatible with collections
         if hasattr(node.left, 'obj') and hasattr(node.right, 'obj'):
             l = node.left.obj
             if isinstance(l, _Signal):
@@ -473,9 +493,9 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
             elif isinstance(node.op, ast.Mult):
                 self._mul_size(node, l, r)
             else:
-                node.obj = int(-1)
+                node.obj = long(-1)
         else:
-            node.obj = int(-1)
+            node.obj = long(-1)
 
     def visit_BoolOp(self, node):
         for n in node.values:
@@ -491,10 +511,8 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
         node.obj = node.operand.obj
         if isinstance(op, ast.Not):
             node.obj = bool()
-        elif isinstance(op, ast.UAdd):
-            node.obj = int(-1)
-        elif isinstance(op, ast.USub):
-            node.obj = int(-1)
+        elif isinstance(op, (ast.UAdd, ast.USub, ast.Invert)):
+            node.obj = long(-1)
 
     def visit_Attribute(self, node):
         if isinstance(node.ctx, ast.Store):
@@ -638,12 +656,20 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
             node.obj = int(-1)
         elif f is print:
             argsAreInputs = False
+            if hasattr(node, 'keywords'):
+                for keyword in node.keywords:
+                    if keyword.arg =='file':
+                        self.raiseError(node, _error.NotSupported, 'print to file with file= syntax')
+                    elif keyword.arg =='end':
+                        self.raiseError(node, _error.NotSupported, 'print end keyword not support')
             self.visit_Print(node)
         elif f in myhdlObjects:
             pass
         elif f is repr:
-            self.raiseError(node, _error.NotSupported, "backquote")
+            self.raiseError(node, _error.NotSupported, "backquote or repr")
         elif f in builtinObjects:
+            if f.__name__ == "exec":
+                self.raiseError(node, _error.NotSupported, "exec function")
             pass
         elif type(f) is FunctionType:
             argsAreInputs = False
@@ -728,7 +754,7 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
         node.value = n
         if n in (0, 1):
             node.obj = bool(n)
-        elif isinstance(n, int):
+        elif isinstance(n, integer_types):
             node.obj = n
         else:
             node.obj = None
@@ -923,7 +949,7 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
                     _constDict[ws] = self.tree.symdict[ws]
                     if ext:
                         _extConstDict[ws] = self.tree.symdict[ws]
-            elif isinstance(node.obj, int):
+            elif isinstance(node.obj, integer_types):
                 node.value = node.obj
                 # put VHDL compliant integer constants in global dict
                 if n not in _constDict and abs(node.obj) < 2**31:
@@ -1052,6 +1078,9 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
 
     def visit_Tuple(self, node):
         self.generic_visit(node)
+
+    def visit_Try(self, node):
+        self.raiseError(node, _error.NotSupported, "try statement")
 
     def visit_While(self, node):
         node.breakLabel = _Label("BREAK")

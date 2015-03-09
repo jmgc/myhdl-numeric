@@ -1,4 +1,6 @@
 from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
 import os
 path = os.path
 import unittest
@@ -226,6 +228,8 @@ def Infer2(a, out):
             c = not a
             c = True
             c = 5
+            c = not intbv(4)[4:]
+            c = bool(intbv(4)[4:]) and 1
             out.next = c
     return logic
 
@@ -273,11 +277,11 @@ def Infer5(a, out):
             c = + a
             c = -( - a)
             c = ~(-3)
-            c = not a
+            #c = not a
             c = 5 & 4
             c = 5 | 2
             c = 6 ^ 3
-            c = bool(a) and 1
+            #c = bool(a) and 1
             out.next = c
     return logic
 

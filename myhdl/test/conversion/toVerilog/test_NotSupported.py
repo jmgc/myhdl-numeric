@@ -111,7 +111,7 @@ class TestNotSupported(unittest.TestCase):
                 while 1:
                     yield a
                     z.next = 1
-                    exec("1 + 2", globals , locals)
+                    exec("1 + 2", globals() , locals())
             return logic
         self.check(g, z, a)
 

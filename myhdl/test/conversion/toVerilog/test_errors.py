@@ -214,7 +214,7 @@ def printToFile(count, enable, clock, reset, n):
                 count.next = 0
             else:
                 if enable:
-                    print(count, file=f)
+                    print(count, end='')
                     count.next = count + 1
     return logic
 

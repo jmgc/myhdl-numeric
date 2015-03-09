@@ -141,7 +141,7 @@ class _ToVerilogConvertor(object):
 
         vfilename = name + ".v"
         vpath = os.path.join(directory, vfilename)
-        vfile = open(vpath, 'w')
+        vfile = open(vpath, 'w+')
 
         ### initialize properly ###
         _genUniqueSuffix.reset()
@@ -170,7 +170,7 @@ class _ToVerilogConvertor(object):
         # don't write testbench if module has no ports
         if len(intf.argnames) > 0 and not toVerilog.no_testbench:
             tbpath = os.path.join(directory, "tb_" + vfilename)
-            tbfile = open(tbpath, 'w')
+            tbfile = open(tbpath, 'w+')
             _writeTestBench(tbfile, intf, self.trace)
             tbfile.close()
 
@@ -500,7 +500,7 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
         if dir: dir = dir + ' '
         if type(obj) is bool:
             self.write("%s%s" % (dir, name))
-        elif isinstance(obj, int):
+        elif isinstance(obj, integer_types):
             if dir == "input ":
                 self.write("input %s;" % name)
                 self.writeline()

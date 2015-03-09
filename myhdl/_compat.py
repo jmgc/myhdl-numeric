@@ -1,5 +1,8 @@
+from __future__ import print_function
+from __future__ import division
 import sys
 import types
+from ast import PyCF_ONLY_AST
 
 PY2 = sys.version_info[0] == 2
 
@@ -20,3 +23,7 @@ else:
 
     from cStringIO import StringIO
     import __builtin__ as builtins
+
+def ast_parse(s):
+     return compile(s, '<string>', 'exec', \
+                    print_function.compiler_flag|division.compiler_flag|PyCF_ONLY_AST)
