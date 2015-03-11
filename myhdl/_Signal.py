@@ -346,6 +346,7 @@ class _Signal(object):
             return self._val + other._val
         else:
             return self._val + other
+
     def __radd__(self, other):
         return other + self._val
     
@@ -354,6 +355,7 @@ class _Signal(object):
             return self._val - other._val
         else:
             return self._val - other
+
     def __rsub__(self, other):
         return other - self._val
 
@@ -362,30 +364,25 @@ class _Signal(object):
             return self._val * other._val
         else:
             return self._val * other
+
     def __rmul__(self, other):
         return other * self._val
 
-    def __div__(self, other):
+    def __truediv__(self, other):
         if isinstance(other, _Signal):
             return self._val / other._val
         else:
             return self._val / other
-    def __rdiv__(self, other):
-        return other / self._val
-    
-    def __truediv__(self, other):
-        if isinstance(other, _Signal):
-            return operator.truediv(self._val, other._val)
-        else:
-            return operator.truediv(self._val, other)
+
     def __rtruediv__(self, other):
-        return operator.truediv(other, self._val)
+        return other / self._val
     
     def __floordiv__(self, other):
         if isinstance(other, _Signal):
             return self._val // other._val
         else:
             return self._val // other
+
     def __rfloordiv__(self, other):
         return other //  self._val
     
@@ -394,6 +391,7 @@ class _Signal(object):
             return self._val % other._val
         else:
             return self._val % other
+
     def __rmod__(self, other):
         return other % self._val
 
@@ -404,6 +402,7 @@ class _Signal(object):
             return self._val ** other._val
         else:
             return self._val ** other
+
     def __rpow__(self, other):
         return other ** self._val
 
@@ -412,6 +411,7 @@ class _Signal(object):
             return self._val << other._val
         else:
             return self._val << other
+
     def __rlshift__(self, other):
         return other << self._val
             
@@ -420,6 +420,7 @@ class _Signal(object):
             return self._val >> other._val
         else:
             return self._val >> other
+
     def __rrshift__(self, other):
         return other >> self._val
            
@@ -428,6 +429,7 @@ class _Signal(object):
             return self._val & other._val
         else:
             return self._val & other
+
     def __rand__(self, other):
         return other & self._val
 
@@ -436,6 +438,7 @@ class _Signal(object):
             return self._val | other._val
         else:
             return self._val | other
+
     def __ror__(self, other):
         return other | self._val
     
@@ -444,6 +447,7 @@ class _Signal(object):
             return self._val ^ other._val
         else:
             return self._val ^ other
+
     def __rxor__(self, other):
         return other ^ self._val
     
@@ -516,9 +520,9 @@ class _Signal(object):
     def _augm(self, val):
         raise TypeError("Signal object doesn't support augmented assignment")
 
-    __iadd__ = __isub__ = __idiv__ = __imul__ = __ipow__ = __imod__ = _augm
+    __iadd__ = __isub__ = __imul__ = __ipow__ = __imod__ = _augm
     __ior__ = __iand__ = __ixor__ = __irshift__ = __ilshift__ = _augm
-    __ifloordiv__ = __itruediv__ = _augm
+    __itruediv__ = __ifloordiv__ = _augm
 
     # index and slice assignment not supported
     def __setitem__(self, key, val):

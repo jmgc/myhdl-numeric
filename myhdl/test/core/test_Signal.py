@@ -359,9 +359,9 @@ class TestSignalAsNum(TestCase):
     def testMul(self):
         self.binaryCheck(operator.mul, imax=maxint) # XXX doesn't work for long i???
 
-    def testDiv(self):
+    def testFloorDiv(self):
         self.binaryCheck(operator.floordiv, jmin=1)
-        
+
     def testMod(self):
         self.binaryCheck(operator.mod, jmin=1)
 
@@ -392,7 +392,7 @@ class TestSignalAsNum(TestCase):
     def testIMul(self):
         self.augmentedAssignCheck(operator.imul, imax=maxint) #XXX doesn't work for long i???
 
-    def testIDiv(self):
+    def testIFloorDiv(self):
         self.augmentedAssignCheck(operator.ifloordiv, jmin=1)
 
     def testIMod(self):

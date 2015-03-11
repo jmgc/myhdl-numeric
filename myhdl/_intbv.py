@@ -18,6 +18,7 @@
 #  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 
 """ Module with the intbv class """
+
 from __future__ import absolute_import
 from __future__ import division
 
@@ -189,8 +190,6 @@ class intbv(object):
                       "            i == %s " % i)
                
             self._handleBounds()
-
-
         
     # integer-like methods
     
@@ -199,6 +198,7 @@ class intbv(object):
             return self._val + other._val
         else:
             return self._val + other
+
     def __radd__(self, other):
         return other + self._val
     
@@ -207,6 +207,7 @@ class intbv(object):
             return self._val - other._val
         else:
             return self._val - other
+
     def __rsub__(self, other):
         return other - self._val
 
@@ -218,27 +219,21 @@ class intbv(object):
     def __rmul__(self, other):
         return other * self._val
 
-    def __div__(self, other):
+    def __truediv__(self, other):
         if isinstance(other, intbv):
             return self._val / other._val
         else:
             return self._val / other
-    def __rdiv__(self, other):
-        return other / self._val
-    
-    def __truediv__(self, other):
-        if isinstance(other, intbv):
-            return operator.truediv(self._val, other._val)
-        else:
-            return operator.truediv(self._val, other)
+
     def __rtruediv__(self, other):
-        return operator.truediv(other, self._val)
+        return other / self._val
     
     def __floordiv__(self, other):
         if isinstance(other, intbv):
             return self._val // other._val
         else:
             return self._val // other
+
     def __rfloordiv__(self, other):
         return other //  self._val
     
@@ -247,6 +242,7 @@ class intbv(object):
             return self._val % other._val
         else:
             return self._val % other
+
     def __rmod__(self, other):
         return other % self._val
 
@@ -332,10 +328,11 @@ class intbv(object):
         self._handleBounds()
         return self
 
-    def __idiv__(self, other):
-        raise TypeError("intbv: Augmented classic division not supported")
     def __itruediv__(self, other):
-        raise TypeError("intbv: Augmented true division not supported")
+        if isinstance(other, intbv):
+            return self._val / other._val
+        else:
+            return self._val / other
     
     def __imod__(self, other):
         if isinstance(other, intbv):
@@ -511,7 +508,7 @@ class intbv(object):
       '''
 
       # value is considered unsigned
-      if self.min != None and self.min >= 0 and self._nrbits > 0:
+      if self.min is not None and self.min >= 0 and self._nrbits > 0:
 
         # get 2's complement value of bits
         msb = self._nrbits-1
