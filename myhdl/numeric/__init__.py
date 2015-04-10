@@ -20,8 +20,9 @@
 """ myhdl_numeric package initialization.
 
 This module provides the following myhdl objects:
-bitarray -- mutable bit vector facilities
-uintba -- mutable unsigned integer class with bit vector properties
-sintbv -- mutable signed integer class with bit vector properties
-
+bitarray -- mutable bit array facilities
+uintba -- mutable unsigned integer class with bit array properties
+sintba -- mutable signed integer class with bit array properties
+sfixba -- mutable fixed point class with bit array properties
+fixmath -- defines the mathematical behavior of sfisba
 """
