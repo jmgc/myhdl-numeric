@@ -2235,6 +2235,7 @@ class vhd_vector(vhd_type):
     def __inv__(self):
         return self
 
+    @staticmethod
     def inferBinaryOpCast(node, left, right, op):
         ns, os = node.vhd.size, node.vhdOri.size
         ds = ns - os
@@ -2279,6 +2280,7 @@ class vhd_vector(vhd_type):
                 else:
                     raise AssertionError("unexpected op %s" % op)
 
+    @staticmethod
     def inferShiftOpCast(node, left, right, op):
         ns, os = node.vhd.size, node.vhdOri.size
         ds = ns - os
@@ -2611,6 +2613,7 @@ class vhd_sfixed(vhd_type):
     def maybeNegative(self):
         return True
 
+    @staticmethod
     def inferBinaryOpCast(node, left, right, op):
         ns_low = os_low = 0
         ns_high, os_high = node.vhd.size, node.vhdOri.size
@@ -2683,6 +2686,7 @@ class vhd_sfixed(vhd_type):
                     raise AssertionError("unexpected operand %s for %s" % \
                                          (op, left.vhd))
 
+    @staticmethod
     def inferShiftOpCast(node, left, right, op):
         ns, os = node.vhd.size, node.vhdOri.size
         ds_high = ns[0] - os[0]
