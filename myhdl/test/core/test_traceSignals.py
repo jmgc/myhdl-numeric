@@ -33,7 +33,8 @@ from unittest import TestCase
 import shutil
 import glob
 
-from myhdl import delay, Signal, Simulation, _simulator, instance
+from myhdl import delay, Signal, Simulation, instance
+from myhdl._simulator import _simulator
 from myhdl._traceSignals import traceSignals, TraceSignalsError, _error
 
 QUIET=1

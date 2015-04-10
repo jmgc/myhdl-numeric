@@ -32,7 +32,7 @@ import copy
 import unittest
 from unittest import TestCase
 
-from myhdl._simulator import _siglist
+from myhdl._simulator import _simulator
 from myhdl import intbv, Signal
 from myhdl._compat import long
 
@@ -230,7 +230,7 @@ class SigTest(TestCase):
     
     def testNextAccess(self):
         """ each next attribute access puts a sig in a global siglist """
-        del _siglist[:]
+        del _simulator._siglist[:]
         s = [None] * 4
         for i in range(len(s)):
             s[i] = Signal(i)
@@ -241,7 +241,7 @@ class SigTest(TestCase):
         s[3].next = 1
         s[3].next = 3
         for i in range(len(s)):
-            self.assertEqual(_siglist.count(s[i]), i)
+            self.assertEqual(_simulator._siglist.count(s[i]), i)
             
     
 class TestSignalAsNum(TestCase):
