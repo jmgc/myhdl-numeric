@@ -54,7 +54,8 @@ def binref(num, width=0):
         pad = '0'
         if num < 0:
             pad = '1'
-        return (width - len(s)) * pad + s
+        s = (width - len(s)) * pad + s
+        return s[len(s)-width:]
     return s
 
 
