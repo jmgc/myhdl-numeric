@@ -38,9 +38,7 @@ from ._compat import integer_types, long
 from ._simulator import _simulator, now
 from ._intbv import intbv
 from ._bin import bin
-from .numeric._bitarray import bitarray
-
-#from myhdl._enum import EnumItemType
+from myhdl.numeric._bitarray import bitarray
 
 _schedule = _simulator._futureEvents.append
 
