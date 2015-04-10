@@ -29,6 +29,7 @@ from copy import deepcopy
 from myhdl._Signal import _Signal
 from myhdl._Waiter import _SignalWaiter, _SignalTupleWaiter
 from myhdl._intbv import intbv
+from myhdl._simulator import _simulator
 
 # shadow signals
         
