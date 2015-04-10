@@ -79,12 +79,10 @@ def concat(base, *args):
         val = val << w | v & (long(1) << w)-1
  
     if basewidth:
-        if isinstance(base, intbv):
-            return intbv(val, _nrbits=basewidth + width)
-        elif isinstance(base, bitarray):
+        if isinstance(base, bitarray):
             return type(base)(val, basewidth + width, 0)
         else:
-            return bitarray(val, basewidth + width, 0)
+            return intbv(val, _nrbits=basewidth + width)
     else:
         return intbv(val)
 
