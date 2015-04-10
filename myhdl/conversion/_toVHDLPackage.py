@@ -1,4 +1,3 @@
-from __future__ import absolute_import
 #  This file is part of the myhdl library, a Python package for using
 #  Python as a Hardware Description Language.
 #
@@ -18,6 +17,7 @@ from __future__ import absolute_import
 #  License along with this library; if not, write to the Free Software
 #  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 
+from __future__ import absolute_import
 import myhdl
 
 _version = myhdl.__version__.replace('.','')
@@ -27,6 +27,7 @@ _package = """\
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
+use ieee.fixed_pkg.all;
 
 package pck_myhdl_%(version)s is
 
@@ -54,9 +55,13 @@ package pck_myhdl_%(version)s is
 
     function bool (arg: signed) return boolean;
 
+    function bool (arg: sfixed) return boolean;
+
     function bool (arg: integer) return boolean;
 
     function "-" (arg: unsigned) return signed;
+    
+    function floor (arg: sfixed) return sfixed;
 
 end pck_myhdl_%(version)s;
 
@@ -147,6 +152,11 @@ package body pck_myhdl_%(version)s is
         return arg /= 0;
     end function bool;
 
+    function bool (arg: sfixed) return boolean is
+    begin
+        return arg /= 0;
+    end function bool;
+
     function bool (arg: integer) return boolean is
     begin
         return arg /= 0;
@@ -156,6 +166,18 @@ package body pck_myhdl_%(version)s is
     begin
         return - signed(resize(arg, arg'length+1));
     end function "-";
+
+    function floor (arg: sfixed) return sfixed is
+        variable result:    sfixed(arg'high downto arg'low);
+    begin
+        result := arg;
+        if result'high <= 0 then
+            result := (others => '0');
+        elsif result'low < 0 then
+            result(-1 downto result'low) := (others => '0');
+        end if;
+        return result;
+    end function floor;
 
 end pck_myhdl_%(version)s;
 

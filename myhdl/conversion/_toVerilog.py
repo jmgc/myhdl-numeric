@@ -34,22 +34,22 @@ import ast
 import string
 
 from types import GeneratorType
-from myhdl._compat import StringIO
+from .._compat import StringIO
 import warnings
 
 import myhdl
 from myhdl import *
-from myhdl._compat import integer_types, class_types, PY2
+from .._compat import integer_types, class_types, PY2
 from myhdl import ToVerilogError, ToVerilogWarning
-from myhdl._extractHierarchy import (_HierExtr, _isMem, _getMemInfo,
+from .._extractHierarchy import (_HierExtr, _isMem, _getMemInfo,
                                      _UserVerilogCode, _userCodeMap)
 
-from myhdl._instance import _Instantiator
-from myhdl.conversion._misc import (_error, _kind, _context,
+from .._instance import _Instantiator
+from ._misc import (_error, _kind, _context,
                                     _ConversionMixin, _Label, _genUniqueSuffix, _isConstant)
-from myhdl.conversion._analyze import (_analyzeSigs, _analyzeGens, _analyzeTopFunc,
+from ._analyze import (_analyzeSigs, _analyzeGens, _analyzeTopFunc,
                                        _Ram, _Rom)
-from myhdl._Signal import _Signal
+from .._Signal import _Signal
 
 from collections import Callable
 
@@ -174,9 +174,15 @@ class _ToVerilogConvertor(object):
             _writeTestBench(tbfile, intf, self.trace)
             tbfile.close()
 
+        # build portmap for cosimulation
+        portmap = {}
+        for n, s in intf.argdict.iteritems():
+            if hasattr(s, 'driver'): portmap[n] = s.driver()
+            else: portmap[n] = s
+        self.portmap = portmap
+
         ### clean-up properly ###
         self._cleanup(siglist)
-        self.portmap = intf.argdict
 
         return h.top
 

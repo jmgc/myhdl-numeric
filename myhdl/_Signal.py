@@ -34,15 +34,15 @@ from inspect import currentframe, getouterframes
 from copy import copy, deepcopy
 import operator
 
-from myhdl._compat import integer_types, long
-from myhdl import _simulator as sim
-from myhdl._simulator import _signals, _siglist, _futureEvents, now
-from myhdl._intbv import intbv
-from myhdl._bin import bin
+from ._compat import integer_types, long
+from ._simulator import _simulator, now
+from ._intbv import intbv
+from ._bin import bin
+from .numeric._bitarray import bitarray
 
-# from myhdl._enum import EnumItemType
+#from myhdl._enum import EnumItemType
 
-_schedule = _futureEvents.append
+_schedule = _simulator._futureEvents.append
 
    
 def _isListOfSigs(obj):
@@ -110,7 +110,7 @@ class _Signal(object):
 
     __slots__ = ('_next', '_val', '_min', '_max', '_type', '_init',
                  '_eventWaiters', '_posedgeWaiters', '_negedgeWaiters',
-                 '_code', '_tracing', '_nrbits', '_checkVal', 
+                 '_code', '_tracing', '_nrbits', '_high', '_low', '_checkVal', 
                  '_setNextVal', '_copyVal2Next', '_printVcd', 
                  '_driven' ,'_read', '_name', '_used', '_inList',
                  '_waiter', 'toVHDL', 'toVerilog', '_slicesigs',
@@ -132,8 +132,11 @@ class _Signal(object):
         self._used = False
         self._inList = False
         self._nrbits = 0
+        self._high = 0
+        self._low = 0
         self._numeric = True
         self._printVcd = self._printVcdStr
+        self._high = self._low = None
         if isinstance(val, bool):
             self._type = bool
             self._setNextVal = self._setNextBool
@@ -152,6 +155,18 @@ class _Signal(object):
                 self._printVcd = self._printVcdVec
             else:
                 self._printVcd = self._printVcdHex
+        elif isinstance(val, bitarray):
+            self._type = bitarray
+            self._min = val.min
+            self._max = val.max
+            self._nrbits = val._nrbits
+            self._high = val.high
+            self._low = val.low
+            self._setNextVal = self._setNextBitArray
+            if self._nrbits:
+                self._printVcd = self._printVcdVec
+            else:
+                self._printVcd = self._printVcdHex
         else:
             self._type = type(val)
             if isinstance(val, EnumItemType):
@@ -166,7 +181,7 @@ class _Signal(object):
         self._code = ""
         self._slicesigs = []
         self._tracing = 0
-        _signals.append(self)
+        _simulator._signals.append(self)
 
     def _clear(self):
         del self._eventWaiters[:]
@@ -192,7 +207,7 @@ class _Signal(object):
                 del self._negedgeWaiters[:]
             if next is None:
                 self._val = None
-            elif isinstance(val, intbv):
+            elif isinstance(val, (intbv, bitarray)):
                 self._val._val = next._val
             elif isinstance(val, (integer_types, EnumItemType)):
                 self._val = next
@@ -213,13 +228,13 @@ class _Signal(object):
     def _get_next(self):
 #        if self._next is self._val:
 #            self._next = deepcopy(self._val)
-        _siglist.append(self)
+        _simulator._siglist.append(self)
         return self._next
     def _set_next(self, val):
         if isinstance(val, _Signal):
             val = val._val
         self._setNextVal(val)
-        _siglist.append(self)
+        _simulator._siglist.append(self)
     next = property(_get_next, _set_next, None, "'next' access methods")
 
     # support for the 'posedge' attribute
@@ -239,6 +254,14 @@ class _Signal(object):
     def _get_min(self):
         return self._min
     min = property(_get_min, None)
+
+    # support for the 'high' and 'low' attribute
+    def _get_high(self):
+        return self._high
+    high = property(_get_high, None)
+    def _get_low(self):
+        return self._low
+    low = property(_get_low, None)
 
     # support for the 'driven' attribute
     def _get_driven(self):
@@ -288,6 +311,12 @@ class _Signal(object):
         self._next._val = val
         self._next._handleBounds()
 
+    def _setNextBitArray(self, val):
+        if not (isinstance(val, bitarray) or isinstance(val, integer_types)):
+            raise TypeError("Expected int or bitarray child, got %s" % type(val))
+        data = type(self._init)(val)
+        self._next = data.resize(self._init)
+
     def _setNextNonmutable(self, val):
         if not isinstance(val, self._type):
             raise TypeError("Expected %s, got %s" % (self._type, type(val)))
@@ -300,16 +329,17 @@ class _Signal(object):
 
     # vcd print methods
     def _printVcdStr(self):
-        print("s%s %s" % (str(self._val), self._code), file=sim._tf)
+        print("s%s %s" % (str(self._val), self._code), file=_simulator._tf)
         
     def _printVcdHex(self):
-        print("s%s %s" % (hex(self._val), self._code), file=sim._tf)
+        print("s%s %s" % (hex(self._val), self._code), file=_simulator._tf)
 
     def _printVcdBit(self):
-        print("%d%s" % (self._val, self._code), file=sim._tf)
+        print("%d%s" % (self._val, self._code), file=_simulator._tf)
 
     def _printVcdVec(self):
-        print("b%s %s" % (bin(self._val, self._nrbits), self._code), file=sim._tf)
+        print("b%s %s" % (bin(self._val, self._nrbits), self._code),
+              file=_simulator._tf)
 
     ### use call interface for shadow signals ###
     def __call__(self, left, right=None):
@@ -317,12 +347,10 @@ class _Signal(object):
         self._slicesigs.append(s)
         return s
 
-
     ### operators for which delegation to current value is appropriate ###
         
     def __hash__(self):
         raise TypeError("Signals are unhashable")
-        
     
     def __bool__(self):
         return bool(self._val)
@@ -332,7 +360,6 @@ class _Signal(object):
     # length
     def __len__(self):
         return self._nrbits
-        # return len(self._val)
 
     # indexing and slicing methods
 
@@ -570,9 +597,9 @@ class _DelayedSignal(_Signal):
 
     def _update(self):
         if self._next != self._nextZ:
-            self._timeStamp = sim._time
+            self._timeStamp = _sim_time
         self._nextZ = self._next
-        t = sim._time + self._delay
+        t = _sim_time + self._delay
         _schedule((t, _SignalWrap(self, self._next, self._timeStamp)))
         return []
 
@@ -615,6 +642,6 @@ SignalType = _Signal
 
 # avoid circular imports
 
-from myhdl._ShadowSignal import _SliceSignal
-from myhdl._Waiter import _SignalWaiter
-from myhdl._enum import EnumItemType
+from ._ShadowSignal import _SliceSignal
+from ._Waiter import _SignalWaiter
+from ._enum import EnumItemType

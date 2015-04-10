@@ -22,16 +22,16 @@
 """
 from __future__ import absolute_import
 
-from myhdl._compat import integer_types
-from myhdl._intbv import intbv
-from myhdl._Signal import _Signal
-from myhdl._compat import long
-
+from ._compat import integer_types
+from ._intbv import intbv
+from ._Signal import _Signal
+from ._compat import long
+from .numeric._bitarray import bitarray
 
 
 def concat(base, *args):
 
-    if isinstance(base, intbv):
+    if isinstance(base, (intbv, bitarray)):
         basewidth = base._nrbits
         val = base._val
     elif isinstance(base, integer_types):
@@ -42,7 +42,7 @@ def concat(base, *args):
         val = base
     elif isinstance(base, _Signal):
         basewidth = base._nrbits
-        if isinstance(base._val, intbv):
+        if isinstance(base._val, (intbv, bitarray)):
             val = base._val._val
         else:
             val = base._val
@@ -55,12 +55,12 @@ def concat(base, *args):
 
     width = 0
     for i, arg in enumerate(args):
-        if isinstance(arg, intbv):
+        if isinstance(arg, (intbv, bitarray)):
             w = arg._nrbits
             v = arg._val
         elif isinstance(arg, _Signal):
             w = arg._nrbits
-            if isinstance(arg._val, intbv):
+            if isinstance(arg._val, (intbv, bitarray)):
                 v = arg._val._val
             else:
                 v = arg._val
@@ -79,7 +79,12 @@ def concat(base, *args):
         val = val << w | v & (long(1) << w)-1
  
     if basewidth:
-        return intbv(val, _nrbits=basewidth + width)
+        if isinstance(base, intbv):
+            return intbv(val, _nrbits=basewidth + width)
+        elif isinstance(base, bitarray):
+            return type(base)(val, basewidth + width, 0)
+        else:
+            return bitarray(val, basewidth + width, 0)
     else:
         return intbv(val)
 

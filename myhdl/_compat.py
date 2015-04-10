@@ -6,7 +6,7 @@ from ast import PyCF_ONLY_AST
 
 PY2 = sys.version_info[0] == 2
 
-
+_identity = lambda x: x
 if not PY2:
     string_types = (str,)
     integer_types = (int,)
@@ -15,6 +15,12 @@ if not PY2:
 
     from io import StringIO
     import builtins
+    
+    def to_bytes(s):
+        return s.encode()
+
+    def to_str(b):
+        return b.decode()
 else:
     string_types = (str, unicode)
     integer_types = (int, long)
@@ -23,6 +29,9 @@ else:
 
     from cStringIO import StringIO
     import __builtin__ as builtins
+
+    to_bytes = _identity
+    to_str = _identity
 
 def ast_parse(s):
      return compile(s, '<string>', 'exec', \

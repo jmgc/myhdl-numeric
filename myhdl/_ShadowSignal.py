@@ -29,7 +29,6 @@ from copy import deepcopy
 from myhdl._Signal import _Signal
 from myhdl._Waiter import _SignalWaiter, _SignalTupleWaiter
 from myhdl._intbv import intbv
-from myhdl._simulator import _siglist
 
 # shadow signals
         
@@ -239,19 +238,21 @@ class _TristateSignal(_ShadowSignal):
                     res = None
                     break
             self._next = res
-            _siglist.append(self)
+            _simulator._siglist.append(self)
 
 
     def toVerilog(self):
         lines = []
         for d in self._drivers:
-            lines.append("assign %s = %s;" % (self._name, d._name))
+            if d._driven:
+                lines.append("assign %s = %s;" % (self._name, d._name))
         return "\n".join(lines)
 
     def toVHDL(self):
         lines = []
         for d in self._drivers:
-            lines.append("%s <= %s;" % (self._name, d._name))
+            if d._drive:
+                lines.append("%s <= %s;" % (self._name, d._name))
         return "\n".join(lines)
 
 
@@ -275,7 +276,7 @@ class _TristateDriver(_Signal):
             # restore original value to cater for intbv handler
             self._next = self._sig._orival
             self._setNextVal(val)
-        _siglist.append(self)   
+        _simulator._siglist.append(self)   
          
     # redefine property because standard inheritance doesn't work for setter/getter functions
     next = property(_Signal._get_next, _set_next, None, "'next' access methods")

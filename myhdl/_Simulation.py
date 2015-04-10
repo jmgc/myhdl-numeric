@@ -29,8 +29,8 @@ from warnings import warn
 from types import GeneratorType
 
 from myhdl import Cosimulation, StopSimulation, _SuspendSimulation
-from myhdl import _simulator, SimulationError
-from myhdl._simulator import _signals, _siglist, _futureEvents
+from myhdl import SimulationError
+from ._simulator import _simulator
 from myhdl._Waiter import _Waiter, _inferWaiter, _SignalWaiter,_SignalTupleWaiter
 from myhdl._util import _flatten, _printExcInfo
 from myhdl._instance import _Instantiator
@@ -38,7 +38,7 @@ from myhdl._ShadowSignal import _ShadowSignal
 
 
 
-schedule = _futureEvents.append
+schedule = _simulator._futureEvents.append
 
 class _error:
     pass
@@ -68,8 +68,8 @@ class Simulation(object):
         if not self._cosim and _simulator._cosim:
             warn("Cosimulation not registered as Simulation argument")
         self._finished = False
-        del _futureEvents[:]
-        del _siglist[:]
+        del _simulator._futureEvents[:]
+        del _simulator._siglist[:]
         
         
     def _finalize(self):
@@ -83,7 +83,7 @@ class Simulation(object):
             _simulator._tracing = 0
             _simulator._tf.close()
         # clean up for potential new run with same signals
-        for s in _signals:
+        for s in _simulator._signals:
             s._clear()
         self._finished = True
             
@@ -125,9 +125,9 @@ class Simulation(object):
         while 1:
             try:
 
-                for s in _siglist:
+                for s in _simulator._siglist:
                     _extend(s._update())
-                del _siglist[:]
+                del _simulator._siglist[:]
 
                 while waiters:
                     waiter = _pop()
@@ -138,10 +138,10 @@ class Simulation(object):
 
                 if cosim:
                     cosim._get()
-                    if _siglist or cosim._hasChange:
+                    if _simulator._siglist or cosim._hasChange:
                         cosim._put(t)
                         continue
-                elif _siglist:
+                elif _simulator._siglist:
                     continue
 
                 if actives:
@@ -154,24 +154,24 @@ class Simulation(object):
                     raise exc[0]
 
                 # future events
-                if _futureEvents:
+                if _simulator._futureEvents:
                     if t == maxTime:
                         raise _SuspendSimulation(
                             "Simulated %s timesteps" % duration)
-                    _futureEvents.sort(key=itemgetter(0))
-                    t = _simulator._time = _futureEvents[0][0]
+                    _simulator._futureEvents.sort(key=itemgetter(0))
+                    t = _simulator._time = _simulator._futureEvents[0][0]
                     if tracing:
                         print("#%s" % t, file=tracefile)
                     if cosim:
                         cosim._put(t)
-                    while _futureEvents:
-                        newt, event = _futureEvents[0]
+                    while _simulator._futureEvents:
+                        newt, event = _simulator._futureEvents[0]
                         if newt == t:
                             if isinstance(event, _Waiter):
                                 _append(event)
                             else:
                                 _extend(event.apply())
-                            del _futureEvents[0]
+                            del _simulator._futureEvents[0]
                         else:
                             break
                 else:
@@ -227,7 +227,7 @@ def _makeWaiters(arglist):
             raise SimulationError(_error.DuplicatedArg)
         ids.add(id(arg))
     # add waiters for shadow signals
-    for sig in _signals:
+    for sig in _simulator._signals:
         if hasattr(sig, '_waiter'):
             waiters.append(sig._waiter)
     return waiters, cosim

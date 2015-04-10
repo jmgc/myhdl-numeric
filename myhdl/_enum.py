@@ -21,8 +21,6 @@
 
 """
 from __future__ import absolute_import
-
-
 from myhdl._bin import bin
 from myhdl._Signal import _Signal
 from myhdl._compat import string_types

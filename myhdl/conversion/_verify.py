@@ -152,7 +152,7 @@ class  _VerificationClass(object):
             print("Analysis succeeded", file=sys.stderr)
             return 0
 
-        f = tempfile.TemporaryFile(mode='w+')
+        f = tempfile.TemporaryFile(mode='w+t')
         sys.stdout = f
         sim = Simulation(inst)
         sim.run()
@@ -174,7 +174,7 @@ class  _VerificationClass(object):
                 print("Elaboration failed", file=sys.stderr)
                 return ret
             
-        g = tempfile.TemporaryFile(mode='w+')
+        g = tempfile.TemporaryFile(mode='w+t')
         #print(simulate)
         ret = subprocess.call(simulate, stdout=g, shell=True)
     #    if ret != 0:
@@ -205,9 +205,9 @@ class  _VerificationClass(object):
             pass
 
         s = "".join(g)
-        f = open(MyHDLLog, 'w+')
-        g = open(HDLLog, 'w+')
-        d = open('diff.log', 'w+')
+        f = open(MyHDLLog, 'w+t')
+        g = open(HDLLog, 'w+t')
+        d = open('diff.log', 'w+t')
         f.writelines(flines)
         g.writelines(glines)
         d.write(s)

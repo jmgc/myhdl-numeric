@@ -43,10 +43,13 @@ from myhdl.conversion._misc import (_error, _access, _kind,
                                     _get_argnames)
 from myhdl._extractHierarchy import _isMem, _getMemInfo, _UserCode
 from myhdl._Signal import _Signal, _WaiterList
-from myhdl._ShadowSignal import _ShadowSignal, _SliceSignal
-from myhdl._util import _isTupleOfInts, _dedent, _flatten
+from myhdl._ShadowSignal import _ShadowSignal, _SliceSignal, _TristateDriver
+from myhdl._util import _isTupleOfInts, _dedent, _flatten, _makeAST
 from myhdl._resolverefs import _AttrRefTransformer
 from myhdl._compat import builtins, integer_types, string_types, PY2, ast_parse, long
+from myhdl.numeric._sfixba import sfixba
+
+from myhdl.numeric._bitarray import bitarray
 
 myhdlObjects = myhdl.__dict__.values()
 builtinObjects = builtins.__dict__.values()
@@ -54,6 +57,7 @@ builtinObjects = builtins.__dict__.values()
 _enumTypeSet = set()
 _constDict = {}
 _extConstDict = {}
+
 
 
 def _makeName(n, prefixes, namedict):
@@ -78,14 +82,6 @@ def _makeName(n, prefixes, namedict):
 ##     print prefixes
 ##     print name
     return name
-
-def _makeAST(f):
-    s = inspect.getsource(f)
-    s = _dedent(s)
-    tree = ast.parse(s)
-    tree.sourcefile = inspect.getsourcefile(f)
-    tree.lineoffset = inspect.getsourcelines(f)[1]-1
-    return tree
 
 def _analyzeSigs(hierarchy, hdl='Verilog'):
     curlevel = 0
@@ -161,12 +157,7 @@ def _analyzeGens(top, absnames):
             tree = g
         elif isinstance(g, (_AlwaysComb, _AlwaysSeq, _Always)):
             f = g.func
-            s = inspect.getsource(f)
-            s = _dedent(s)
-            tree = ast.parse(s)
-            #print ast.dump(tree)
-            tree.sourcefile  = inspect.getsourcefile(f)
-            tree.lineoffset = inspect.getsourcelines(f)[1]-1
+            tree = _makeAST(f)
             tree.symdict = f.__globals__.copy()
             tree.callstack = []
             # handle free variables
@@ -176,7 +167,7 @@ def _analyzeGens(top, absnames):
                     obj = _cell_deref(c)
                     tree.symdict[n] = obj
                     # currently, only intbv as automatic nonlocals (until Python 3.0)
-                    if isinstance(obj, intbv):
+                    if isinstance(obj, (intbv, bitarray)):
                         tree.nonlocaldict[n] = obj
             tree.name = absnames.get(id(g), str(_Label("BLOCK"))).upper()
             v = _AttrRefTransformer(tree)
@@ -192,12 +183,7 @@ def _analyzeGens(top, absnames):
             v.visit(tree)
         else: # @instance
             f = g.gen.gi_frame
-            s = inspect.getsource(f)
-            s = _dedent(s)
-            tree = ast_parse(s)
-            # print ast.dump(tree)
-            tree.sourcefile = inspect.getsourcefile(f)
-            tree.lineoffset = inspect.getsourcelines(f)[1]-1
+            tree = _makeAST(f)
             tree.symdict = f.f_globals.copy()
             tree.symdict.update(f.f_locals)
             tree.nonlocaldict = {}
@@ -238,9 +224,9 @@ class _FirstPassVisitor(ast.NodeVisitor, _ConversionMixin):
     def visit_Dict(self, node):
         self.raiseError(node, _error.NotSupported, "dictionary")
 
-    def visit_BinOp(self, node):
-        if isinstance(node.op, ast.Div):
-            self.raiseError(node, _error.NotSupported, "true division - consider '//'")
+    #def visit_BinOp(self, node):
+    #    if isinstance(node.op, ast.Div):
+    #        
 
     def visit_Ellipsis(self, node):
         self.raiseError(node, _error.NotSupported, "ellipsis")
@@ -409,8 +395,8 @@ def _getNritems(obj):
     """Return the number of items in an objects' type"""
     if isinstance(obj, _Signal):
         obj = obj._init
-    if isinstance(obj, intbv):
-        return obj._max - obj._min
+    if isinstance(obj, (intbv, bitarray)):
+        return obj.max - obj.min
     elif isinstance(obj, EnumItemType):
         return len(obj._type)
     else:
@@ -446,9 +432,27 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
         else:
             node.obj = result
 
-    def _div_size(self, node, l, r):
+    def _truediv_size(self, node, l, r):
         if r == 0:
-            if isinstance(r, intbv):
+            if isinstance(r, (intbv, bitarray)):
+                if r.max != 0:
+                    r_val = r.max
+                else:
+                    r_val = r.min
+                r_obj = type(r)(r_val, r)
+            else:
+                r_obj = r
+        else:
+            r_obj = r
+        result = l / r_obj
+        if isinstance(result, integer_types):
+            node.obj = long(-1)
+        else:
+            node.obj = result
+
+    def _floordiv_size(self, node, l, r):
+        if r == 0:
+            if isinstance(r, (intbv, bitarray)):
                 if r.max != 0:
                     r_val = r.max
                 else:
@@ -466,7 +470,7 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
 
     def _mod_size(self, node, l, r):
         if r == 0:
-            if isinstance(r, intbv):
+            if isinstance(r, (intbv, bitarray)):
                 if r.max != 0:
                     r_val = r.max
                 else:
@@ -488,7 +492,15 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
             node.obj = long(-1)
         else:
             node.obj = result
-        
+    
+    def _bitop_size(self, node, l, r):
+        if isinstance(node.op, ast.BitAnd):
+            node.obj = l & r
+        elif isinstance(node, ast.BitOr):
+            node.obj = l | r
+        elif isinstance(node, ast.BitXor):
+            node.obj = l ^ r
+
     def visit_BinOp(self, node):
         self.visit(node.left)
         self.visit(node.right)
@@ -503,11 +515,18 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
             if isinstance(node.op, (ast.Add, ast.Sub)):
                 self._add_sub_size(node, l, r)
             elif isinstance(node.op, ast.FloorDiv):
-                self._div_size(node, l, r)
+                self._floordiv_size(node, l, r)
+            elif isinstance(node.op, ast.FloorDiv):
+                if isinstance(l, sfixba) or isinstance(r, sfixba):
+                    self._truediv_size(node, l, r)
+                else:
+                    self.raiseError(node, _error.NotSupported, "true division - consider '//'")
             elif (not isinstance(l, string_types)) and isinstance(node.op, ast.Mod):
                 self._mod_size(node, l, r)
             elif isinstance(node.op, ast.Mult):
                 self._mul_size(node, l, r)
+            elif isinstance(node.op, (ast.BitAnd, ast.BitOr, ast.BitXor)):
+                self._bitop_size(node, l, r)
             else:
                 node.obj = long(-1)
         else:
@@ -527,8 +546,8 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
         node.obj = node.operand.obj
         if isinstance(op, ast.Not):
             node.obj = bool()
-        elif isinstance(op, (ast.UAdd, ast.USub, ast.Invert)):
-            node.obj = long(-1)
+        #elif isinstance(op, (ast.UAdd, ast.USub, ast.Invert)):
+        #    node.obj = long(-1)
 
     def visit_Attribute(self, node):
         if isinstance(node.ctx, ast.Store):
@@ -573,6 +592,17 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
                 node.obj = obj.max
             elif node.attr == 'signed':
                 node.obj = intbv.signed
+        if isinstance(obj, (bitarray, _Signal)):
+            if node.attr == 'high':
+                node.obj = obj.high
+            elif node.attr == 'low':
+                node.obj = obj.low
+            elif node.attr == 'resize':
+                node.obj = bitarray.resize
+            elif node.attr == 'scalb':
+                node.obj = sfixba.scalb
+            elif node.attr == 'floor':
+                node.obj = sfixba.floor
         if isinstance(obj, EnumType):
             assert hasattr(obj, node.attr), node.attr
             node.obj = getattr(obj, node.attr)
@@ -603,7 +633,7 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
                 obj = self.getValue(value)
                 if obj is None:
                     self.raiseError(node, _error.TypeInfer, n)
-            if isinstance(obj, intbv):
+            if isinstance(obj, (intbv, bitarray)):
                 if len(obj) == 0:
                     self.raiseError(node, _error.IntbvBitWidth, n)
             if isinstance(obj, modbv):
@@ -654,8 +684,15 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
         argsAreInputs = True
         f = self.getObj(node.func)
         node.obj = None
-        if type(f) is type and issubclass(f, intbv):
+        if type(f) is type and issubclass(f, (intbv, bitarray)):
             node.obj = self.getVal(node)
+        elif f in (bitarray.resize, sfixba.scalb, sfixba.floor):
+            # Add the object as the first argument.
+            node.obj = self.getVal(node)
+            node.args.insert(0, ast.Name())
+            name = self.getObjName(node.func)
+            node.args[0].id = name
+            node.args[0].ctx = ast.Load
         elif f is concat:
             node.obj = self.getVal(node)
         elif f is len:
@@ -691,15 +728,9 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
             pass
         elif type(f) is FunctionType:
             argsAreInputs = False
-            s = inspect.getsource(f)
-            s = _dedent(s)
-            tree = ast.parse(s)
-            # print ast.dump(tree)
-            # print tree
+            tree = _makeAST(f)
             fname = f.__name__
             tree.name = _Label(fname)
-            tree.sourcefile = inspect.getsourcefile(f)
-            tree.lineoffset = inspect.getsourcelines(f)[1]-1
             tree.symdict = f.__globals__.copy()
             tree.nonlocaldict = {}
             if fname in self.tree.callstack:
@@ -860,7 +891,7 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
                 raise
         self.kind = _kind.NORMAL
         mem.elObj = self.getObj(node.elt)
-        if not isinstance(mem.elObj, intbv) or not len(mem.elObj) > 0:
+        if not isinstance(mem.elObj, (intbv, bitarray)) or not len(mem.elObj) > 0:
             self.raiseError(node, _error.UnsupportedListComp)
         cf = node.generators[0].iter
         self.visit(cf)
@@ -913,6 +944,8 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
             # mark shadow signal as driven only when they are seen somewhere
             if isinstance(sig, _ShadowSignal):
                 sig._driven = 'wire'
+            if isinstance(sig, _TristateDriver):
+                sig._sig._driven = 'wire'
             if not isinstance(sig, _Signal):
                 # print "not a signal: %s" % n
                 pass
@@ -1066,7 +1099,7 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
             self.visit(lower)
         if upper:
             self.visit(upper)
-        if isinstance(node.obj , intbv):
+        if isinstance(node.obj , (intbv, bitarray)):
             if self.kind == _kind.DECLARATION:
                 self.require(lower, "Expected leftmost index")
                 leftind = self.getVal(lower)
@@ -1089,7 +1122,7 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
             node.obj = node.value.obj[0]
         elif isinstance(node.value.obj, _Rom):
             node.obj = int(-1)
-        elif isinstance(node.value.obj, intbv):
+        elif isinstance(node.value.obj, (intbv, bitarray)):
             node.obj = bool()
         else:
             node.obj = bool() # XXX default
@@ -1291,7 +1324,7 @@ class _AnalyzeFuncVisitor(_AnalyzeVisitor):
             self.tree.symdict[n] = self.getObj(kw.value)
             self.tree.argnames.append(n)
         for n, v in self.tree.symdict.items():
-            if isinstance(v, (_Signal, intbv)):
+            if isinstance(v, (_Signal, (intbv, bitarray))):
                 self.tree.sigdict[n] = v
         for stmt in node.body:
             self.visit(stmt)
@@ -1325,7 +1358,7 @@ class _AnalyzeFuncVisitor(_AnalyzeVisitor):
             obj = node.value.obj
         else:
             self.raiseError(node, _error.ReturnTypeInfer)
-        if isinstance(obj, intbv) and len(obj) == 0:
+        if isinstance(obj, (intbv, bitarray)) and len(obj) == 0:
             self.raiseError(node, _error.ReturnIntbvBitWidth)
         if self.tree.hasReturn:
             returnObj = self.tree.returnObj

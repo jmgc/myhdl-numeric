@@ -2,7 +2,7 @@ from __future__ import absolute_import
 import warnings
 
 from myhdl._Signal import _Signal, _DelayedSignal
-from myhdl._simulator import _siglist
+from ._simulator import _simulator
 
 class BusContentionWarning(UserWarning):
     pass
@@ -61,7 +61,7 @@ class _TristateDriver(_Signal):
              self._next = None
          else:             
              self._setNextVal(val)
-         _siglist.append(self._bus)   
+         _simulator._siglist.append(self._bus)   
     next = property(_Signal._get_next, _set_next, None, "'next' access methods")
 
     

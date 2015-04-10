@@ -29,8 +29,8 @@ import ast
 import myhdl
 from myhdl import *
 from myhdl import ConversionError
-from myhdl._util import _flatten
-from myhdl._compat import PY2
+from .._util import _flatten
+from .._compat import PY2
 
 class _error(object):
     FirstArgType = "first argument should be a classic function"
@@ -111,7 +111,13 @@ class _ConversionMixin(object):
         if hasattr(node, 'obj'):
             return node.obj
         return None
-    
+
+    def getObjName(self, node):
+        if hasattr(node, 'value'):
+            name = node.value.id
+            return name
+        return None
+
     def getTarget(self, node):
         if hasattr(node, 'target'):
             return node.target
@@ -138,7 +144,9 @@ class _ConversionMixin(object):
         expr.lineno = node.lineno
         expr.col_offset = node.col_offset
         c = compile(expr, '<string>', 'eval')
+        warnings.simplefilter('ignore', RuntimeWarning)
         val = eval(c, self.tree.symdict, self.tree.vardict)
+        warnings.simplefilter('default', RuntimeWarning)
         # val = eval(_unparse(node), self.tree.symdict, self.tree.vardict)
         return val
     

@@ -35,8 +35,14 @@ class _AttrRefTransformer(ast.NodeTransformer):
     def visit_Attribute(self, node):
         self.generic_visit(node)
 
-        reserved = ('next',  'posedge',  'negedge',  'max',  'min',  'val',  'signed')
+        reserved = ('next',  'posedge',  'negedge',  'max',  'min',  'val',
+                    'signed', 'high', 'low')
         if node.attr in reserved:
+            return node
+
+        functions = ('resize', 'scalb', 'floor')
+        
+        if node.attr in functions:
             return node
 
         #Don't handle subscripts for now.

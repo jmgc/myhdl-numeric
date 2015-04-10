@@ -52,7 +52,7 @@ toVerilog -- function that converts a design to Verilog
 from __future__ import absolute_import
 from __future__ import print_function
 
-__version__ = "0.9dev"
+__version__ = "0.9.numeric.dev"
 
 import sys
 import warnings
@@ -133,10 +133,16 @@ from ._instance import instance
 from ._enum import enum, EnumType, EnumItemType
 from ._traceSignals import traceSignals
 
-from myhdl import conversion
+from . import conversion
 from .conversion import toVerilog
 from .conversion import toVHDL
 
+from . import numeric
+from .numeric._bitarray import bitarray
+from .numeric._uintba import uintba
+from .numeric._sintba import sintba
+from .numeric._sfixba import sfixba, fixmath
+ 
 from ._tristate import Tristate
 
 
@@ -170,6 +176,12 @@ __all__ = ["bin",
            "toVerilog",
            "toVHDL",
            "conversion",
+           "bitarray",
+           "uintba",
+           "sintba",
+           "sfixba",
+           "fixmath",
+           "numeric",
            "Tristate"
            ]
 

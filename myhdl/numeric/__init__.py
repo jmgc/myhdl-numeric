@@ -1,9 +1,9 @@
-#  This file is part of the myhdl library, a Python package for using
+#  This file is part of the myhdl_numeric library, a Python package for using
 #  Python as a Hardware Description Language.
 #
-#  Copyright (C) 2003-2008 Jan Decaluwe
+#  Copyright (C) 2015 Jase M. Gomez
 #
-#  The myhdl library is free software; you can redistribute it and/or
+#  The myhdl_numeric library is free software; you can redistribute it and/or
 #  modify it under the terms of the GNU Lesser General Public License as
 #  published by the Free Software Foundation; either version 2.1 of the
 #  License, or (at your option) any later version.
@@ -17,24 +17,11 @@
 #  License along with this library; if not, write to the Free Software
 #  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 
-""" Simulator internals and the now function
+""" myhdl_numeric package initialization.
 
-This module provides the following objects:
-now -- function that returns the current simulation time
+This module provides the following myhdl objects:
+bitarray -- mutable bit vector facilities
+uintba -- mutable unsigned integer class with bit vector properties
+sintbv -- mutable signed integer class with bit vector properties
 
 """
-
-class __simulator:
-    _signals = []
-    _siglist = []
-    _futureEvents = []
-    _time = 0
-    _cosim = 0
-    _tracing = 0
-    _tf = None
-
-_simulator = __simulator()
-
-def now():
-    """ Return the current simulation time """
-    return _simulator._time

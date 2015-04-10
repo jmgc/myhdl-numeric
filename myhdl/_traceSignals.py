@@ -32,7 +32,8 @@ import os
 path = os.path
 import shutil
 
-from myhdl import _simulator, __version__, EnumItemType
+from myhdl import __version__, EnumItemType
+from ._simulator import _simulator
 from myhdl._extractHierarchy import _HierExtr
 from myhdl import TraceSignalsError
 
