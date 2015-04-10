@@ -908,6 +908,9 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
         else:
             self.getName(node)
 
+    def visit_NameConstant(self, node):
+        node.obj = node.value
+
     def setName(self, node):
         # XXX INOUT access in Store context, unlike with compiler
         # XXX check whether ast context is correct

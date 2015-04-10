@@ -34,22 +34,22 @@ import ast
 import string
 
 from types import GeneratorType
-from .._compat import StringIO
+from myhdl._compat import StringIO
 import warnings
 
 import myhdl
 from myhdl import *
-from .._compat import integer_types, class_types, PY2
+from myhdl._compat import integer_types, class_types, PY2
 from myhdl import ToVerilogError, ToVerilogWarning
-from .._extractHierarchy import (_HierExtr, _isMem, _getMemInfo,
+from myhdl._extractHierarchy import (_HierExtr, _isMem, _getMemInfo,
                                      _UserVerilogCode, _userCodeMap)
 
-from .._instance import _Instantiator
-from ._misc import (_error, _kind, _context,
+from myhdl._instance import _Instantiator
+from myhdl.conversion._misc import (_error, _kind, _context,
                                     _ConversionMixin, _Label, _genUniqueSuffix, _isConstant)
-from ._analyze import (_analyzeSigs, _analyzeGens, _analyzeTopFunc,
+from myhdl.conversion._analyze import (_analyzeSigs, _analyzeGens, _analyzeTopFunc,
                                        _Ram, _Rom)
-from .._Signal import _Signal
+from myhdl._Signal import _Signal
 
 from collections import Callable
 
@@ -176,7 +176,7 @@ class _ToVerilogConvertor(object):
 
         # build portmap for cosimulation
         portmap = {}
-        for n, s in intf.argdict.iteritems():
+        for n, s in intf.argdict.items():
             if hasattr(s, 'driver'): portmap[n] = s.driver()
             else: portmap[n] = s
         self.portmap = portmap
@@ -442,6 +442,12 @@ opmap = {
     ast.NotEq    : '!=',
     ast.And      : '&&',
     ast.Or       : '||',
+}
+
+nameconstant_map = {
+    True: "1'b1",
+    False: "1'b0",
+    None: "'bz"
 }
 
 
@@ -714,15 +720,14 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
 
     def visit_Call(self, node):
         self.context = None
-        if isinstance(node.func, ast.Name):
-            fn = node.func
-            if fn.id == 'print':
-                self.visit_Print(node)
-                return
-        else:
-            fn = node.func
+        fn = node.func
         # assert isinstance(fn, astNode.Name)
         f = self.getObj(fn)
+
+        if f is print:
+            self.visit_Print(node)
+            return
+
         opening, closing = '(', ')'
         if f is bool:
             self.write("(")
@@ -989,34 +994,27 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
     def visit_ListComp(self, node):
         pass # do nothing
 
+    def visit_NameConstant(self, node):
+        self.write(nameconstant_map[node.obj])
+
     def visit_Name(self, node):
         if isinstance(node.ctx, ast.Store):
             self.setName(node)
         else:
             self.getName(node)
 
-    def visit_NameConstant(self, node):
-        self.getName(node)
-
     def setName(self, node):
         self.write(node.id)
 
     def getName(self, node):
+        n = node.id
+        if PY2 and n in ('True', 'False', 'None'):
+            self.visit_NameConstant(node)
+            return
+
         addSignBit = False
-        if (not PY2) and isinstance(node, ast.NameConstant):
-            n = str(node.value)
-            isMixedExpr = False
-        else:
-            isMixedExpr = (not node.signed) and \
-                    (self.context == _context.SIGNED)
-            n = node.id
-        if n == 'False':
-            s = "1'b0"
-        elif n == 'True':
-            s = "1'b1"
-        elif n == 'None':
-            s = "'bz"
-        elif n in self.tree.vardict:
+        isMixedExpr = (not node.signed) and (self.context == _context.SIGNED)
+        if n in self.tree.vardict:
             addSignBit = isMixedExpr
             s = n
         elif n in self.tree.argnames:

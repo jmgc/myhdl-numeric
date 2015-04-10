@@ -98,8 +98,6 @@ class Cosimulation(object):
                 s = to_str(os.read(rt, _MAXLINE))
                 if not s:
                     raise CosimulationError(_error.SimulationEnd)
-                if not PY2:
-                    s = str(s, encoding='ascii')
                 e = s.split()
                 if e[0] == "FROM":
                     if int(e[1]) != 0:
@@ -142,8 +140,6 @@ class Cosimulation(object):
         buf = to_str(os.read(self._rt, _MAXLINE))
         if not buf:
             raise CosimulationError(_error.SimulationEnd)
-        if not PY2:
-            buf = str(buf, encoding='ascii')
         e = buf.split()
         for i in range(1, len(e), 2):
             s, v = self._toSigDict[e[i]], e[i+1]
