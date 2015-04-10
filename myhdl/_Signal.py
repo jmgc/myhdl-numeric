@@ -597,9 +597,9 @@ class _DelayedSignal(_Signal):
 
     def _update(self):
         if self._next != self._nextZ:
-            self._timeStamp = _sim_time
+            self._timeStamp = _simulator._time
         self._nextZ = self._next
-        t = _sim_time + self._delay
+        t = _simulator._time + self._delay
         _schedule((t, _SignalWrap(self, self._next, self._timeStamp)))
         return []
 
