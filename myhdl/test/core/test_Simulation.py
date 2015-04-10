@@ -31,8 +31,6 @@ from myhdl import Simulation, SimulationError, now, delay, StopSimulation, join
 from myhdl import Signal, intbv
 from myhdl._Simulation import _error
 
-from myhdl._simulator import _siglist
-
 QUIET=1
 
 class Shared:
