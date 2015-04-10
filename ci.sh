@@ -1,7 +1,5 @@
 #!/bin/bash
 
-ls -lR /home/travis/virtualenv/python*/lib/python*/site-packages/myhdl
-
 ANSI_RED=`tput setaf 1`
 ANSI_GREEN=`tput setaf 2`
 ANSI_CYAN=`tput setaf 6`
