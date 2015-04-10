@@ -113,6 +113,8 @@ def showwarning(message, category, filename, lineno, *args):
 warnings.showwarning = showwarning
 
 
+from . import numeric
+
 from ._bin import bin
 from ._concat import concat
 from ._intbv import intbv
@@ -137,7 +139,6 @@ from . import conversion
 from .conversion import toVerilog
 from .conversion import toVHDL
 
-from . import numeric
 from .numeric._bitarray import bitarray
 from .numeric._uintba import uintba
 from .numeric._sintba import sintba
