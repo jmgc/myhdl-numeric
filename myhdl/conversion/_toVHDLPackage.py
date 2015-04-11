@@ -23,12 +23,17 @@ import myhdl
 _version = myhdl.__version__.replace('.','')
 _shortversion = _version.replace('dev','')
 
-_package = """\
+def _package(fixed=False):
+    result = """\
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
+"""
+    if fixed:
+        result += """
 use ieee.fixed_pkg.all;
-
+"""
+    result += """ 
 package pck_myhdl_%(version)s is
 
     attribute enum_encoding: string;
@@ -55,14 +60,17 @@ package pck_myhdl_%(version)s is
 
     function bool (arg: signed) return boolean;
 
-    function bool (arg: sfixed) return boolean;
-
     function bool (arg: integer) return boolean;
 
     function "-" (arg: unsigned) return signed;
-    
-    function floor (arg: sfixed) return sfixed;
+"""    
+    if fixed:
+        result += """
+    function bool (arg: sfixed) return boolean;
 
+    function floor (arg: sfixed) return sfixed;
+"""
+    result += """
 end pck_myhdl_%(version)s;
 
 
@@ -152,11 +160,6 @@ package body pck_myhdl_%(version)s is
         return arg /= 0;
     end function bool;
 
-    function bool (arg: sfixed) return boolean is
-    begin
-        return arg /= 0;
-    end function bool;
-
     function bool (arg: integer) return boolean is
     begin
         return arg /= 0;
@@ -166,6 +169,13 @@ package body pck_myhdl_%(version)s is
     begin
         return - signed(resize(arg, arg'length+1));
     end function "-";
+"""
+    if fixed:
+        result += """
+    function bool (arg: sfixed) return boolean is
+    begin
+        return arg /= 0;
+    end function bool;
 
     function floor (arg: sfixed) return sfixed is
         variable result:    sfixed(arg'high downto arg'low);
@@ -178,7 +188,11 @@ package body pck_myhdl_%(version)s is
         end if;
         return result;
     end function floor;
-
+"""
+    result += """
 end pck_myhdl_%(version)s;
 
-""" % {'version' : _shortversion}
+"""
+    result %= {'version' : _shortversion}
+    
+    return result

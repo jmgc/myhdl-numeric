@@ -106,6 +106,7 @@ class _ToVHDLConvertor(object):
                  "use_clauses",
                  "architecture",
                  "numeric_ports",
+                 "use_fixed_point",
                  )
 
     def __init__(self):
@@ -119,6 +120,7 @@ class _ToVHDLConvertor(object):
         self.architecture = "MyHDL"
         self.numeric_ports = True
         self.use_clauses = None
+        self.use_fixed_point = False
 
     def __call__(self, func, *args, **kwargs):
         global _converting
@@ -205,15 +207,22 @@ class _ToVHDLConvertor(object):
 
         self._convert_filter(h, intf, siglist, memlist, genlist)
 
+        fixed_point = self.use_fixed_point
+        for sig in siglist:
+            if isinstance(sig._init, sfixba):
+                fixed_point = True
+                break 
+
         if pfile:
             _writeFileHeader(pfile, ppath)
-            print(_package, file=pfile)
+            print(_package(fixed_point), file=pfile)
             pfile.close()
 
         _writeFileHeader(vfile, vpath)
         if needPck:
             _writeCustomPackage(vfile, intf)
-        _writeModuleHeader(vfile, intf, needPck, lib, arch, useClauses, doc, numeric)
+        _writeModuleHeader(vfile, intf, needPck, lib, arch, useClauses, doc,
+                           numeric, fixed_point)
         _writeFuncDecls(vfile)
         _writeConstants(vfile)
         _writeTypeDefs(vfile)
@@ -289,11 +298,13 @@ def _writeCustomPackage(f, intf):
     print(file=f)
 
 
-def _writeModuleHeader(f, intf, needPck, lib, arch, useClauses, doc, numeric):
+def _writeModuleHeader(f, intf, needPck, lib, arch, useClauses, doc, numeric,
+                       fixed = False):
     print("library IEEE;", file=f)
     print("use IEEE.std_logic_1164.all;", file=f)
     print("use IEEE.numeric_std.all;", file=f)
-    print("use IEEE.fixed_pkg.all;", file=f)
+    if fixed:
+        print("use IEEE.fixed_pkg.all;", file=f)
     print("use std.textio.all;", file=f)
     print(file=f)
     if lib != "work":
@@ -2144,7 +2155,7 @@ class vhd_std_logic(vhd_type):
         return 'std_logic'
 
     def _logical(self, other):
-        if isinstance(other, (vhd_std_logic, vhd_bool)):
+        if isinstance(other, (vhd_std_logic, vhd_boolean)):
             return vhd_std_logic()
         else:
             return NotImplemented
@@ -2917,6 +2928,10 @@ class _AnnotateTypesVisitor(ast.NodeVisitor, _ConversionMixin):
 
     def inferBinOpType(self, node):
         left, op, right = node.left, node.op, node.right
+        if isinstance(left.vhd, (vhd_boolean, vhd_std_logic)):
+            left.vhd = vhd_unsigned(1)
+        if isinstance(right.vhd, (vhd_boolean, vhd_std_logic)):
+            right.vhd = vhd_unsigned(1)
         if isinstance(left.vhd, vhd_sfixed):
             if isinstance(right.vhd, vhd_nat):
                 right.vhd = vhd_int(1)
