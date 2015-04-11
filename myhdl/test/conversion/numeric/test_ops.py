@@ -450,7 +450,7 @@ def unaryBench(m):
         for i in range(NRTESTS):
             arg.next = seqM[i]
             yield delay(10)
-        raise StopSimulation
+        #raise StopSimulation
 
     @instance
     def check():
