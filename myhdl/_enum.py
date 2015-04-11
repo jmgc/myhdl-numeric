@@ -21,6 +21,7 @@
 
 """
 from __future__ import absolute_import
+
 from myhdl._bin import bin
 from myhdl._Signal import _Signal
 from myhdl._compat import string_types
@@ -74,6 +75,9 @@ def enum(*names, **kwargs):
             self._nrbits = type._nrbits
             self._nritems = type._nritems
             self._type = type
+
+        def __hash__(self):
+            return hash((self._type, self._index))
 
         def __repr__(self):
             return self._name

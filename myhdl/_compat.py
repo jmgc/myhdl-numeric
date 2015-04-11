@@ -7,6 +7,7 @@ from ast import PyCF_ONLY_AST
 PY2 = sys.version_info[0] == 2
 
 _identity = lambda x: x
+
 if not PY2:
     string_types = (str,)
     integer_types = (int,)
@@ -15,7 +16,6 @@ if not PY2:
 
     from io import StringIO
     import builtins
-    
     def to_bytes(s):
         return s.encode()
 

@@ -18,7 +18,6 @@
 #  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 
 """ Module with the intbv class """
-
 from __future__ import absolute_import
 from __future__ import division
 
@@ -224,7 +223,6 @@ class intbv(object):
             return self._val / other._val
         else:
             return self._val / other
-
     def __rtruediv__(self, other):
         return other / self._val
     

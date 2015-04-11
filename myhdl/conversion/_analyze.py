@@ -400,7 +400,7 @@ def _getNritems(obj):
     elif isinstance(obj, EnumItemType):
         return len(obj._type)
     else:
-        raise TypeError("Unexpected type")
+        raise TypeError("Unexpected type, missing final \'else:\'?")
 
 
 class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
@@ -675,6 +675,13 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
 
     def visit_Call(self, node):
         self.visit(node.func)
+        f = self.getObj(node.func)
+        node.obj = None
+
+        if f is print:
+            self.visit_Print(node)
+            return
+
         self.access = _access.UNKNOWN
         for arg in node.args:
             self.visit(arg)
@@ -682,8 +689,6 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
             self.visit(kw)
         self.access = _access.INPUT
         argsAreInputs = True
-        f = self.getObj(node.func)
-        node.obj = None
         if type(f) is type and issubclass(f, (intbv, bitarray)):
             node.obj = self.getVal(node)
         elif f in (bitarray.resize, sfixba.scalb, sfixba.floor):
@@ -876,7 +881,7 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
         node.isCase = True
         node.caseVar = var1
         node.caseItem = item1
-        if (len(choices) == _getNritems(var1.obj)) or node.else_:
+        if node.else_ or (len(choices) == _getNritems(var1.obj)) :
             node.isFullCase = True
 
     def visit_ListComp(self, node):
@@ -901,6 +906,9 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
         if f is not range or len(cf.args) != 1:
             self.raiseError(node, _error.UnsupportedListComp)
         mem.depth = cf.args[0].obj
+
+    def visit_NameConstant(self, node):
+        node.obj = node.value
 
     def visit_Name(self, node):
         if isinstance(node.ctx, ast.Store):

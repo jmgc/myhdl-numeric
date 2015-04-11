@@ -142,7 +142,7 @@ from .numeric._bitarray import bitarray
 from .numeric._uintba import uintba
 from .numeric._sintba import sintba
 from .numeric._sfixba import sfixba, fixmath
- 
+
 from ._tristate import Tristate
 
 

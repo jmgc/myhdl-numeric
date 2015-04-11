@@ -28,7 +28,6 @@ from ._Signal import _Signal
 from ._compat import long
 from .numeric._bitarray import bitarray
 
-
 def concat(base, *args):
 
     if isinstance(base, (intbv, bitarray)):

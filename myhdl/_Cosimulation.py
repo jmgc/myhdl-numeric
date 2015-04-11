@@ -27,6 +27,8 @@ from myhdl._intbv import intbv
 from myhdl import CosimulationError
 from ._simulator import _simulator
 from ._compat import PY2, to_bytes, to_str
+from myhdl import _simulator, CosimulationError
+from myhdl._compat import PY2, to_bytes, to_str
 
 _MAXLINE = 4096
 
@@ -55,6 +57,7 @@ class Cosimulation(object):
         self._rt, self._wt = rt, wt = os.pipe()
         self._rf, self._wf = rf, wf = os.pipe()
 
+        # New pipes are not inheritable by default since py 3.4
         if not PY2:
             for p in rt, wt, rf, wf:
                 os.set_inheritable(p, True)

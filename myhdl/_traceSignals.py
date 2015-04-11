@@ -36,6 +36,7 @@ from myhdl import __version__, EnumItemType
 from ._simulator import _simulator
 from myhdl._extractHierarchy import _HierExtr
 from myhdl import TraceSignalsError
+from myhdl._ShadowSignal import _TristateSignal, _TristateDriver
 
 _tracing = 0
 _profileFunc = None
@@ -132,6 +133,15 @@ def _writeVcdHeader(f, timescale):
     print("$end", file=f)
     print(file=f)
 
+def _getSval(s):
+    if isinstance(s, _TristateSignal):
+        sval = s._orival
+    elif isinstance(s, _TristateDriver):
+        sval = s._sig._orival
+    else:
+        sval = s._val
+    return sval
+
 def _writeVcdSigs(f, hierarchy, tracelists):
     curlevel = 0
     namegen = _genNameCode()
@@ -149,7 +159,8 @@ def _writeVcdSigs(f, hierarchy, tracelists):
                 print("$upscope $end", file=f)
         print("$scope module %s $end" % name, file=f)
         for n, s in sigdict.items():
-            if s._val is None:
+            sval = _getSval(s)
+            if sval is None:
                 raise ValueError("%s of module %s has no initial value" % (n, name))
             if not s._tracing:
                 s._tracing = 1
@@ -157,7 +168,7 @@ def _writeVcdSigs(f, hierarchy, tracelists):
                 siglist.append(s)
             w = s._nrbits
             # use real for enum strings
-            if w and not isinstance(s._val, EnumItemType):
+            if w and not isinstance(sval, EnumItemType):
                 if w == 1:
                     print("$var reg 1 %s %s $end" % (s._code, n), file=f)
                 else:
@@ -171,7 +182,8 @@ def _writeVcdSigs(f, hierarchy, tracelists):
             for n in memdict.keys():
                 memindex = 0
                 for s in memdict[n].mem:
-                    if s._val is None:
+                    sval = _getSval(s)
+                    if sval is None:
                         raise ValueError("%s of module %s has no initial value" % (n, name))
                     if not s._tracing:
                         s._tracing = 1

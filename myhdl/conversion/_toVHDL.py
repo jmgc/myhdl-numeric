@@ -97,7 +97,7 @@ def _makeDoc(doc, indent=''):
 class _ToVHDLConvertor(object):
 
     __slots__ = ("name",
-                 "directory",                 
+                 "directory",
                  "component_declarations",
                  "header",
                  "no_myhdl_header",
@@ -111,7 +111,7 @@ class _ToVHDLConvertor(object):
 
     def __init__(self):
         self.name = None
-        self.directory = None        
+        self.directory = None
         self.component_declarations = None
         self.header = ''
         self.no_myhdl_header = False
@@ -290,7 +290,7 @@ def _writeCustomPackage(f, intf):
     print("attribute enum_encoding: string;", file=f)
     print(file=f)
     sortedList = list(_enumPortTypeSet)
-    sortedList.sort(key=lambda a: a._name)
+    sortedList.sort(key=lambda x: x._name)
     for t in sortedList:
         print("    %s" % t._toVHDL(), file=f)
     print(file=f)
@@ -384,7 +384,7 @@ def _writeConstants(f):
 def _writeTypeDefs(f):
     f.write("\n")
     sortedList = list(_enumTypeSet)
-    sortedList.sort(key=lambda a: a._name)
+    sortedList.sort(key=lambda x: x._name)
     for t in sortedList:
         f.write("%s\n" % t._toVHDL())
     f.write("\n")
@@ -989,6 +989,11 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
             fn = node.func
         # assert isinstance(fn, astNode.Name)
         f = self.getObj(fn)
+
+        if f is print:
+            self.visit_Print(node)
+            return
+
         fname = ''
         pre, suf = '', ''
         opening, closing = '(', ')'
@@ -1309,8 +1314,10 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
             item = test.case[1]
             if isinstance(item, EnumItemType):
                 itemRepr = item._toVHDL()
-            else:
+            elif hasattr(obj, '_nrbits'):
                 itemRepr = self.BitRepr(item, obj)
+            else:
+                itemRepr = i
             comment = ""
             self.write("when ")
             self.write(itemRepr)
@@ -1372,6 +1379,10 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
     def visit_Module(self, node):
         for stmt in node.body:
             self.visit(stmt)
+
+    def visit_NameConstant(self, node):
+        node.id = str(node.value)
+        self.getName(node)
 
     def visit_Name(self, node):
         if isinstance(node.ctx, ast.Store):
@@ -1770,9 +1781,9 @@ class _ConvertAlwaysCombVisitor(_ConvertVisitor):
             for item in senslist:
                 name = item._name.split('(',1)[0]
                 if not name in r:
-                    r.append( name ) # note that the list now contains names and not Signals, but we are interested in the strings anyway ...        
+                    r.append( name ) # note that the list now contains names and not Signals, but we are interested in the strings anyway ...
             return r
-        
+
         self.writeDoc(node)
         senslist = compressSensitivityList(self.tree.senslist)
         self.write("%s: process (" % self.tree.name)
@@ -2145,7 +2156,7 @@ class vhd_enum(vhd_type):
 
     def toStr(self, constr = True):
         return self._type.__dict__['_name']
-      
+
 
 class vhd_std_logic(vhd_type):
     def __init__(self, size=0):
@@ -2721,7 +2732,7 @@ def inferVhdlObj(obj):
     if (isinstance(obj, _Signal) and obj._type is intbv) or \
        isinstance(obj, intbv):
         ls = getattr(obj, 'lenStr', False)
-        if obj.min == None or obj.min < 0:
+        if obj.min is None or obj.min < 0:
             vhd = vhd_signed(size=len(obj), lenStr=ls)
         else:
             vhd = vhd_unsigned(size=len(obj), lenStr=ls)
@@ -2887,6 +2898,10 @@ class _AnnotateTypesVisitor(ast.NodeVisitor, _ConversionMixin):
         # make it possible to detect loop variable
         self.tree.vardict[var] = _loopInt(-1)
         self.generic_visit(node)
+
+    def visit_NameConstant(self, node):
+        node.vhd = inferVhdlObj(node.value)
+        node.vhdOri = copy(node.vhd)
 
     def visit_Name(self, node):
         if node.id in self.tree.vardict:

@@ -1,4 +1,5 @@
 from __future__ import absolute_import, print_function
+
 from myhdl import *
 
 def map_case4(z, a):

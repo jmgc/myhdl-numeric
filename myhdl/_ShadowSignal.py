@@ -252,7 +252,7 @@ class _TristateSignal(_ShadowSignal):
     def toVHDL(self):
         lines = []
         for d in self._drivers:
-            if d._drive:
+            if d._driven:
                 lines.append("%s <= %s;" % (self._name, d._name))
         return "\n".join(lines)
 

@@ -1,5 +1,5 @@
 from __future__ import absolute_import
-from __future__ import print_function
+
 from myhdl import *
 from myhdl.conversion import verify
 
