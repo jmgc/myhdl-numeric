@@ -26,12 +26,7 @@ if [ "$CI_TARGET" == "core" ]; then
   run_test make -C myhdl/test/core2
 elif [ "$CI_TARGET" == "icarus" ]; then
   run_test make -C "myhdl/test/conversion/general" icarus
-<<<<<<< HEAD
-  run_test make -C cosimulation/icarus
-  run_test make -C cosimulation/icarus/test
-=======
   run_test make -C cosimulation/icarus test
->>>>>>> d65bdbfd72468a97cc1cdb24a2c8483d1ce62c2a
   run_test make -C myhdl/test/conversion/toVerilog
 elif [ "$CI_TARGET" == "ghdl" ]; then
   run_test make -C "myhdl/test/conversion/general" GHDL
