@@ -1549,7 +1549,7 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
     def accessSlice(self, node):
         if isinstance(node.value, ast.Call) and \
            node.value.func.obj in (intbv, modbv, uintba, sintba, sfixba) and \
-           (_isConstant(node.value.args[0], self.tree.symdict)):
+           _isConstant(node.value.args[0], self.tree.symdict):
             c = self.getVal(node)._val
             pre, post = "", ""
             if isinstance(node.vhd, vhd_unsigned):
@@ -1573,7 +1573,7 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
             self.write(post)
             return
         pre, suf = self.inferCast(node.vhd, node.vhdOri)
-        if isinstance(node.value.vhd, vhd_unsigned) and isinstance(node.ctx, ast.Load):
+        if isinstance(node.value.vhd, vhd_signed) and isinstance(node.ctx, ast.Load):
             pre = pre + "unsigned("
             suf = ")" + suf
         self.write(pre)
@@ -1592,7 +1592,9 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
         if lower is None:
             self.write("%s" % high)
         else:
+            self.write("(")
             self.visit(lower)
+            self.write("-1)")
         self.write(" downto ")
         if upper is None:
             self.write("%s" % low)
@@ -2094,8 +2096,9 @@ class vhd_int(vhd_type):
         else:
             return NotImplemented
 
-    __add__ = __sub__ = __mul__ = __floordiv__ = __mod__ = _direct
+    __add__ = __sub__ = __mul__ = __floordiv__ = __mod__ = __pow__ = _direct
     __radd__ = __rsub__ = __rmul__ = __rfloordiv__ = __rmod__ = _direct
+    __rpow__ = _direct
     __truediv__ = __rtruediv = vhd_type._not_implemented 
     __and__ = __rand__ = __or__ = __ror__ = vhd_type._not_implemented
     __xor__ = __rxor__ = vhd_type._not_implemented
@@ -2125,8 +2128,9 @@ class vhd_nat(vhd_int):
         else:
             return NotImplemented
 
-    __add__ = __sub__ = __mul__ = __floordiv__ = __mod__ = _direct
+    __add__ = __sub__ = __mul__ = __floordiv__ = __mod__ = __pow__ = _direct
     __radd__ = __rsub__ = __rmul__ = __rfloordiv__ = vhd_type._not_implemented
+    __rpow__ = vhd_type._not_implemented
     __truediv__ = __rtruediv = __rmod__ = vhd_type._not_implemented 
     __and__ = __rand__ = __or__ = __ror__ = vhd_type._not_implemented
     __xor__ = __rxor__ = vhd_type._not_implemented
@@ -2984,6 +2988,8 @@ class _AnnotateTypesVisitor(ast.NodeVisitor, _ConversionMixin):
             node.vhd = left.vhd / right.vhd
         elif isinstance(op, ast.Mod):
             node.vhd = left.vhd % right.vhd
+        elif isinstance(op, ast.Pow):
+            node.vhd = left.vhd ** right.vhd
         else:
             return NotImplemented
 
@@ -3019,20 +3025,24 @@ class _AnnotateTypesVisitor(ast.NodeVisitor, _ConversionMixin):
     def accessSlice(self, node):
         self.generic_visit(node)
         lower = node.value.vhd.size
+        if isinstance(lower, tuple):
+            upper = lower[1]
+            lower = lower[0] + 1
+        else:
+            upper = 0
         t = type(node.value.vhd)
         # node.expr.vhd = vhd_unsigned(node.expr.vhd.size)
         if node.slice.lower:
             node.slice.lower.vhd = vhd_int()
             lower = self.getVal(node.slice.lower)
-        upper = 0
         if node.slice.upper:
             node.slice.upper.vhd = vhd_int()
             upper = self.getVal(node.slice.upper)
         if isinstance(node.ctx, ast.Store):
-            if isinstance(lower, tuple):
-                node.vhd = t((lower[0]-lower[1], 0))
+            if issubclass(t, vhd_sfixed):
+                node.vhd = t((lower - upper - 1, 0))
             else:
-                node.vhd = t(lower-upper)
+                node.vhd = t(lower - upper)
         else:
             node.vhd = vhd_unsigned(lower-upper)
         node.vhdOri = copy(node.vhd)
