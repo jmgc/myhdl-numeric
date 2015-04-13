@@ -330,10 +330,7 @@ class intbv(object):
         return self
 
     def __itruediv__(self, other):
-        if isinstance(other, intbv):
-            return self._val / other._val
-        else:
-            return self._val / other
+        raise TypeError("intbv: Augmented true division not supported")
     
     def __imod__(self, other):
         if isinstance(other, intbv):
