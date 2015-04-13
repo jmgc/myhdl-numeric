@@ -3008,44 +3008,36 @@ class _AnnotateTypesVisitor(ast.NodeVisitor, _ConversionMixin):
 
     def inferBinOpType(self, node):
         left, op, right = node.left, node.op, node.right
+        if isinstance(left.vhd, (vhd_boolean, vhd_std_logic)):
+                left.vhd = vhd_unsigned(1)
+        if isinstance(right.vhd, (vhd_boolean, vhd_std_logic)):
+                right.vhd = vhd_unsigned(1)
         if isinstance(left.vhd, vhd_sfixed):
             if isinstance(right.vhd, vhd_nat):
                 right.vhd = vhd_int(-1)
             elif isinstance(right.vhd, vhd_unsigned):
-                right.vhd = vhd_sfixed((right.vhd.size + 1, 0))
-            elif isinstance(right.vhd, vhd_signed):
                 right.vhd = vhd_sfixed((right.vhd.size, 0))
-            elif isinstance(right.vhd, (vhd_boolean, vhd_std_logic)):
-                right.vhd = vhd_sfixed((1, 0))
+            elif isinstance(right.vhd, vhd_signed):
+                right.vhd = vhd_sfixed((right.vhd.size - 1, 0))
         elif isinstance(right.vhd, vhd_sfixed):
             if isinstance(left.vhd, vhd_nat):
                 left.vhd = vhd_int(-1)
             elif isinstance(left.vhd, vhd_unsigned):
-                left.vhd = vhd_sfixed((left.vhd.size + 1, 0))
-            elif isinstance(left.vhd, vhd_signed):
                 left.vhd = vhd_sfixed((left.vhd.size, 0))
-            elif isinstance(left.vhd, (vhd_boolean, vhd_std_logic)):
-                left.vhd = vhd_sfixed((1, 0))
+            elif isinstance(left.vhd, vhd_signed):
+                left.vhd = vhd_sfixed((left.vhd.size - 1, 0))
         elif isinstance(left.vhd, vhd_signed):
             if isinstance(right.vhd, vhd_unsigned):
                 right.vhd = vhd_signed(right.vhd.size + 1)
-            elif isinstance(right.vhd, (vhd_boolean, vhd_std_logic)):
-                right.vhd = vhd_signed(2)
         elif isinstance(right.vhd, vhd_signed):
             if isinstance(left.vhd, vhd_unsigned):
                 left.vhd = vhd_signed(left.vhd.size + 1)
-            elif isinstance(left.vhd, (vhd_boolean, vhd_std_logic)):
-                left.vhd = vhd_signed(2)
         elif isinstance(left.vhd, vhd_unsigned):
             if isinstance(right.vhd, vhd_int) and not isinstance(right.vhd, vhd_nat):
                 left.vhd = vhd_signed(left.vhd.size + 1)
-            elif isinstance(right.vhd, (vhd_boolean, vhd_std_logic)):
-                right.vhd = vhd_unsigned(1)
         elif isinstance(right.vhd, vhd_unsigned):
             if isinstance(right.vhd, vhd_int) and not isinstance(right.vhd, vhd_nat):
                 right.vhd = vhd_signed(right.vhd.size + 1)
-            elif isinstance(left.vhd, (vhd_boolean, vhd_std_logic)):
-                left.vhd = vhd_unsigned(1)
 
         if isinstance(op, ast.Add):
             node.vhd = left.vhd + right.vhd
