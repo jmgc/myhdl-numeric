@@ -721,7 +721,13 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
     def visit_Call(self, node):
         self.context = None
         fn = node.func
-        # assert isinstance(fn, astNode.Name)
+        if isinstance(node.func, ast.Name):
+            fn = node.func
+            if fn.id == 'print':
+                self.visit_Print(node)
+                return
+        else:
+            fn = node.func        # assert isinstance(fn, astNode.Name)
         f = self.getObj(fn)
 
         if f is print:
