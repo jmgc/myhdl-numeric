@@ -3033,10 +3033,10 @@ class _AnnotateTypesVisitor(ast.NodeVisitor, _ConversionMixin):
             if isinstance(left.vhd, vhd_unsigned):
                 left.vhd = vhd_signed(left.vhd.size + 1)
         elif isinstance(left.vhd, vhd_unsigned):
-            if isinstance(right.vhd, vhd_int) and not isinstance(right.vhd, vhd_nat):
+            if isinstance(right.vhd, vhd_int):
                 left.vhd = vhd_signed(left.vhd.size + 1)
         elif isinstance(right.vhd, vhd_unsigned):
-            if isinstance(right.vhd, vhd_int) and not isinstance(right.vhd, vhd_nat):
+            if isinstance(right.vhd, vhd_int):
                 right.vhd = vhd_signed(right.vhd.size + 1)
 
         if isinstance(op, ast.Add):
