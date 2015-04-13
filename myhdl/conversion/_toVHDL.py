@@ -637,7 +637,12 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
                 if vhd.size == ori.size:
                     pre, suf = "unsigned(", ")"
                 else:
-                    pre, suf = "resize(unsigned(", "), %s)" % vhd.size
+                    # The chain is weird, but it is to chop the upper bits,
+                    # taking out the sign, which is the standard methodology
+                    # in VHDL. Other option could be to use slices, but the
+                    # results are equivalent, and this is more easy to read.
+                    pre, suf = "resize(unsigned(resize(", ", %s)), %s)" % \
+                            (vhd.size + 1, vhd.size)
             elif isinstance(ori, vhd_sfixed):
                 if vhd.size == ori.size[0] + 2:
                     pre, suf = "to_ufixed(", ")"
