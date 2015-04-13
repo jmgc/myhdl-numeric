@@ -151,25 +151,27 @@ class bitarray(object):
         else:
             self._handle_limits(high, low, ba_length)
 
-        if (self._high != value._high) or (self._low != value._low) or \
-                (type(self) != type(value)):
-            self._resize(value)
-            self._wrap()
+        if (self._high != value._high) or (self._low != value._low):
+            if type(self) == type(value):
+                self._resize(value)
+            else:
+                result = type(self)(0, self)
+                result._resize(value)
+                self._val = result._val
         else:
             self._val = value._val
+        self._wrap()
 
     def _resize(self, value):
-        if (self._high == value._high) and (self._low == value._low):
-            self._val = value._val
-        else:
-            raise TypeError("Different limits: " \
-                            "{}({}, {}), " \
-                            "{}({}, {})".format(type(value).__name__,
-                                                value._high,
-                                                value._low,
-                                                type(self).__name__, 
-                                                self._high,
-                                                self._low))
+        """Just truncate and/or zeropadding"""
+        tmp = value._val
+        dlow = self._low - value._low
+        if dlow < 0:
+            tmp &= ((1 << (self._high - self._low)) - 1) >> -dlow
+            self._val = tmp << -dlow
+        elif dlow >= 0:
+            tmp &= ((1 << (self._high - self._low)) - 1) << dlow
+            self._val = tmp >> dlow
                 
     def _handle_limits(self, high, low, length):
         if (high == None) and (low == None):
