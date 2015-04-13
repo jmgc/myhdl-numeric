@@ -208,10 +208,11 @@ class _ToVHDLConvertor(object):
         self._convert_filter(h, intf, siglist, memlist, genlist)
 
         fixed_point = self.use_fixed_point
-        for sig in siglist:
-            if isinstance(sig._init, sfixba):
-                fixed_point = True
-                break 
+        for tree in genlist:
+            if hasattr(tree, 'hasFixedPoint'):
+                if tree.hasFixedPoint:
+                    fixed_point = True
+                    break
 
         if pfile:
             _writeFileHeader(pfile, ppath)
@@ -598,34 +599,54 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
         self.write(doc)
         self.writeline()
 
-    def IntRepr(self, obj):
+    @staticmethod
+    def IntRepr(obj):
         if obj >= 0:
             s = "%s" % int(obj)
         else:
             s = "(- %s)" % abs(int(obj))
         return s
 
-    def BitRepr(self, item, var):
+    @staticmethod
+    def BitRepr(item, var):
         return '"%s"' % bin(item, len(var))
 
-    def inferCast(self, vhd, ori):
+    @staticmethod
+    def inferCast(vhd, ori):
         pre, suf = "", ""
-        if isinstance(vhd, vhd_int):
-            if not isinstance(ori, vhd_int):
+        if isinstance(vhd, vhd_nat):
+            if isinstance(ori, vhd_nat):
+                pass
+            elif isinstance(ori, vhd_int):
+                pre, suf = "natural(", ")"
+            else:
+                pre, suf = "to_integer(", ")"
+        elif isinstance(vhd, vhd_int):
+            if isinstance(ori, vhd_nat):
+                pre, suf = "integer(", ")"
+            elif isinstance(ori, vhd_int):
+                pass
+            else:
                 pre, suf = "to_integer(", ")"
         elif isinstance(vhd, vhd_unsigned):
             if isinstance(ori, vhd_unsigned):
                 if vhd.size != ori.size:
                     pre, suf = "resize(", ", %s)" % vhd.size
             elif isinstance(ori, vhd_signed):
-                if vhd.size != ori.size:
-                    # note the order of resizing and casting here (otherwise bug!)
-                    pre, suf = "unsigned(resize(", ", %s))" % vhd.size
-                else:
+                # note the order of resizing and casting here (otherwise bug!)
+                if vhd.size == ori.size:
                     pre, suf = "unsigned(", ")"
+                else:
+                    pre, suf = "resize(unsigned(", "), %s)" % vhd.size
             elif isinstance(ori, vhd_sfixed):
-                pre, suf = "to_unsigned(to_ufixed(", "), %s)" % vhd.size
+                if vhd.size == ori.size[0] + 2:
+                    pre, suf = "to_ufixed(", ")"
+                else:
+                    pre, suf = "to_unsigned(to_ufixed(", "), %s)" % \
+                            (vhd.size)
             elif isinstance(ori, vhd_nat):
+                pre, suf = "to_unsigned(", ", %s)" % vhd.size
+            elif isinstance(ori, vhd_std_logic):
                 pre, suf = "to_unsigned(", ", %s)" % vhd.size
             else:
                 pre, suf = "to_unsigned(natural(", "), %s)" % vhd.size
@@ -640,6 +661,8 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
                 else:
                     pre, suf = "signed(", ")"
             elif isinstance(ori, vhd_sfixed):
+                pre, suf = "to_signed(", ", %s)" % vhd.size
+            elif isinstance(ori, vhd_std_logic):
                 pre, suf = "to_signed(", ", %s)" % vhd.size
             else:
                 pre, suf = "to_signed(integer(", "), %s)" % vhd.size
@@ -743,16 +766,16 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
                 isinstance(right.vhd, vhd_vector):
             vhd_vector.inferBinaryOpCast(node, left, right, op)
         pre, suf = self.inferCast(node.vhd, node.vhdOri)
+        if isinstance(node.op, ast.FloorDiv) and \
+                isinstance(node.vhdOri, vhd_sfixed):
+            pre = pre + 'floor('
+            suf = ')' + suf
         if pre == "":
             pre, suf = "(", ")"
         return pre, suf
 
     def BinOp(self, node):
         pre, suf = self.inferBinaryOpCast(node, node.left, node.right, node.op)
-        if isinstance(node.op, ast.FloorDiv) and \
-                isinstance(node.vhdOri, vhd_sfixed):
-            pre += 'floor('
-            suf = ')' + suf
         self.write(pre)
         self.visit(node.left)
         self.write(" %s " % opmap[type(node.op)])
@@ -760,9 +783,9 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
         self.write(suf)
 
     def inferShiftOpCast(self, node, left, right, op):
-        if isinstance(node.left.vhd, vhd_sfixed):
+        if isinstance(left.vhd, vhd_sfixed):
             vhd_sfixed.inferShiftOpCast(node, left, right, op)
-        if isinstance(node.left.vhd, vhd_vector):
+        if isinstance(left.vhd, vhd_vector):
             vhd_vector.inferShiftOpCast(node, left, right, op)
         pre, suf = self.inferCast(node.vhd, node.vhdOri)
         return pre, suf
@@ -955,7 +978,8 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
         left, op, right =  node.target, node.op, node.value
         isFunc = False
         pre, suf = "", ""
-        if isinstance(op, (ast.Add, ast.Sub, ast.Mult, ast.Mod, ast.FloorDiv)):
+        if isinstance(op, (ast.Add, ast.Sub, ast.Mult, ast.Mod,
+                           ast.FloorDiv, ast.Div)):
             pre, suf = self.inferBinaryOpCast(node, left, right, op)
         elif isinstance(op, (ast.LShift, ast.RShift)):
             isFunc = True
@@ -965,7 +989,10 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
         self.write(pre)
         if isFunc:
             self.write("%s(" % opmap[type(op)])
+        left_pre, left_suf = self.inferCast(left.vhd, left.vhdOri)
+        self.write(left_pre)
         self.visit(left)
+        self.write(left_suf)
         if isFunc:
             self.write(", ")
         else:
@@ -1182,12 +1209,26 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
             else:
                 self.write('to_sfixed(%s, %s, %s)' % \
                            (n, node.vhd.size[0], node.vhd.size[1]))
-        else:
+        elif isinstance(node.vhd, vhd_nat):
+            if isinstance(node.vhdOri, vhd_nat):
+                pre, suf = "(", ")"
+            elif isinstance(node.vhdOri, vhd_int):
+                pre, suf = "natural(", ")"
             if n < 0:
-                self.write("(")
+                self.write(pre)
             self.write(n)
             if n < 0:
-                self.write(")")
+                self.write(suf)
+        elif isinstance(node.vhd, vhd_int):
+            if isinstance(node.vhdOri, vhd_nat):
+                pre, suf = "integer(", ")"
+            elif isinstance(node.vhdOri, vhd_int):
+                pre, suf = "(", ")"
+            if n < 0:
+                self.write(pre)
+            self.write(n)
+            if n < 0:
+                self.write(suf)
 
     def visit_Str(self, node):
         typemark = 'string'
@@ -2329,6 +2370,8 @@ class vhd_unsigned(vhd_vector):
     def __add__(self, other):
         if isinstance(other, vhd_nat):
             return copy(self)
+        elif isinstance(other, vhd_int):
+            return vhd_signed(self.size)
         elif isinstance(other, vhd_unsigned):
             return vhd_unsigned(max(self.size, other.size))
         else:
@@ -2337,12 +2380,16 @@ class vhd_unsigned(vhd_vector):
     def __radd__(self, other):
         if isinstance(other, vhd_nat):
             return copy(self)
+        elif isinstance(other, vhd_int):
+            return vhd_signed(self.size)
         else:
             return NotImplemented
 
     def __sub__(self, other):
         if isinstance(other, vhd_nat):
             return copy(self)
+        elif isinstance(other, vhd_int):
+            return vhd_signed(self.size)
         elif isinstance(other, vhd_unsigned):
             return vhd_unsigned(max(self.size, other.size))
         else:
@@ -2351,12 +2398,16 @@ class vhd_unsigned(vhd_vector):
     def __rsub__(self, other):
         if isinstance(other, vhd_nat):
             return copy(self)
+        elif isinstance(other, vhd_int):
+            return vhd_signed(self.size)
         else:
             return NotImplemented
 
     def __mul__(self, other):
         if isinstance(other, vhd_nat):
             return vhd_unsigned(2*self.size)
+        elif isinstance(other, vhd_int):
+            return vhd_signed(2*self.size)
         elif isinstance(other, vhd_unsigned):
             return vhd_unsigned(self.size + other.size)
         else:
@@ -2365,12 +2416,16 @@ class vhd_unsigned(vhd_vector):
     def __rmul__(self, other):
         if isinstance(other, vhd_nat):
             return vhd_unsigned(2*self.size)
+        elif isinstance(other, vhd_int):
+            return vhd_signed(2*self.size)
         else:
             return NotImplemented
 
     def __floordiv__(self, other):
         if isinstance(other, vhd_nat):
             return copy(self)
+        elif isinstance(other, vhd_int):
+            return vhd_signed(self.size)
         elif isinstance(other, vhd_unsigned):
             return copy(self)
         else:
@@ -2379,6 +2434,8 @@ class vhd_unsigned(vhd_vector):
     def __rfloordiv__(self, other):
         if isinstance(other, vhd_nat):
             return copy(self)
+        elif isinstance(other, vhd_int):
+            return vhd_signed(self.size)
         else:
             return NotImplemented
 
@@ -2387,6 +2444,8 @@ class vhd_unsigned(vhd_vector):
     def __mod__(self, other):
         if isinstance(other, vhd_nat):
             return copy(self)
+        elif isinstance(other, vhd_int):
+            return vhd_signed(self.size)
         elif isinstance(other, vhd_unsigned):
             return copy(other)
         else:
@@ -2395,6 +2454,8 @@ class vhd_unsigned(vhd_vector):
     def __rmod__(self, other):
         if isinstance(other, vhd_nat):
             return copy(self)
+        elif isinstance(other, vhd_int):
+            return vhd_signed(self.size)
         else:
             return NotImplemented
 
@@ -2812,7 +2873,7 @@ class _AnnotateTypesVisitor(ast.NodeVisitor, _ConversionMixin):
         else:
             node.left, node.right = node.target, node.value
             self.inferBinOpType(node)
-        node.vhd = copy(node.target.vhd)
+        node.vhd = copy(node.target.vhdOri)
 
     def visit_Call(self, node):
         fn = node.func
@@ -2947,34 +3008,44 @@ class _AnnotateTypesVisitor(ast.NodeVisitor, _ConversionMixin):
 
     def inferBinOpType(self, node):
         left, op, right = node.left, node.op, node.right
-        if isinstance(left.vhd, (vhd_boolean, vhd_std_logic)):
-            left.vhd = vhd_unsigned(1)
-        if isinstance(right.vhd, (vhd_boolean, vhd_std_logic)):
-            right.vhd = vhd_unsigned(1)
         if isinstance(left.vhd, vhd_sfixed):
             if isinstance(right.vhd, vhd_nat):
-                right.vhd = vhd_int(1)
+                right.vhd = vhd_int(-1)
             elif isinstance(right.vhd, vhd_unsigned):
                 right.vhd = vhd_sfixed((right.vhd.size + 1, 0))
             elif isinstance(right.vhd, vhd_signed):
                 right.vhd = vhd_sfixed((right.vhd.size, 0))
+            elif isinstance(right.vhd, (vhd_boolean, vhd_std_logic)):
+                right.vhd = vhd_sfixed((1, 0))
         elif isinstance(right.vhd, vhd_sfixed):
             if isinstance(left.vhd, vhd_nat):
-                left.vhd = vhd_int(1)
+                left.vhd = vhd_int(-1)
             elif isinstance(left.vhd, vhd_unsigned):
                 left.vhd = vhd_sfixed((left.vhd.size + 1, 0))
             elif isinstance(left.vhd, vhd_signed):
                 left.vhd = vhd_sfixed((left.vhd.size, 0))
+            elif isinstance(left.vhd, (vhd_boolean, vhd_std_logic)):
+                left.vhd = vhd_sfixed((1, 0))
         elif isinstance(left.vhd, vhd_signed):
-            if isinstance(right.vhd, vhd_nat):
-                right.vhd = vhd_int(1)
-            elif isinstance(right.vhd, vhd_unsigned):
-                right.vhd = vhd_signed(right.vhd.size)
+            if isinstance(right.vhd, vhd_unsigned):
+                right.vhd = vhd_signed(right.vhd.size + 1)
+            elif isinstance(right.vhd, (vhd_boolean, vhd_std_logic)):
+                right.vhd = vhd_signed(2)
         elif isinstance(right.vhd, vhd_signed):
-            if isinstance(left.vhd, vhd_nat):
-                left.vhd = vhd_int(1)
-            elif isinstance(left.vhd, vhd_unsigned):
-                left.vhd = vhd_signed(left.vhd.size)
+            if isinstance(left.vhd, vhd_unsigned):
+                left.vhd = vhd_signed(left.vhd.size + 1)
+            elif isinstance(left.vhd, (vhd_boolean, vhd_std_logic)):
+                left.vhd = vhd_signed(2)
+        elif isinstance(left.vhd, vhd_unsigned):
+            if isinstance(right.vhd, vhd_int) and not isinstance(right.vhd, vhd_nat):
+                left.vhd = vhd_signed(left.vhd.size + 1)
+            elif isinstance(right.vhd, (vhd_boolean, vhd_std_logic)):
+                right.vhd = vhd_unsigned(1)
+        elif isinstance(right.vhd, vhd_unsigned):
+            if isinstance(right.vhd, vhd_int) and not isinstance(right.vhd, vhd_nat):
+                right.vhd = vhd_signed(right.vhd.size + 1)
+            elif isinstance(left.vhd, (vhd_boolean, vhd_std_logic)):
+                left.vhd = vhd_unsigned(1)
 
         if isinstance(op, ast.Add):
             node.vhd = left.vhd + right.vhd

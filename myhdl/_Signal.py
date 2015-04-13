@@ -219,7 +219,7 @@ class _Signal(object):
 
     # support for the 'val' attribute
     def _get_val(self):
-        return self._val
+        return copy(self._val)
     val = property(_get_val, None, None, "'val' access methods")
 
     # support for the 'next' attribute
@@ -312,8 +312,7 @@ class _Signal(object):
     def _setNextBitArray(self, val):
         if not (isinstance(val, bitarray) or isinstance(val, integer_types)):
             raise TypeError("Expected int or bitarray child, got %s" % type(val))
-        data = type(self._init)(val)
-        self._next = data.resize(self._init)
+        self._next = type(self._init)(val, self._init)
 
     def _setNextNonmutable(self, val):
         if not isinstance(val, self._type):

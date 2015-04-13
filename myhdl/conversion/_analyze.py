@@ -418,6 +418,7 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
         tree.hasRom = False
         tree.hasLos = False
         tree.hasPrint = False
+        tree.hasFixedPoint = False
         self.tree = tree
         self.labelStack = []
         self.refStack = ReferenceStack()
@@ -636,6 +637,8 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
             if isinstance(obj, (intbv, bitarray)):
                 if len(obj) == 0:
                     self.raiseError(node, _error.IntbvBitWidth, n)
+                if isinstance(obj, sfixba):
+                    self.tree.hasFixedPoint = True
             if isinstance(obj, modbv):
                 if not obj._hasFullRange():
                     self.raiseError(node, _error.ModbvRange, n)
