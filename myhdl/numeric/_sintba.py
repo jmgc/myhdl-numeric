@@ -66,15 +66,15 @@ class sintba(bitarray):
 
         self._wrap()
 
-    def _resize(self, value):
-        if value < 0:
-            result = type(self)(-1, self)
-        else:
-            result = type(self)(0, self)
-        bound = min(value.high, result.high)-1
-        if bound > 0:
-            result[bound:] = value[bound:]
-        self._val = result._val
+#     def _resize(self, value):
+#         if value < 0:
+#             result = type(self)(-1, self)
+#         else:
+#             result = type(self)(0, self)
+#         bound = min(value.high, result.high)-1
+#         if bound > 0:
+#             result[bound:] = value[bound:]
+#         self._val = result._val
 
     def _get_max(self):
         return (long(1) << (self._high - self._low - 1))

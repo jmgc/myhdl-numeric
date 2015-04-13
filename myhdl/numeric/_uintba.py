@@ -154,28 +154,45 @@ class uintba(sintba):
         if isinstance(other, integer_types) and other < 0:
             raise TypeError("Only natural values allowed")
         else:
-            return uintba.__iadd__(self, other)
+            result = sintba.__iadd__(self, other)
+            self._val = result._val
+            self._wrap()
+            return self
 
     def __isub__(self, other):
         if isinstance(other, integer_types) and other < 0:
             return NotImplemented
         else:
-            return uintba.__isub__(self, other)
+            result = sintba.__isub__(self, other)
+            self._val = result._val
+            self._wrap()
+            return self
 
     def __imul__(self, other):
         if isinstance(other, integer_types) and other < 0:
             return NotImplemented
         else:
-            return sintba.__imul__(self, other)
+            result = sintba.__imul__(self, other)
+            self._val = result._val
+            self._wrap()
+            return self
 
     def __ifloordiv__(self, other):
         if isinstance(other, integer_types) and other < 0:
             return NotImplemented
         else:
-            return sintba.__ifloordiv__(self, other)
+            result = sintba.__ifloordiv__(self, other)
+            self._val = result._val
+            self._wrap()
+            return self
 
     def __imod__(self, other):
         if isinstance(other, integer_types) and other < 0:
             return NotImplemented
         else:
-            return sintba.__imod__(self, other)
+            result = sintba.__imod__(self, other)
+            self._val = result._val
+            self._wrap()
+            return self
+
+    _wrap = bitarray._wrap

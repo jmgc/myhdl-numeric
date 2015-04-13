@@ -24,6 +24,7 @@ env:
   - CI_TARGET=icarus
   - CI_TARGET=ghdl
   - CI_TARGET=bugs
+  - CI_TARGET=numeric
 
 matrix:
   allow_failures:

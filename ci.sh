@@ -34,6 +34,9 @@ elif [ "$CI_TARGET" == "ghdl" ]; then
 elif [ "$CI_TARGET" == "bugs" ]; then
   run_test make -C "myhdl/test/bugs" icarus
   run_test make -C "myhdl/test/bugs" GHDL
+elif [ "$CI_TARGET" == “numeric” ]; then
+  run_test make -C myhdl/test/numeric
+  run_test make -C myhdl/test/conversion/numeric
 fi
 
 exit $foundError

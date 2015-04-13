@@ -112,10 +112,10 @@ def binaryBench(l, r):
     Bitor = Signal(l | r)
     Bitxor = Signal(l ^ r)
     FloorDiv = Signal(l // r)
-    LeftShift = Signal(left.resize(left.high * 8, left.low * 8))
+    LeftShift = Signal(l.resize(l.high * 8, l.low * 8))
     Modulo = Signal(l % r)
     Mul = Signal(l * r)
-    Pow = Signal(left.resize(left.high * 8, left.low * 8))
+    Pow = Signal(l.resize(l.high * 8, l.low * 8))
     RightShift = Signal(l)
     Sub = Signal(l - r)
     Sum = Signal(l + r)
@@ -487,70 +487,76 @@ def augmOps(  Bitand,
     @instance
     def logic():
         # var = intbv(0)[min(64, len(left) + len(right)):]
-        var = intbv(0)[len(left) + len(right):]
-        var2 = intbv(0)[64:]
         while True:
             yield left, right
-            var[:] = left
-            var &= right
+            var = left.val
+            var &= right.val
             Bitand.next = var
-            var[:] = left
-            var |= right
+            var = left.val
+            var |= right.val
             Bitor.next = var
-            var[:] = left
-            var ^= left
+            var = left.val
+            var ^= right.val
             Bitxor.next = var
             if right != 0:
-                var[:] = left
-                var //= right
+                var = left.val
+                var //= right.val
                 FloorDiv.next = var
             if left >= right:
-                var[:] = left
-                var -= right
+                var = left.val
+                var -= right.val
                 Sub.next = var
-            var[:] = left
-            var += right
+            var = left.val
+            var += right.val
             Sum.next = var
-            if left < 256 and right < 26:
-                var2[:] = left
-                var2 <<= right
-                LeftShift.next = var2
+            if left >= left.min and left < left.max and right >= 0  and right < 26:
+                var = left.val
+                var <<= int(right.val)
+                LeftShift.next = var
+            else:
+                LeftShift.next = 0
             if right != 0:
-                var[:] = left
-                var %= right
+                var = left.val
+                var %= right.val
                 Modulo.next = var
-            var[:] = left
-            var *= right
+            else:
+                Modulo.next = 0
+            var = left.val
+            var *= right.val
             Mul.next = var
-            var[:] = left
-            var >>= right
-            RightShift.next = var
+            if right >= 0  and right < 26:
+                var = left.val
+                var >>= int(right.val)
+                RightShift.next = var
+            else:
+                RightShift.next = 0
     return logic
 
 
         
 
+def augmBench(l, r):
+    maxP = min(l.max, r.max)
+    minP = max(l.min, r.min)
 
-def augmBench(m, n):
+    seqM = tuple([randrange(l.max - l.min) + l.min for i in range(NRTESTS)])
+    seqN = tuple([randrange(r.max - r.min) + r.min for i in range(NRTESTS)])
 
-    M = 2**m
-    N = 2**n
-    
-    seqM = tuple([randrange(M) for i in range(NRTESTS)])
-    seqN = tuple([randrange(N) for i in range(NRTESTS)])
+    if l == 255 and r == -128:
+        pass
 
-    left = Signal(intbv(0)[m:])
-    right = Signal(intbv(0)[n:])
-    Bitand = Signal(intbv(0)[max(m, n):])
-    Bitor = Signal(intbv(0)[max(m, n):])
-    Bitxor = Signal(intbv(0)[max(m, n):])
-    FloorDiv = Signal(intbv(0)[m:])
-    LeftShift = Signal(intbv(0)[64:])
-    Modulo = Signal(intbv(0)[m:])
-    Mul = Signal(intbv(0)[m+n:])
-    RightShift = Signal(intbv(0)[m:])
-    Sub = Signal(intbv(0)[max(m, n):])
-    Sum = Signal(intbv(0)[max(m, n)+1:])
+    left = Signal(l)
+    right = Signal(r)
+    Bitand = Signal(l)
+    Bitor = Signal(l)
+    Bitxor = Signal(l)
+    FloorDiv = Signal(l)
+    LeftShift = Signal(l)
+    Modulo = Signal(l)
+    Mul = Signal(l)
+    RightShift = Signal(l)
+    Sub = Signal(l)
+    Sum = Signal(l)
 
     augmops = augmOps( Bitand,
                        Bitor,
@@ -572,50 +578,63 @@ def augmBench(m, n):
         left.next = 0
         right.next = 0
         yield delay(10)
-        left.next = 0
-        right.next = N-1
+        left.next = 1
+        right.next = 1
         yield delay(10)
-        left.next = M-1
+        left.next = 0
         right.next = 0
         yield delay(10)
-        left.next = M-1
-        right.next = N-1
+        left.next[:] = left.min
+        right.next[:] = right.min
+        yield delay(10)
+        left.next[:] = left.min
+        right.next[:] = right.max-1
+        yield delay(10)
+        left.next[:] = left.max - 1
+        right.next[:] = right.min
+        yield delay(10)
+        left.next[:] = left.max - 1
+        right.next[:] = right.max - 1
+        yield delay(10)
         for i in range(NRTESTS):
-            left.next = seqM[i]
-            right.next = seqN[i]
-            yield delay(10)
-            
+            tmpM = seqM[i]
+            tmp_sm = sfixba(tmpM, left.high - left.low + 1, 0)
+            tmp_sms = tmp_sm.scalb(left.low)
+            left.next = tmp_sms
+            tmpN = seqN[i]
+            tmp_sn = sfixba(tmpN, right.high - right.low + 1, 0)
+            tmp_sns = tmp_sn.scalb(right.low)
+            right.next = tmp_sns
+            yield delay(10)            
 
     @instance
     def check():
+        count = 0
         while True:
             yield left, right
             yield delay(1)
-            print(left, right)
-            print(Bitand)
-            print(Bitor)
-            print(Bitxor)
-            print(Sub)
-            print(Sum)
-            print(FloorDiv)
-            print(LeftShift)
-            print(Modulo)
-            print(Mul)
-            print(RightShift)
+            print("count: ", count)
+            print("left: ", left)
+            print("right: ", right)
+            print("and: ", left, right, Bitand)
+            print("or: ", left, right, Bitor)
+            print("xor: ", left, right, Bitxor)
+            print("<<: ", left, right, LeftShift)
+            print(">>: ", left, right, RightShift)
+            print("+: ", left, right, Sum)
+            print("-: ", left, right, Sub)
+            print("//: ", left, right, FloorDiv)
+            print("%: ", left, right, Modulo)
+            print("*: ", left, right, Mul)
+
+            count = count + 1
             
     return augmops, stimulus, check
 
 
-def checkAugmOps(m, n):
-    assert verify(augmBench, m, n) == 0
-
-def testAugmOps():
-    for m, n in ((4, 4,), (5, 3), (2, 6), (8, 7)):
-        yield checkAugmOps, m, n
-
 
 class Test(unittest.TestCase):
-    sim = False
+    sim = True
 
     def vectors(self):
         self.lefts = (uintba(9, 8),
@@ -623,7 +642,7 @@ class Test(unittest.TestCase):
                       sintba(-10, 8),
                       sfixba(20, 9, -4),
                       sfixba(-13, 10, -3),)
-        self.rights = (uintba(3, 4),
+        self.rights = (#uintba(3, 4),
                        sintba(9, 8),
                        sintba(-10, 5),
                        sfixba(1, 4, 0),
@@ -638,38 +657,55 @@ class Test(unittest.TestCase):
                        sfixba(-13, 8, -3),)
 
     if sim:
-        def test_SimBinary(self):
+        def test_AugmentedSim(self):
             self.vectors()
             for left in self.lefts:
                 for right in self.rights:
                     #tb_fsm = traceSignals(delayBufferTestBench)
                     #sim = Simulation(tb_fsm)
-                    #toVHDL(binaryBench, left, right)
-                    sim = Simulation(binaryBench(left, right))
+                    toVHDL(augmBench, left, right)
+                    sim = Simulation(augmBench(left, right))
                     sim.run()
     else:
-        def test_Binary(self):
+        def test_AugmentedVer(self):
             self.vectors()
             for left in self.lefts:
                 for right in self.rights:
-                    self.assertEqual(conversion.verify(binaryBench, left, right), 0)
+                    self.assertEqual(conversion.verify(augmBench, left, right), 0)
 
-    if sim:
-        def test_SimDiv(self):
-            self.div_vectors()
-            for left in self.lefts:
-                for right in self.rights:
-                    #tb_fsm = traceSignals(delayBufferTestBench)
-                    #sim = Simulation(tb_fsm)
-                    toVHDL(divBench, left, right)
-                    sim = Simulation(divBench(left, right))
-                    sim.run()
-    else:
-        def test_Div(self):
-            self.div_vectors()
-            for left in self.lefts:
-                for right in self.rights:
-                    self.assertEqual(conversion.verify(divBench, left, right), 0)
+#     if sim:
+#         def test_BinarySim(self):
+#             self.vectors()
+#             for left in self.lefts:
+#                 for right in self.rights:
+#                     #tb_fsm = traceSignals(delayBufferTestBench)
+#                     #sim = Simulation(tb_fsm)
+#                     #toVHDL(binaryBench, left, right)
+#                     sim = Simulation(binaryBench(left, right))
+#                     sim.run()
+#     else:
+#         def test_BinaryVer(self):
+#             self.vectors()
+#             for left in self.lefts:
+#                 for right in self.rights:
+#                     self.assertEqual(conversion.verify(binaryBench, left, right), 0)
+# 
+#     if sim:
+#         def test_DivisionSim(self):
+#             self.div_vectors()
+#             for left in self.lefts:
+#                 for right in self.rights:
+#                     #tb_fsm = traceSignals(delayBufferTestBench)
+#                     #sim = Simulation(tb_fsm)
+#                     toVHDL(divBench, left, right)
+#                     sim = Simulation(divBench(left, right))
+#                     sim.run()
+#     else:
+#         def test_DivisionVer(self):
+#             self.div_vectors()
+#             for left in self.lefts:
+#                 for right in self.rights:
+#                     self.assertEqual(conversion.verify(divBench, left, right), 0)
 
 #     if sim:
 #         def testSimResize(self):

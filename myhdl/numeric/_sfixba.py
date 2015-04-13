@@ -1,5 +1,7 @@
 #  This file is part of the myhdl_numeric library, a Python package for using
-#  Python as a Hardware Description Language.
+#  Python as a Hardware Description Language with special care of number
+#  properties. The type sfixba is fully based on the sfixed VHDL type code
+#  written by David Bishop.
 #
 #  Copyright (C) 2015 Jase M. Gomez
 #
@@ -80,7 +82,7 @@ class sfixba(bitarray):
         format = None
         
         no_math = True
-        no_format = True
+        no_high = True
 
         i = 0
         for i, arg in enumerate(args):
@@ -92,7 +94,6 @@ class sfixba(bitarray):
                 elif isinstance(arg, sfixba):
                     format = arg
                     maths = arg
-                    no_format = False
                     break
             if i == 0:
                 value = arg
@@ -118,6 +119,8 @@ class sfixba(bitarray):
                 else:
                     maths = fixmath()
 
+        if 'maths' in kwargs:
+            maths = kwargs['maths']
         length = len(args)
         if (length > (i + 1)) and (not no_math):
             raise TypeError("No positional arguments allowed after fixmath " \
@@ -136,6 +139,10 @@ class sfixba(bitarray):
         if high is None:
             if format is not None:
                 high = format.high
+                no_high = False
+        else:
+            no_high = False
+
         if low is None:
             if format is not None:
                 low = format.low
@@ -197,7 +204,8 @@ class sfixba(bitarray):
                 self._zero(value, high, low)
         elif isinstance(value, bitarray):
             if isinstance(value, uintba) and not isinstance(value, sintba):
-                high = high + 1
+                if no_high:
+                    high = high + 1
                 value = uintba(value._val, high)
             if value._val == 0:
                 self._zero(value, high, low)
@@ -298,7 +306,6 @@ class sfixba(bitarray):
         return bitarray(i_value, f_high, f_low)
 
     def _from_float(self, value, high, low):
-
         if high is None or low is None:
             ba_value = self._convert_float(value)
             if high == None:
@@ -312,13 +319,16 @@ class sfixba(bitarray):
                               "point number {}".format(value),
                               RuntimeWarning, stacklevel=2)
     
-            self._resize(ba_value)
+            self._resize(ba_value, self.overflow, self.rounding)
             self._wrap()
         else:
-            result = self._convert_float_limits(value, high, low)
-            self._val = result._val
-            self._high = high
-            self._low = low
+            ba_value = self._convert_float(value)
+            self._handle_limits(high, low, len(ba_value))
+            self._resize(ba_value, self._overflow, self._rounding)
+#             result = self._convert_float_limits(value, high, low)
+#             self._val = result._val
+#             self._high = high
+#             self._low = low
 
             self._wrap()
 
@@ -933,6 +943,30 @@ class sfixba(bitarray):
     def __ipow__(self, other, modulo=None):
         return NotImplemented
 
+    def __iand__(self, other):
+        if isinstance(other, bitarray):
+            value = sfixba(other, self)
+        else:
+            return NotImplemented
+
+        return bitarray.__iand__(self, value)            
+
+    def __ior__(self, other):
+        if isinstance(other, bitarray):
+            value = sfixba(other, self)
+        else:
+            return NotImplemented
+
+        return bitarray.__ior__(self, value)            
+
+    def __ixor__(self, other):
+        if isinstance(other, bitarray):
+            value = sfixba(other, self)
+        else:
+            return NotImplemented
+
+        return bitarray.__ixor__(self, value)            
+
     def __ilshift__(self, other):
         if isinstance(other, integer_types):
             value = other
@@ -952,7 +986,7 @@ class sfixba(bitarray):
         if isinstance(other, integer_types):
             value = other
         elif isinstance(other, uintba):
-            value = other.val
+            value = other._val
         else:
             return NotImplemented
 
@@ -1270,10 +1304,13 @@ class sfixba(bitarray):
             maths = value
         if length > 3:
             maths = args[3]
-        result = type(value)(0, high, low, value)
         if length > 4 or length < 2:
             raise TypeError("Incorrect number of arguments")
-        
+        if not isinstance(maths, (fixmath, sfixba)):
+            maths = fixmath()
+        result = copy(value)
+        result._high = high
+        result._low = low
         result._resize(value, maths.overflow, maths.rounding)
         result._wrap()
         return result

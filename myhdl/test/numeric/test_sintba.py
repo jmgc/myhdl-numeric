@@ -40,9 +40,22 @@ from myhdl import sintba
 import warnings
 
 def wrap(val, format):
-    length = format.high - format.low
+    high = format.high - format.low - 1
     val = val.__index__()
-    lim = long(1) << (format.high - 1)
+    lim = long(1) << high
+    if val & lim:
+        tmp = long(-1)
+    else:
+        tmp = long(0)
+    wrap = lim - 1
+    val &= wrap
+    tmp &= ~wrap
+    return tmp | val
+
+def resize(val, format):
+    high = format.high - format.low - 1
+    val = val.__index__()
+    lim = long(1) << high
     if val & lim:
         tmp = long(-1)
     else:
@@ -352,10 +365,10 @@ class TestSIntBaAsInt(TestCase):
                     r2 = long(i)
                     r2 = op(r2, bj)
                     self.assertEqual(type(r1), sintba)
-                    self.assertEqual(r1, wrap(ref, r1))
+                    self.assertEqual(r1, resize(ref, r1))
                     self.assertTrue(r1 is bi1)
                     self.assertEqual(type(r2), sintba)
-                    self.assertEqual(r2, wrap(ref, r2))
+                    self.assertEqual(r2, resize(ref, r2))
                 except TypeError:
                     self.assertTrue(op in (operator.iand, operator.ior,
                                            operator.ixor,
@@ -365,7 +378,7 @@ class TestSIntBaAsInt(TestCase):
                     r3 = bi3 = sintba(long(i), 128)
                     r3 = op(r3, bj)
                     self.assertEqual(type(r3), sintba)
-                    self.assertEqual(r3, wrap(ref, r3))
+                    self.assertEqual(r3, resize(ref, r3))
                     self.assertTrue(r3 is bi3)
             except RuntimeWarning:
                 self.assertTrue(len(r3) != len(bj))
@@ -593,14 +606,18 @@ class TestSIntBaBounds(TestCase):
             for _ in (i+1, a):
                 b = sintba(i)
                 b = op(b, long(j))
-                self.assertEqual(b, wrap(op(i, j), b))
+                self.assertEqual(b, resize(op(i, j), b))
         elif a < i :
             b = sintba(i)
             b = op(b, long(j)) # should be ok
             for _ in (a+1, i):
                 b = sintba(i)
                 b = op(b, long(j))
-                self.assertEqual(b, wrap(op(i, j), b))
+                if b != resize(op(i, j), b):
+                    b = sintba(i)
+                    b = op(b, long(j))
+                    resize(op(i, j), b)
+                self.assertEqual(b, resize(op(i, j), b))
         else: # a == i
             b = sintba(i)
             try:

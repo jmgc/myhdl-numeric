@@ -44,9 +44,20 @@ from math import floor, ceil, fmod, modf, ldexp, copysign
 import warnings
 
 def truediv_round(value, format):
- return ldexp(round(ldexp(floor(ldexp(value,
-                                      -format.low + format.guard_bits)),
-                                      -format.guard_bits)), format.low)
+    if value < 0:
+        neg = True
+        tmp = -value
+    else:
+        neg = False
+        tmp = value
+    tmp = ldexp(round(ldexp(floor(ldexp(tmp,
+                                        -format.low + format.guard_bits)),
+                                        -format.guard_bits)), format.low)
+    if neg:
+        return -tmp
+    else:
+        return tmp
+
 def resize(value, format):
     val = float(value)
     lim = ldexp(1.0, format.high - 1)
@@ -310,16 +321,18 @@ class TestSFixBaInit(TestCase):
         for guard_bits in range(1, 6):
             step = 5 ** guard_bits
             scale = 10 ** guard_bits
+            maths=fixmath(rounding=fixmath.roundings.round,
+                          guard_bits=guard_bits)
             for i in range(-10 * scale, 10 * scale, step):
                 f = i/float(scale)
-                value = sfixba(f, high=7, low=0,
-                               maths=fixmath(rounding=fixmath.roundings.round,
-                                             guard_bits=guard_bits))
+                value = sfixba(f, high=7, low=0, maths=maths)
                 # print("{}, {}".format(f, value))
-                check = int(round(f))
-                self.assertEqual(value, int(round(f)),
+                check = resize(f, value)
+                if value != check:
+                    value = sfixba(f, high=7, low=0, maths=maths)
+                self.assertEqual(value, check,
                                  "Incorrect rounding: " \
-                                 "{}, {}, {}, {}".format(f, hex(check),
+                                 "{}, {}, {}, {}".format(f, check.hex(),
                                                          value.hex(),
                                                          guard_bits))
                 self.assertEqual(value.high, 7, "Wrong high value")
@@ -329,7 +342,7 @@ class TestSFixBaInit(TestCase):
 
     def testBitVectorRoundingValue(self):
         warnings.filterwarnings('error')
-        for i in range(-10000, 10000, 125):
+        for i in range(-2000, 2000, 125):
             f = i/1000.
             f_value = sfixba(f, high=7, low=-8)
             try:
@@ -340,9 +353,6 @@ class TestSFixBaInit(TestCase):
                                maths=fixmath(rounding=fixmath.roundings.round))
             # print("{}, {}".format(f, value))
             check = round(f)
-            if value != check:
-                value = sfixba(f_value, high=7, low=0,
-                               maths=fixmath(rounding=fixmath.roundings.round))
             self.assertEqual(value, check,
                              "Incorrect rounding: " \
                              "{}, {}, {}".format(f, hex(check),
@@ -354,14 +364,18 @@ class TestSFixBaInit(TestCase):
 
     def testFloatTruncateValue(self):
         warnings.filterwarnings('error')
-        for i in range(-10000, 10000):
+        maths=fixmath(rounding=fixmath.roundings.truncate)
+        for i in range(-2000, 2000):
             f = (int((i/1000.)*8)/8.)
-            value = sfixba(f, high=7, low=0,
-                           maths=fixmath(rounding=fixmath.roundings.truncate))
+            value = sfixba(f, high=7, low=0, maths=maths)
             # print("{}, {}".format(f, value))
-            check = int(f*16) >> 4
+            check = int(ldexp(f, 4))>>4
+            if value != check:
+                value = sfixba(f, high=7, low=0, maths=maths)
             self.assertEqual(value, check,
-                             "Incorrect truncate: {}, {}, {}".format(f.hex(), hex(check), value.hex()))
+                             "Incorrect truncate: {}, {}, {}".format(f.hex(),
+                                                                     hex(check),
+                                                                     value.hex()))
             self.assertEqual(value.high, 7, "Wrong high value")
             self.assertEqual(value.low, 0, "Wrong low value")
             self.assertEqual(value.max, 64, "Wrong maximum value")

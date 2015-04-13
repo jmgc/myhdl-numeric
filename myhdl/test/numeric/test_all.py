@@ -24,8 +24,9 @@ from __future__ import absolute_import
 import test_bitarray
 import test_uintba
 import test_sintba
+import test_sfixba
 
-modules = (test_bitarray, test_uintba, test_sintba)
+modules = (test_bitarray, test_uintba, test_sintba, test_sfixba)
 
 import unittest
 
