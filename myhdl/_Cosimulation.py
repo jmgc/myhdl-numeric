@@ -27,7 +27,7 @@ from myhdl._intbv import intbv
 from myhdl import CosimulationError
 from ._simulator import _simulator
 from ._compat import PY2, to_bytes, to_str
-from myhdl import _simulator, CosimulationError
+from myhdl import CosimulationError
 from myhdl._compat import PY2, to_bytes, to_str
 
 _MAXLINE = 4096
@@ -50,9 +50,9 @@ class Cosimulation(object):
         
         """ Construct a cosimulation object. """
         
-        if _simulator._cosim:
+        if _simulator._cosim != 0:
             raise CosimulationError(_error.MultipleCosim)
-        _simulator._cosim = 1
+        _simulator._cosim = id(self)
         
         self._rt, self._wt = rt, wt = os.pipe()
         self._rf, self._wf = rf, wf = os.pipe()
