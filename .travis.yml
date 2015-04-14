@@ -1,5 +1,5 @@
 # http://docs.travis-ci.com/user/workers/container-based-infrastructure/
-sudo: false
+sudo: required
 
 language: python
 python:

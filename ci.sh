@@ -35,8 +35,10 @@ elif [ "$CI_TARGET" == "bugs" ]; then
   run_test make -C "myhdl/test/bugs" icarus
   run_test make -C "myhdl/test/bugs" GHDL
 elif [ "$CI_TARGET" == "numeric" ]; then
+  sudo -E cp fixed_pkg.vhdl /usr/lib/ghdl/lib/gcc/x86_64-linux-gnu/4.8/vhdl/src/ieee/.
+  sudo -E cd /usr/lib/ghdl/lib/gcc/x86_64-linux-gnu/4.8/vhdl/v93/ieee; ghdl -a --ieee=none --std=93 -P../std --work=ieee ../../../src/ieee/fixed_pkg.vhdl
   run_test make -C myhdl/test/numeric
-#  run_test make -C myhdl/test/conversion/numeric
+  run_test make -C myhdl/test/conversion/numeric
 fi
 
 exit $foundError
