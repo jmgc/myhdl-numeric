@@ -103,20 +103,19 @@ class TestNotSupported(unittest.TestCase):
 #                     z.next = z / a
 #             return logic
 #         self.check(g, z, a)
-    @pytest.mark.skipif(sys.version_info < (2,7),
-                        reason="requires python2.7")
-    def testExec(self):
-        a = Signal(bool())
-        z = Signal(bool())
-        def g(z, a):
-            @instance
-            def logic():
-                while 1:
-                    yield a
-                    z.next = 1
-                    exec("1 + 2", globals() , locals())
-            return logic
-        self.check(g, z, a)
+
+# #     def testExec(self):
+# #         a = Signal(bool())
+# #         z = Signal(bool())
+# #         def g(z, a):
+# #             @instance
+# #             def logic():
+# #                 while 1:
+# #                     yield a
+# #                     z.next = 1
+# #                     exec("1 + 2", globals() , locals())
+# #             return logic
+# #         self.check(g, z, a)
 
     def testFrom(self):
         a = Signal(bool())
