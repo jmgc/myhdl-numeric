@@ -19,7 +19,7 @@
 
 """ Module with the bitarray class """
 
-from myhdl._compat import integer_types, string_types, long
+from myhdl._compat import integer_types, string_types, long, bit_length
 
 from copy import copy
 import warnings
@@ -124,7 +124,7 @@ class bitarray(object):
             warnings.warn("Only natural values allowed: {}".format(val),
                           RuntimeWarning)
 
-        length = val.bit_length()
+        length = bit_length(val)
 
         if length == 0:
             self._val = long(0)

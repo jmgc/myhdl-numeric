@@ -25,7 +25,7 @@ from ._sintba import sintba
 from ._uintba import uintba
 
 
-from .._compat import long, integer_types, string_types
+from .._compat import long, integer_types, string_types, bit_length
 from .._enum import enum
 from .._misc import downrange
 
@@ -219,7 +219,7 @@ class sfixba(bitarray):
     def _from_int(self, value, high, low):
         val = long(value)
 
-        length = val.bit_length()
+        length = bit_length(val)
 
         if length == 0:
             val = long(0)

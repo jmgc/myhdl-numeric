@@ -19,7 +19,7 @@
 
 from __future__ import absolute_import, division
 from ._bitarray import bitarray
-from myhdl._compat import long, integer_types
+from myhdl._compat import long, integer_types, bit_length
 from copy import copy
 
 import warnings
@@ -45,7 +45,7 @@ class sintba(bitarray):
     def _from_int(self, value, high, low=0):
         val = long(value)
 
-        length = val.bit_length()
+        length = bit_length(val)
 
         if length == 0:
             self._val = long(0)

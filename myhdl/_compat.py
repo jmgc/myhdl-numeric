@@ -21,6 +21,8 @@ if not PY2:
 
     def to_str(b):
         return b.decode()
+    def bit_length(b):
+        return b.bit_length()
 else:
     string_types = (str, unicode)
     integer_types = (int, long)
@@ -32,6 +34,13 @@ else:
 
     to_bytes = _identity
     to_str = _identity
+
+    def bit_length(b):
+        n = 0
+        value = abs(b)
+        while ((value >> n) != 0):
+            n += 1
+        return n
 
 def ast_parse(s):
      return compile(s, '<string>', 'exec', \
