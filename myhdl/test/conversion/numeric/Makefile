@@ -1,4 +1,4 @@
-all:  vlog vcom 
+all:  GHDL
 
 GHDL:
 	py.test GHDL.py test_ops.py
