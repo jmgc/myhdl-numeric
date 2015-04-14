@@ -2,6 +2,8 @@ from __future__ import absolute_import
 import os
 path = os.path
 import unittest
+import pytest
+import sys
 
 from myhdl import *
 from myhdl import ConversionError
@@ -101,7 +103,8 @@ class TestNotSupported(unittest.TestCase):
 #                     z.next = z / a
 #             return logic
 #         self.check(g, z, a)
-
+    @pytest.mark.skipif(sys.version_info < (2,7),
+                        reason="requires python2.7")
     def testExec(self):
         a = Signal(bool())
         z = Signal(bool())
