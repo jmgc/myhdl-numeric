@@ -530,7 +530,7 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
                 self._bitop_size(node, l, r)
             else:
                 node.obj = long(-1)
-            if isinstance(node.obj, integer_types):
+            if isinstance(node.obj, (integer_types, intbv)):
                 node.obj = long(node.obj)
         else:
             node.obj = long(-1)
