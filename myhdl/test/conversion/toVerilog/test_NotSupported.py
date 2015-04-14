@@ -90,17 +90,17 @@ class TestNotSupported(unittest.TestCase):
             return logic
         self.check(g, z, a)
 
-    def testDiv(self):
-        a = Signal(bool())
-        z = Signal(bool())
-        def g(z, a):
-            @instance
-            def logic():
-                while 1:
-                    yield a
-                    z.next = z / a
-            return logic
-        self.check(g, z, a)
+#     def testDiv(self):
+#         a = Signal(bool())
+#         z = Signal(bool())
+#         def g(z, a):
+#             @instance
+#             def logic():
+#                 while 1:
+#                     yield a
+#                     z.next = z / a
+#             return logic
+#         self.check(g, z, a)
 
     def testExec(self):
         a = Signal(bool())

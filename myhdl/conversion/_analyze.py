@@ -530,6 +530,8 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
                 self._bitop_size(node, l, r)
             else:
                 node.obj = long(-1)
+            if isinstance(node.obj, integer_types):
+                node.obj = long(node.obj)
         else:
             node.obj = long(-1)
 
@@ -547,8 +549,9 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
         node.obj = node.operand.obj
         if isinstance(op, ast.Not):
             node.obj = bool()
-        #elif isinstance(op, (ast.UAdd, ast.USub, ast.Invert)):
-        #    node.obj = long(-1)
+        elif isinstance(op, (ast.UAdd, ast.USub, ast.Invert)) and \
+                not isinstance(node.obj, bitarray):
+            node.obj = long(-1)
 
     def visit_Attribute(self, node):
         if isinstance(node.ctx, ast.Store):
@@ -680,10 +683,6 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
         self.visit(node.func)
         f = self.getObj(node.func)
         node.obj = None
-
-        if f is print:
-            self.visit_Print(node)
-            return
 
         self.access = _access.UNKNOWN
         for arg in node.args:
