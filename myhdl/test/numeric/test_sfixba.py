@@ -40,7 +40,7 @@ from myhdl import uintba
 from myhdl import sintba
 from myhdl import EnumItemType
 from math import floor, ceil, fmod, modf, ldexp, copysign
-
+from decimal import Decimal, ROUND_HALF_EVEN
 import warnings
 
 def truediv_round(value, format):
@@ -50,9 +50,11 @@ def truediv_round(value, format):
     else:
         neg = False
         tmp = value
-    tmp = ldexp(round(ldexp(floor(ldexp(tmp,
-                                        -format.low + format.guard_bits)),
-                                        -format.guard_bits)), format.low)
+    
+    tmp = ldexp(floor(ldexp(tmp, -format.low + format.guard_bits)),
+                -format.guard_bits)
+    d = Decimal.from_float(tmp).quantize(0, rounding=ROUND_HALF_EVEN)
+    tmp = ldexp(float(d), format.low)
     if neg:
         return -tmp
     else:
@@ -83,11 +85,12 @@ def resize(value, format):
 
     if rounding and format.rounding == fixmath.roundings.round:
         tmp = ldexp(val, -format.low)
-        rtmp = round(tmp)
-        if (rtmp == 0.0) and tmp < 0.0 and tmp > -0.25:
+        d = Decimal.from_float(tmp).quantize(0, rounding=ROUND_HALF_EVEN)
+        rtmp = float(d)
+        if (rtmp == 0.0) and tmp < 0 and tmp > -0.25:
             val = ldexp(-1.0, format.low)
         else:
-            val = ldexp(rtmp, format.low)    
+            val = ldexp(rtmp, format.low)
     elif format.rounding == fixmath.roundings.truncate:
         tmp = ldexp(val, -format.low)
         tmp = float(floor(tmp))
@@ -328,8 +331,6 @@ class TestSFixBaInit(TestCase):
                 value = sfixba(f, high=7, low=0, maths=maths)
                 # print("{}, {}".format(f, value))
                 check = resize(f, value)
-                if value != check:
-                    value = sfixba(f, high=7, low=0, maths=maths)
                 self.assertEqual(value, check,
                                  "Incorrect rounding: " \
                                  "{}, {}, {}, {}".format(f, check.hex(),
@@ -340,22 +341,18 @@ class TestSFixBaInit(TestCase):
                 self.assertEqual(value.max, 64, "Wrong maximum value")
                 self.assertEqual(value.min, -64, "Wrong minimum value")
 
-    def testBitVectorRoundingValue(self):
+    def testSFixBaRoundingValue(self):
         warnings.filterwarnings('error')
+        maths=fixmath(rounding=fixmath.roundings.round)
         for i in range(-2000, 2000, 125):
             f = i/1000.
             f_value = sfixba(f, high=7, low=-8)
-            try:
-                value = sfixba(f_value, high=7, low=0,
-                               maths=fixmath(rounding=fixmath.roundings.round))
-            except:
-                value = sfixba(f_value, high=7, low=0,
-                               maths=fixmath(rounding=fixmath.roundings.round))
+            value = sfixba(f_value, high=7, low=0, maths=maths)
             # print("{}, {}".format(f, value))
-            check = round(f)
+            check = f_value.resize(value)
             self.assertEqual(value, check,
                              "Incorrect rounding: " \
-                             "{}, {}, {}".format(f, hex(check),
+                             "{}, {}, {}".format(f, check.hex(),
                                                  value.hex()))
             self.assertEqual(value.high, 7, "Wrong high value")
             self.assertEqual(value.low, 0, "Wrong low value")
