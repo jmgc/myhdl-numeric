@@ -112,7 +112,7 @@ class bitarray(object):
         ba_length = self._high - self._low
         if (length != ba_length):
             warnings.warn("String has different length than vector: " \
-                          "{}, {}".format(length, ba_length),
+                          "{0}, {1}".format(length, ba_length),
                           RuntimeWarning)
 
         self._wrap()
@@ -121,7 +121,7 @@ class bitarray(object):
         val = long(value)
 
         if val < 0:
-            warnings.warn("Only natural values allowed: {}".format(val),
+            warnings.warn("Only natural values allowed: {0}".format(val),
                           RuntimeWarning)
 
         length = bit_length(val)
@@ -138,7 +138,7 @@ class bitarray(object):
 
         if (abs(self._val) >> self_length != 0):
             warnings.warn("Vector truncated: " \
-                          "{}, {}".format(length, self_length), RuntimeWarning)
+                          "{0}, {1}".format(length, self_length), RuntimeWarning)
 
         self._wrap()
 
@@ -193,7 +193,7 @@ class bitarray(object):
         
         if self._high <= self._low:
             warnings.warn("High must be greater than low: " \
-                          "{}, {}".format(self._high, self._low),
+                          "{0}, {1}".format(self._high, self._low),
                           RuntimeWarning)
 
     def _wrap(self):
@@ -267,12 +267,12 @@ class bitarray(object):
                 i = i.__index__()
             if i <= j:
                 warnings.warn("bitarray[i:j] requires i > j: " \
-                              "i, j = {}, {}".format(i, j),
+                              "i, j = {0}, {1}".format(i, j),
                               RuntimeWarning)
             if (i > self._high) or (j < self._low):
                 raise IndexError("bitarray[i:j] requires i and j between " \
                                  "the margins: high, i, j, low = " \
-                                 "{}, {}, {}, {}".format(self._high,
+                                 "{0}, {1}, {2}, {3}".format(self._high,
                                                          i, j, self._low))
 
             res = type(self)(high=i - j, low=0)
@@ -292,7 +292,7 @@ class bitarray(object):
             if (i >= self._high) or (i < self._low):
                 raise IndexError("bitarray[i] requires i between " \
                                  "the margins: high, i, low = " \
-                                 "{}, {}, {}".format(self._high,
+                                 "{0}, {1}, {2}".format(self._high,
                                                      i, self._low))
             i -= self._low
             res = bool((self._val >> i) & 0x1)
@@ -314,11 +314,11 @@ class bitarray(object):
                 i = i.__index__()
             if i <= j:
                 raise IndexError("bitarray[i:j] = v requires i > j: " \
-                                 "i, j, v = {}, {}, {}".format(i, j, val))
+                                 "i, j, v = {0}, {1}, {2}".format(i, j, val))
             if (i > self._high) or (j < self._low):
                 raise IndexError("bitarray[i:j] = v requires i and j " \
                                  "between the margins: high, i, j, low = " \
-                                 "{}, {}, {}, {}".format(self._high,
+                                 "{0}, {1}, {2}, {3}".format(self._high,
                                                          i, j, self._low))
 
             if not isinstance(val, bitarray):
@@ -330,7 +330,7 @@ class bitarray(object):
             ba_length = i  - j
             if length != ba_length:
                 warnings.warn("Argument does not fit inside the range: " \
-                              "{}, {}".format(length, ba_length),
+                              "{0}, {1}".format(length, ba_length),
                               RuntimeWarning)
 
             value = data._val
@@ -346,12 +346,12 @@ class bitarray(object):
                 val = bool(val.__index__())
             else:
                 warnings.warn("bitarray[i] = v requires v in (0, 1), " \
-                              "i: {}, v: {}".format(i, val),
+                              "i: {0}, v: {1}".format(i, val),
                               RuntimeWarning)
             if (i >= self._high) or (i < self._low):
                 raise IndexError("bitarray[i] = v requires i between " \
                                  "the margins: high, i, low = " \
-                                 "{}, {}, {}".format(self._high,
+                                 "{0}, {1}, {2}".format(self._high,
                                                      i, self._low))
             if val:
                 self._val |= (long(1) << (i - self._low))
@@ -466,7 +466,7 @@ class bitarray(object):
         if isinstance(other, bitarray):
             if (self._high != other.high) or (self._low != other.low):
                 raise TypeError("Different argument sizes " \
-                                "{}!={}, {}!={}".format(self._high,
+                                "{0}!={1}, {2}!={3}".format(self._high,
                                                         other.high,
                                                         self._low,
                                                         other.low))
@@ -480,7 +480,7 @@ class bitarray(object):
         if isinstance(other, bitarray):
             if (self._high != other.high) or (self._low != other.low):
                 raise TypeError("Different argument sizes " \
-                                "{}!={}, {}!={}".format(self._high,
+                                "{0}!={1}, {2}!={3}".format(self._high,
                                                         other.high,
                                                         self._low,
                                                         other.low))

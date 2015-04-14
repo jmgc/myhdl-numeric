@@ -28,11 +28,11 @@ def tb_stimulus():
     # My logic happens on posedge, so I'll perform all checks on negedge.
     yield clk.negedge
     for x_val in range(-2**WIDTH, 2**WIDTH):
-        #print('x_val={} x.next={}'.format(x_val, x_val % 2**WIDTH))
+        #print('x_val={0} x.next={1}'.format(x_val, x_val % 2**WIDTH))
         x.next = x_val % 2**WIDTH
         yield clk.negedge
-        assert y==(x_val+1)%2**WIDTH, 'y={} but expected {}'.format(y, (x_val+1)%2**WIDTH)
-        assert z==(x_val-1)%2**WIDTH, 'z={} but expected {}'.format(z, (x_val-1)%2**WIDTH)
+        assert y==(x_val+1)%2**WIDTH, 'y={0} but expected {1}'.format(y, (x_val+1)%2**WIDTH)
+        assert z==(x_val-1)%2**WIDTH, 'z={0} but expected {1}'.format(z, (x_val-1)%2**WIDTH)
     print('OK!')
     raise StopSimulation
 

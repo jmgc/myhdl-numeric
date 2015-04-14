@@ -213,7 +213,7 @@ class sfixba(bitarray):
                 self._from_bitarray(value, high, low)
         else:
             warnings.warn("sfixba constructor val should be float, int, " \
-                          "string or bitarray child: {}".format(type(value)),
+                          "string or bitarray child: {0}".format(type(value)),
                           RuntimeWarning)
 
     def _from_int(self, value, high, low):
@@ -232,8 +232,8 @@ class sfixba(bitarray):
         self_length = self._high - self._low
 
         if (abs(val) >> self_length != 0):
-            warnings.warn("Truncated int number {}, " \
-                          "length: {}".format(value, self_length),
+            warnings.warn("Truncated int number {0}, " \
+                          "length: {1}".format(value, self_length),
                           RuntimeWarning, stacklevel=2)
             value = bitarray(val, length, 0)
             self._resize(value)
@@ -316,7 +316,7 @@ class sfixba(bitarray):
     
             if ba_value.high > self._high:
                 warnings.warn("Truncated floating " \
-                              "point number {}".format(value),
+                              "point number {0}".format(value),
                               RuntimeWarning, stacklevel=2)
     
             self._resize(ba_value, self.overflow, self.rounding)
@@ -1049,16 +1049,16 @@ class sfixba(bitarray):
             if self._low >= 0:
                 val <<= self._low 
                 length = self._high - 1
-                format_str = '{{:0{}b}}.'.format(length)
+                format_str = '{{0:0{0}b}}.'.format(length)
                 result = format_str.format(val)
             elif self._high < 1:
                 length = 1 - self._low
-                format_str = '{{:0{}b}}'.format(length)
+                format_str = '{{0:0{0}b}}'.format(length)
                 result = format_str.format(val)
                 result = '.' + result[1:]
             else:
                 length = self._high - self._low - 1
-                format_str = '{{:0{}b}}'.format(length)
+                format_str = '{{0:0{0}b}}'.format(length)
                 result = format_str.format(val)
                 result = result[:self._high - 1] + '.' + \
                         result[self._high - 1:]
@@ -1099,13 +1099,13 @@ class sfixba(bitarray):
                 h_rem = length % bits
                 if h_rem > 0:
                     h_length += 1
-                result = '{:x}.'.format(val)
+                result = '{0:x}.'.format(val)
             elif self._high < 1:
                 length_ = self._low
                 h_length = length_ // bits
                 h_rem = length_ % bits
                 val = self._abs() << h_rem
-                format_str = '.{{:0{}x}}'.format(-h_length)
+                format_str = '.{{0:0{0}x}}'.format(-h_length)
                 result = format_str.format(val)
             else:
                 h_low = self._low // bits
@@ -1115,7 +1115,7 @@ class sfixba(bitarray):
                 h_rem = (self._high - 1) % bits
                 if h_rem > 0:
                     h_high += 1
-                format_str = '{{:0{}x}}'.format(h_high - h_low)
+                format_str = '{{0:0{0}x}}'.format(h_high - h_low)
                 result = format_str.format(val)
                 result = result[:h_high] + '.' + result[h_high:]
         else:
@@ -1266,15 +1266,15 @@ class sfixba(bitarray):
 
         if self._high != 1 or self._low != 0:
             if self._low >= 0:
-                format_str = '{{:0{}b}}'.format(length)
+                format_str = '{{0:0{0}b}}'.format(length)
                 result = format_str.format(val)
             elif self._high <= 0:
-                format_str = '{{:0{}b}}'.format(length)
+                format_str = '{{0:0{0}b}}'.format(length)
                 result = format_str.format(val)
                 if self._high == 0:
                     result = '.' + result
             else:
-                format_str = '{{:0{}b}}'.format(length)
+                format_str = '{{0:0{0}b}}'.format(length)
                 result = format_str.format(val)
                 result = result[:self._high] + '.' + \
                         result[self._high:]
@@ -1284,7 +1284,7 @@ class sfixba(bitarray):
         return result
 
     def __repr__(self):
-        return "{}({}, high={}, low={})".format(type(self).__name__,
+        return "{0}({1}, high={2}, low={3})".format(type(self).__name__,
                                                 self.hex(),
                                                 self._high,
                                                 self._low)

@@ -38,7 +38,7 @@ class sintba(bitarray):
 
         if low != 0:
             raise TypeError("The low parameter must be 0 or None " \
-                            "{}".format(low))
+                            "{0}".format(low))
 
         bitarray.__init__(self, value, high, low)
 
@@ -610,7 +610,7 @@ class sintba(bitarray):
 
     def __repr__(self):
         return type(self).__name__ + \
-                "({}, high={})".format(self._val, self._high)
+                "({0}, high={1})".format(self._val, self._high)
 
     def resize(*args):
         length = len(args)
