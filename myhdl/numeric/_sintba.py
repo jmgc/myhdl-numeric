@@ -61,7 +61,7 @@ class sintba(bitarray):
         
         if (abs(self._val) >> self_length != 0):
             warnings.warn("Integer truncated: val, len = " \
-                          "{}, {}". format(self._val, len(self)),
+                          "{0}, {1}". format(self._val, len(self)),
                           RuntimeWarning)
 
         self._wrap()

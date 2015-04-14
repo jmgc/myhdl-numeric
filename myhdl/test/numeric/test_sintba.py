@@ -24,7 +24,7 @@ from __future__ import print_function, division
 
 import sys
 
-from myhdl._compat import long, integer_types
+from myhdl._compat import long, integer_types, bit_length
 
 import unittest
 from unittest import TestCase
@@ -232,8 +232,8 @@ class TestSIntBaIndexing(TestCase):
                             ba[i:j] = val
                         except RuntimeWarning:
                             if isinstance(val, integer_types):
-                                self.assertTrue((val.bit_length() > (i - j)) \
-                                                or ((-1 - val).bit_length() > \
+                                self.assertTrue((bit_length(val) > (i - j)) \
+                                                or (bit_length(-1 - val) > \
                                                     (i - j)))
                             else:
                                 self.assertTrue((len(val) != (i - j)) or \
@@ -263,9 +263,9 @@ class TestSIntBaIndexing(TestCase):
                         bai[:j] = -1 - val
                     except RuntimeWarning:
                         if isinstance(val, integer_types):
-                            self.assertTrue((val.bit_length() > \
+                            self.assertTrue((bit_length(val) > \
                                              (len(ba) - j)) or \
-                                            ((-1-val).bit_length() > \
+                                            (bit_length(-1-val) > \
                                              (len(bai) - j - 1)))
                         else:
                             self.assertTrue((len(val) != (len(ba) - j)) or \
@@ -328,11 +328,11 @@ class TestSIntBaAsInt(TestCase):
                     self.assertEqual(type(r2), sintba)
                     self.assertEqual(r1, wrap(ref, r1),
                                      "Different results "\
-                                     "{}, {}, {}".format(r1, wrap(ref, r1),
+                                     "{0}, {1}, {2}".format(r1, wrap(ref, r1),
                                                          op))
                     self.assertEqual(r2, wrap(ref, r2),
                                      "Different results "\
-                                     "{}, {}, {}".format(r2, wrap(ref, r2),
+                                     "{0}, {1}, {2}".format(r2, wrap(ref, r2),
                                                          op))
                 except TypeError:
                     self.assertTrue(op in (operator.truediv,
@@ -344,7 +344,7 @@ class TestSIntBaAsInt(TestCase):
                     self.assertEqual(type(r3), sintba)
                     self.assertEqual(r3, wrap(ref, r3),
                                      "Different results " \
-                                     "{}, {}, {}".format(r3, wrap(ref, r3),
+                                     "{0}, {1}, {2}".format(r3, wrap(ref, r3),
                                                          op))
             except TypeError:
                 self.assertTrue(op in (operator.truediv, operator.itruediv,
@@ -582,7 +582,7 @@ class TestSIntBaBounds(TestCase):
             try:
                 a[:] = v
             except RuntimeWarning:
-                self.assertTrue((v.bit_length() > len(a)) or (v < 0))
+                self.assertTrue((bit_length(v) > len(a)) or (v < 0))
         warnings.resetwarnings()
 
     def checkBounds(self, i, j, op):
