@@ -87,7 +87,7 @@ class bitarray(object):
             self._handle_limits(high, low, len(val))
         else:
             self._handle_limits(high, low, 1)
-        self._val = 0
+        self._val = long(0)
 
     def _convert_string(self, value):
         if '__' in value:
