@@ -24,7 +24,7 @@ from __future__ import print_function, division
 
 import sys
 
-from myhdl._compat import long, integer_types
+from myhdl._compat import long, integer_types, bit_length
 
 import unittest
 from unittest import TestCase
