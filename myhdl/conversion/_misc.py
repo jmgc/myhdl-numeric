@@ -114,8 +114,11 @@ class _ConversionMixin(object):
 
     def getObjName(self, node):
         if hasattr(node, 'value'):
+            #if hasattr(node, 'id'):
             name = node.value.id
             return name
+#             else:
+#                 pass
         return None
 
     def getTarget(self, node):
