@@ -317,7 +317,7 @@ package body pck_myhdl_%(version)s is
 
     function c_l2f (arg: std_logic; high: integer; low: integer) return sfixed is
         constant r_high: integer := max(high, 1);
-        constant l_low: integer := min(low, 0);
+        constant r_low: integer := min(low, 0);
         variable result: sfixed(r_high downto r_low);
     begin
         result := (others => '0');
