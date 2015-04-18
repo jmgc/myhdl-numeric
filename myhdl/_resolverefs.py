@@ -2,11 +2,10 @@ from __future__ import absolute_import
 import ast
 from types import FunctionType
 
-from ._util import _flatten, _makeAST, _genfunc
-from ._enum import EnumType
-from ._Signal import SignalType
-from .numeric._conversion import (numeric_functions_dict,
-                                  numeric_attributes_dict)
+from myhdl._util import _flatten, _makeAST, _genfunc
+from myhdl._enum import EnumType
+from myhdl._Signal import SignalType
+
 
 class Data():
     pass
@@ -37,12 +36,13 @@ class _AttrRefTransformer(ast.NodeTransformer):
         self.generic_visit(node)
 
         reserved = ('next',  'posedge',  'negedge',  'max',  'min',  'val',
-                    'signed')
+                    'signed', 'high', 'low')
         if node.attr in reserved:
             return node
-        elif node.attr in numeric_attributes_dict:
-            return node
-        elif node.attr in numeric_functions_dict:
+
+        functions = ('resize', 'scalb', 'floor')
+        
+        if node.attr in functions:
             return node
 
         #Don't handle subscripts for now.

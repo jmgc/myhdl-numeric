@@ -402,18 +402,13 @@ class TestUIntBaAsInt(TestCase):
         for i, j in zip(self.seqi, self.seqj):
             bi = uintba(i)
             bj = uintba(j)
+            ref = op(i, j)
             r1 = op(bi, j)
-            #ref1 = op(bi, wrap(j, bi))
-            ref1 = op(bi, j)
             r2 = op(i, bj)
-            #ref2 = op(wrap(i, bj), bj)
-            ref2 = op(i, bj)
             r3 = op(bi, bj)
-            #ref3 = op(i, j)
-            ref3 = op(i, j)
-            self.assertEqual(r1, ref1)
-            self.assertEqual(r2, ref2)
-            self.assertEqual(r3, ref3)
+            self.assertEqual(r1, ref)
+            self.assertEqual(r2, ref)
+            self.assertEqual(r3, ref)
         warnings.resetwarnings()
 
     def testAdd(self):
@@ -591,7 +586,7 @@ class TestUIntBaBounds(TestCase):
                                    operator.itruediv))
         if not isinstance(a._val, integer_types):
             return  # prune
-        if abs(i) > maxint * maxint:
+        if abs(a) > maxint * maxint:
             return  # keep it reasonable
         if a > i:
             b = uintba(i)

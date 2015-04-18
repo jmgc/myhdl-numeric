@@ -369,9 +369,6 @@ class TestBitVectorAsInt(TestCase):
                 r2 = op(r2, bj)
             self.assertEqual(type(r1), bitarray)
             self.assertEqual(type(r2), bitarray)
-            if r1._val != wrap(ref, r1):
-                r1 = bi1 = bitarray(long(i), 128, 0)
-                r1 = op(r1, bj)
             self.assertEqual(r1._val, wrap(ref, r1))
             self.assertEqual(r2._val, wrap(ref, r2))
             self.assertTrue(r1 is bi1)

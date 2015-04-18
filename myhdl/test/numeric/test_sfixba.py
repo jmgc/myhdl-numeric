@@ -154,16 +154,16 @@ class TestSFixBaInit(TestCase):
     def testIntPLowValue(self):
         warnings.filterwarnings('error')
         value = sfixba(17, low=3)
-        self.assertEqual(value.__index__(), 2)
+        self.assertEqual(value.__index__(), 17)
         self.assertEqual(value.high, 9, "Wrong high value")
         self.assertEqual(value.low, 3, "Wrong low value")
         self.assertEqual(value.max, 32, "Wrong maximum value")
         self.assertEqual(value.min, -32, "Wrong minimum value")
-        self.assertEqual(str(value), "000010", "Wrong binary string")
+        self.assertEqual(str(value), "010001", "Wrong binary string")
 
     def testIntSLowValue(self):
         warnings.filterwarnings('error')
-        value = sfixba(-17).scalb(-3)
+        value = sfixba(-17, low=-3)
         self.assertEqual(value.__index__(), -17)
         self.assertEqual(value.high, 3, "Wrong high value")
         self.assertEqual(value.low, -3, "Wrong low value")
@@ -174,26 +174,26 @@ class TestSFixBaInit(TestCase):
 
     def testIntPHighValue(self):
         warnings.filterwarnings('error')
-        value = sfixba(17, high=9).resize(9, 3)
-        self.assertEqual(value.__index__(), 2)
+        value = sfixba(17, high=9)
+        self.assertEqual(value.__index__(), 17)
         self.assertEqual(value.high, 9, "Wrong high value")
         self.assertEqual(value.low, 3, "Wrong low value")
         self.assertEqual(value.max, 32, "Wrong maximum value")
         self.assertEqual(value.min, -32, "Wrong minimum value")
-        self.assertEqual(value, 16)
+        self.assertEqual(value, 17 << 3)
 
     def testIntSHighValue(self):
         warnings.filterwarnings('error')
-        value = sfixba(-17, high=7).scalb(-3)
+        value = sfixba(-17, high=3)
         self.assertEqual(value.__index__(), -17)
-        self.assertEqual(value.high, 4, "Wrong high value")
+        self.assertEqual(value.high, 3, "Wrong high value")
         self.assertEqual(value.low, -3, "Wrong low value")
-        self.assertEqual(value.max, 64, "Wrong maximum value")
-        self.assertEqual(value.min, -64, "Wrong minimum value")
+        self.assertEqual(value.max, 32, "Wrong maximum value")
+        self.assertEqual(value.min, -32, "Wrong minimum value")
 
     def testIntHighLowValue(self):
         warnings.filterwarnings('error')
-        value = sfixba(17, high=12, low=0).scalb(3)
+        value = sfixba(17, high=15, low=3)
         self.assertEqual(value.__index__(), 17)
         self.assertEqual(value.high, 15, "Wrong high value")
         self.assertEqual(value.low, 3, "Wrong low value")
@@ -410,10 +410,6 @@ class TestSFixBaInit(TestCase):
                 r = -16
             else:
                 r = i
-            
-            if not value == r:
-                value == r
-                value != r
             self.assertEqual(value, r,
                              "Incorrect saturation: " \
                              "sat({0})={1}, {2}".format(i, r, value.hex()))
@@ -424,7 +420,7 @@ class TestSFixBaInit(TestCase):
 
     def testFloatSHighValue(self):
         warnings.filterwarnings('error')
-        value = sfixba(-17, 6, 0).scalb(-3)
+        value = sfixba(-17, high=3)
         self.assertEqual(value.__index__(), -17)
         self.assertEqual(value.high, 3, "Wrong high value")
         self.assertEqual(value.low, -3, "Wrong low value")
@@ -434,7 +430,7 @@ class TestSFixBaInit(TestCase):
     def testFloatHighLowValue(self):
         warnings.filterwarnings('error')
         value = sfixba(17, high=15, low=3)
-        self.assertEqual(value, 16)
+        self.assertEqual(value.__index__(), 17)
         self.assertEqual(value.high, 15, "Wrong high value")
         self.assertEqual(value.low, 3, "Wrong low value")
         self.assertEqual(value.max, 2048, "Wrong maximum value")
@@ -517,8 +513,8 @@ class TestSFixBaIndexing(TestCase):
         offset = -64
         for s in self.seqs:
             n = long(s, 2)
-            ba = sfixba(n, 64 - offset, 0).scalb(offset)
-            bai = sfixba(~n, 64 - offset, 0).scalb(offset)
+            ba = sfixba(n, 64, offset)
+            bai = sfixba(~n, 64, offset)
             for i in range(len(s) + 20):
                 ref = long(getItem(s, i), 2)
                 res = ba[i + offset]
@@ -534,7 +530,7 @@ class TestSFixBaIndexing(TestCase):
         offset = -64
         for s in self.seqs:
             n = long(s, 2)
-            ba = sfixba(n, 64 - offset, 0).scalb(offset)
+            ba = sfixba(n, 64, offset)
             bai = ~ba
             for i in range(1, len(s) + 20):
                 for j in range(0, i):
@@ -635,9 +631,10 @@ class TestSFixBaIndexing(TestCase):
         self.seqsSetup()
         toggle = 0
         for s in self.seqs:
+            n = long(s, 2)
             for j in range(0, len(s)):
                 for v in self.seqv:
-                    ba = sfixba(s)
+                    ba = sfixba(n, len(s), 0)
                     bai = ~ba
                     val = long(v, 2)
                     toggle ^= 1

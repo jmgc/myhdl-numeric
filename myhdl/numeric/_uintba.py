@@ -50,12 +50,149 @@ class uintba(sintba):
         raise TypeError(type(self).__name__ +
                       " cannot generate/store negative values")
 
+    def __add__(self, other):
+        if isinstance(other, uintba):
+            return sintba.__add__(self, other)
+        elif isinstance(other, (integer_types)):
+            if other < 0:
+                return sintba(self) + other
+            else:
+                return sintba.__add__(self, other)
+        else:
+            return NotImplemented
+
+    def __radd__(self, other):
+        if isinstance(other, integer_types):
+            if other < 0:
+                return sintba(other, self).__add__(self)
+            else:
+                return sintba.__add__(uintba(other, self), self)
+        else:
+            return NotImplemented
+
+    def __sub__(self, other):
+        if isinstance(other, uintba):
+            return sintba.__sub__(self, other)
+        elif isinstance(other, (integer_types)):
+            if other < 0:
+                return sintba(self) - other
+            else:
+                return sintba.__sub__(self, other)
+        else:
+            return NotImplemented
+
+    def __rsub__(self, other):
+        if isinstance(other, integer_types):
+            if other < 0:
+                return sintba(other, self).__sub__(self)
+            else:
+                return sintba.__sub__(uintba(other, self), self)
+        else:
+            return NotImplemented
+
+    def __mul__(self, other):
+        if isinstance(other, uintba):
+            return sintba.__mul__(self, other)
+        elif isinstance(other, (integer_types)):
+            if other < 0:
+                return sintba(self) * other
+            else:
+                return sintba.__mul__(self, other)
+        else:
+            return NotImplemented
+
+    def __rmul__(self, other):
+        if isinstance(other, integer_types):
+            if other < 0:
+                return sintba(other, self).__mul__(self)
+            else:
+                return sintba.__mul__(uintba(other, self), self)
+        else:
+            return NotImplemented
+
+    def __floordiv__(self, other):
+        if isinstance(other, uintba):
+            return sintba.__floordiv__(self, other)
+        elif isinstance(other, (integer_types)):
+            if other < 0:
+                return sintba(self) // other
+            else:
+                return sintba.__floordiv__(self, other)
+        else:
+            return NotImplemented
+
+    def __rfloordiv__(self, other):
+        if isinstance(other, integer_types):
+            if other < 0:
+                return sintba(other, self).__floordiv__(self)
+            else:
+                return sintba.__floordiv__(uintba(other, self), self)
+        else:
+            return NotImplemented
+
+    def __mod__(self, other):
+        if isinstance(other, uintba):
+            return sintba.__mod__(self, other)
+        elif isinstance(other, (integer_types)):
+            if other < 0:
+                return sintba(self) % other
+            else:
+                return sintba.__mod__(self, other)
+        else:
+            return NotImplemented
+
+    def __rmod__(self, other):
+        if isinstance(other, integer_types):
+            if other < 0:
+                return sintba(other, self).__mod__(self)
+            else:
+                return sintba.__mod__(uintba(other, self), self)
+        else:
+            return NotImplemented
+
+    def __iadd__(self, other):
+        if isinstance(other, integer_types) and other < 0:
+            raise TypeError("Only natural values allowed")
+        else:
+            result = sintba.__iadd__(self, other)
+            self._val = result._val
+            self._wrap()
+            return self
+
+    def __isub__(self, other):
+        if isinstance(other, integer_types) and other < 0:
+            return NotImplemented
+        else:
+            result = sintba.__isub__(self, other)
+            self._val = result._val
+            self._wrap()
+            return self
+
+    def __imul__(self, other):
+        if isinstance(other, integer_types) and other < 0:
+            return NotImplemented
+        else:
+            result = sintba.__imul__(self, other)
+            self._val = result._val
+            self._wrap()
+            return self
+
+    def __ifloordiv__(self, other):
+        if isinstance(other, integer_types) and other < 0:
+            return NotImplemented
+        else:
+            result = sintba.__ifloordiv__(self, other)
+            self._val = result._val
+            self._wrap()
+            return self
+
+    def __imod__(self, other):
+        if isinstance(other, integer_types) and other < 0:
+            return NotImplemented
+        else:
+            result = sintba.__imod__(self, other)
+            self._val = result._val
+            self._wrap()
+            return self
+
     _wrap = bitarray._wrap
-
-    _signed = False
-
-    def unsigned(self):
-        return copy(self)
-    
-    def signed(self):
-        return type(self)(self, high=self.high + 1)

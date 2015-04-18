@@ -84,7 +84,7 @@ class sfixba(bitarray):
         no_math = True
         no_high = True
 
-        i = -1
+        i = 0
         for i, arg in enumerate(args):
             if i > 0:
                 if isinstance(arg, fixmath):
@@ -99,7 +99,6 @@ class sfixba(bitarray):
                 value = arg
             elif i == 1:
                 high = arg
-                no_high = False
             elif i == 2:
                 low = arg
             elif i == 3:
@@ -110,40 +109,42 @@ class sfixba(bitarray):
                 guard_bits = int(arg)
             else:
                 raise TypeError("Too much positional arguments")
-
-        if isinstance(value, bitarray):
-            if not value.is_signed:
-                value = value.signed()
+        else:
             if format is None:
-                format = value
+                if isinstance(value, bitarray):
+                    format = value
+            if maths is None:
+                if isinstance(format, sfixba):
+                    maths = format
+                else:
+                    maths = fixmath()
 
         if 'maths' in kwargs:
             maths = kwargs['maths']
-        elif maths is None:
-            if isinstance(format, sfixba):
-                maths = format
-            else:
-                maths = fixmath()
-
         length = len(args)
-        if length != (i + 1):
-                raise TypeError("No positional arguments allowed after " \
-                                "format or fixmath object")
+        if (length > (i + 1)) and (not no_math):
+            raise TypeError("No positional arguments allowed after fixmath " \
+                            "object")
         if (length == 0) and ('value' in kwargs):
             value = kwargs['value']
 
-        if high is None:
+        if (length <= 1):
             if ('high' in kwargs):
                 high = kwargs['high']
-                no_high = False
-            elif format is not None:
-                high = format.high
-                no_high = False
-                
-        if low is None:
+    
+        if (length <= 2):
             if ('low' in kwargs):
                 low = kwargs['low']
-            elif format is not None:
+
+        if high is None:
+            if format is not None:
+                high = format.high
+                no_high = False
+        else:
+            no_high = False
+
+        if low is None:
+            if format is not None:
                 low = format.low
 
         if 'overflow' in kwargs:
@@ -202,6 +203,10 @@ class sfixba(bitarray):
             else:
                 self._zero(value, high, low)
         elif isinstance(value, bitarray):
+            if isinstance(value, uintba) and not isinstance(value, sintba):
+                if no_high:
+                    high = high + 1
+                value = uintba(value._val, high)
             if value._val == 0:
                 self._zero(value, high, low)
             else:
@@ -210,8 +215,6 @@ class sfixba(bitarray):
             warnings.warn("sfixba constructor val should be float, int, " \
                           "string or bitarray child: {0}".format(type(value)),
                           RuntimeWarning)
-
-    _signed = True
 
     def _from_int(self, value, high, low):
         val = long(value)
@@ -224,19 +227,18 @@ class sfixba(bitarray):
 
         length += 1  # Add the sign bit
 
-        if low is None:
-            low = 0
-
         self._handle_limits(high, low, length)
 
         self_length = self._high - self._low
 
-        if (abs(val) >> self._high != 0):
+        if (abs(val) >> self_length != 0):
             warnings.warn("Truncated int number {0}, " \
-                          "length: {1}".format(value, self._high),
+                          "length: {1}".format(value, self_length),
                           RuntimeWarning, stacklevel=2)
-        value = bitarray(val, length, 0)
-        self._resize(value)
+            value = bitarray(val, length, 0)
+            self._resize(value)
+        else:
+            self._val = val
         self._wrap()
 
     def _convert_float_limits(self, arg, high, low,
@@ -558,134 +560,115 @@ class sfixba(bitarray):
         self._val = tmp | self._val
 
     def __abs__(self):
-        if self._val < 0:
-            val = -self._val
-        else:
-            val = self._val
-        result = type(self)(0, self, high=self._high + 1)
-        result._val = val
-        return result
+        val = self._val
+        if val < 0:
+            val = -val
+        return type(self)(val, high=self._high + 1, low=self._low)
 
     def __neg__(self):
-        result = type(self)(0, self, high=self._high + 1)
-        result._val = -self._val
-        return result
+        return type(self)(-self._val, high=self._high + 1, low=self._low)
 
     def __pos__(self):
         return type(self)(self)
 
     def __add__(self, other):
         if isinstance(other, integer_types):
-            value = sfixba(other, self)
+            value = sfixba(other).resize(self._high, 0)
         elif isinstance(other, float):
-            value = sfixba(other, self)
-        elif isinstance(other, sfixba):
+            value = sfixba(other).resize(self)
+        elif isinstance(other, (sintba, sfixba)):
             value = other
-        elif isinstance(other, bitarray):
-            value = sfixba(other, maths=self)
+        elif isinstance(other, uintba):
+            value = sfixba(other)
         else:
-            return NotImplemented            
+            return NotImplemented
         high = max(self._high, value._high) + 1
         low = min(self._low, value._low)
-        l = self.resize(high, low)
-        r = value.resize(high, low)
-        result = type(self)(0, high=high, low=low)
-        result._val = l._val + r._val
-        return result
+        l = sfixba(self, high=high, low=low)
+        r = sfixba(value, high=high, low=low)
+        return type(self)(l._val + r._val, high=high, low=low)
 
     def __radd__(self, other):
         if isinstance(other, integer_types):
-            value = sfixba(other, self)
+            value = sfixba(other).resize(self._high, 0)
         elif isinstance(other, float):
-            value = sfixba(other, self)
-        elif isinstance(other, sfixba):
-            value = other
+            value = sfixba(other).resize(self)
         elif isinstance(other, bitarray):
-            value = sfixba(other, maths=self)
+            value = sfixba(other)
         else:
-            return NotImplemented            
+            return NotImplemented
         return value + self
 
     def __sub__(self, other):
         if isinstance(other, integer_types):
-            value = sfixba(other, self)
+            value = sfixba(other).resize(self._high, 0)
         elif isinstance(other, float):
-            value = sfixba(other, self)
-        elif isinstance(other, sfixba):
+            value = sfixba(other).resize(self)
+        elif isinstance(other, (sintba, sfixba)):
             value = other
-        elif isinstance(other, bitarray):
-            value = sfixba(other, maths=self)
+        elif isinstance(other, uintba):
+            value = sfixba(other)
         else:
-            return NotImplemented            
+            return NotImplemented
         high = max(self._high, value._high) + 1
         low = min(self._low, value._low)
-        l = self.resize(high, low)
-        r = value.resize(high, low)
-        result = type(self)(0, high=high, low=low)
-        result._val = l._val - r._val
-        return result
+        l = sfixba(self, high=high, low=low)
+        r = sfixba(value, high=high, low=low)
+        return type(self)(l._val - r._val, high=high, low=low)
 
     def __rsub__(self, other):
         if isinstance(other, integer_types):
-            value = sfixba(other, self)
+            value = sfixba(other).resize(self._high, 0)
         elif isinstance(other, float):
-            value = sfixba(other, self)
-        elif isinstance(other, sfixba):
-            value = other
+            value = sfixba(other).resize(self)
         elif isinstance(other, bitarray):
-            value = sfixba(other, maths=self)
+            value = sfixba(other)
         else:
-            return NotImplemented            
+            return NotImplemented
         return value - self
 
     def __mul__(self, other):
         if isinstance(other, integer_types):
-            value = sfixba(other, self)
+            value = sfixba(other).resize(self._high, 0)
         elif isinstance(other, float):
-            value = sfixba(other, self)
-        elif isinstance(other, sfixba):
+            value = sfixba(other).resize(self)
+        elif isinstance(other, (sintba, sfixba)):
             value = other
-        elif isinstance(other, bitarray):
-            value = sfixba(other, maths=self)
+        elif isinstance(other, uintba):
+            value = sfixba(other)
         else:
-            return NotImplemented            
+            return NotImplemented
         high = self._high + value._high + 1
         low = self._low + value._low
-        l = self
-        r = value
-        result = type(self)(0, high=high, low=low)
-        result._val = l._val * r._val
-        return result
+        return type(self)(self._val * value._val, high=high, low=low)
 
     def __rmul__(self, other):
         if isinstance(other, integer_types):
-            value = sfixba(other, self)
+            value = sfixba(other).resize(self._high, 0)
         elif isinstance(other, float):
-            value = sfixba(other, self)
-        elif isinstance(other, sfixba):
-            value = other
+            value = sfixba(other).resize(self)
         elif isinstance(other, bitarray):
-            value = sfixba(other, maths=self)
+            value = sfixba(other)
         else:
-            return NotImplemented            
+            return NotImplemented
         return value * self
 
     def __truediv__(self, other):
         if isinstance(other, integer_types):
-            value = sfixba(other, self)
+            value = sfixba(other).resize(self._high, 0)
         elif isinstance(other, float):
-            value = sfixba(other, self)
-        elif isinstance(other, sfixba):
+            value = sfixba(other).resize(self)
+        elif isinstance(other, (sintba, sfixba)):
             value = other
-        elif isinstance(other, bitarray):
-            value = sfixba(other, maths=self)
+        elif isinstance(other, uintba):
+            value = sfixba(other)
         else:
-            return NotImplemented            
+            return NotImplemented
         high = self._high - value._low + 1
         low = self._low - value._high + 1
         if value._val == 0:
             result = sfixba(0, high, low)
-            if self._val >= 0:
+            if l._val >= 0:
                 result._val = result.max - 1
             else:
                 result._val = result.min
@@ -694,64 +677,81 @@ class sfixba(bitarray):
                             self._high - (high - low + self._guard_bits) + 1,
                             fixmath(overflow=fixmath.overflows.wrap,
                                     rounding=fixmath.roundings.truncate))
-            division = self._divide(l._val, value._val)
-            dresult = sfixba(0, high, low - self._guard_bits)
-            dresult._val = division
+
+            l_value = l._val
+            r_value = value._val
+            neg_quot = False
+            
+            if r_value < 0:
+                r_value = -r_value
+                neg_quot = True
+            if l_value < 0:
+                l_value = -l_value
+                neg_quot = not neg_quot
+    
+            division = l_value // r_value
+            
+            if neg_quot:
+                division = -division
+
+            dresult = sfixba(division, high,
+                             low - self._guard_bits)
             result = dresult.resize(high, low, self)
         return result
 
     def __rtruediv__(self, other):
         if isinstance(other, integer_types):
-            value = sfixba(other, self)
+            value = sfixba(other).resize(self._high, 0)
         elif isinstance(other, float):
-            value = sfixba(other, self)
-        elif isinstance(other, sfixba):
-            value = other
+            value = sfixba(other).resize(self)
         elif isinstance(other, bitarray):
-            value = sfixba(other, maths=self)
+            value = sfixba(other)
         else:
-            return NotImplemented            
+            return NotImplemented
         return value / self
 
     def __floordiv__(self, other):
         if isinstance(other, integer_types):
-            value = sfixba(other, self)
+            value = sfixba(other).resize(self._high, 0)
         elif isinstance(other, float):
-            value = sfixba(other, self)
-        elif isinstance(other, sfixba):
+            value = sfixba(other).resize(self)
+        elif isinstance(other, (sintba, sfixba)):
             value = other
-        elif isinstance(other, bitarray):
-            value = sfixba(other, maths=self)
+        elif isinstance(other, uintba):
+            value = sfixba(other)
         else:
             return NotImplemented
-        dresult = self / value
+        high = self._high - value._low + 1
+        low = self._low - value._high + 1
+        result = sfixba(0, high, low)
+        l = self.resize(self._high + 1,
+                        self._high - (high - low) + 1)
+        dresult = sfixba(l._val // value._val, high, low)
         result = dresult.floor()
         return result
 
     def __rfloordiv__(self, other):
         if isinstance(other, integer_types):
-            value = sfixba(other, self)
+            value = sfixba(other).resize(self._high, 0)
         elif isinstance(other, float):
-            value = sfixba(other, self)
-        elif isinstance(other, sfixba):
-            value = other
+            value = sfixba(other).resize(self)
         elif isinstance(other, bitarray):
-            value = sfixba(other, maths=self)
+            value = sfixba(other)
         else:
-            return NotImplemented            
+            return NotImplemented
         return value // self
 
     def __mod__(self, other):
         if isinstance(other, integer_types):
-            value = sfixba(other, self)
+            value = sfixba(other).resize(self._high, 0)
         elif isinstance(other, float):
-            value = sfixba(other, self)
+            value = sfixba(other).resize(self)
         elif isinstance(other, sfixba):
             value = other
         elif isinstance(other, bitarray):
-            value = sfixba(other, maths=self)
+            value = sfixba(other)
         else:
-            return NotImplemented            
+            return NotImplemented
         l_abs = abs(self)
         r_abs = abs(value)
         l_resize = l_abs.resize(max(l_abs._high, r_abs._low + 1),
@@ -805,15 +805,13 @@ class sfixba(bitarray):
 
     def __rmod__(self, other):
         if isinstance(other, integer_types):
-            value = sfixba(other, self)
+            value = sfixba(other).resize(self._high, 0)
         elif isinstance(other, float):
-            value = sfixba(other, self)
-        elif isinstance(other, sfixba):
-            value = other
+            value = sfixba(other).resize(self)
         elif isinstance(other, bitarray):
-            value = sfixba(other, maths=self)
+            value = sfixba(other)
         else:
-            return NotImplemented            
+            return NotImplemented
         return value % self
 
     def __pow__(self, other):
@@ -824,95 +822,204 @@ class sfixba(bitarray):
 
     def __and__(self, other):
         if isinstance(other, (sintba, sfixba)):
-            return bitarray.__and__(self, other)
+            value = other
+        elif isinstance(other, uintba):
+            value = sfixba(other)
         else:
             return NotImplemented
-    
+
+        return bitarray.__and__(self, value)            
+
     __rand__ = __and__
-    
+
     def __or__(self, other):
         if isinstance(other, (sintba, sfixba)):
-            return bitarray.__or__(self, other)
+            value = other
+        elif isinstance(other, uintba):
+            value = sfixba(other)
         else:
             return NotImplemented
-    
+
+        return bitarray.__or__(self, value)            
+
     __ror__ = __or__
-    
+
     def __xor__(self, other):
         if isinstance(other, (sintba, sfixba)):
-            return bitarray.__xor__(self, other)
+            value = other
+        elif isinstance(other, uintba):
+            value = sfixba(other)
         else:
             return NotImplemented
-    
+
+        return bitarray.__xor__(self, value)            
+
     __rxor__ = __xor__
-    
+
     def __iadd__(self, other):
-        if isinstance(other, bitarray) and \
-                self.is_signed and not other.is_signed:
-            other = other.signed()
-        result = self + other
-        if not self.is_signed:
-            result = result.unsigned()
-        value = result.resize(self.high, self.low)
-        self._val = value._val
+        if isinstance(other, (integer_types, float)):
+            tmp = sfixba(other)
+            value = tmp.resize(self)
+        elif isinstance(other, bitarray):
+            value = other
+        else:
+            return NotImplemented
+
+        result = self + value
+        self._resize(result)
         self._wrap()
         return self
 
     def __isub__(self, other):
-        if isinstance(other, bitarray) and \
-                self.is_signed and not other.is_signed:
-            other = other.signed()
-        result = self - other
-        if not self.is_signed:
-            result = result.unsigned()
-        value = result.resize(self.high, self.low)
-        self._val = value._val
+        if isinstance(other, (integer_types, float)):
+            tmp = sfixba(other)
+            value = tmp.resize(self)
+        elif isinstance(other, bitarray):
+            value = other
+        else:
+            return NotImplemented
+
+        result = self - value
+        self._resize(result)
         self._wrap()
         return self
 
     def __imul__(self, other):
-        if isinstance(other, bitarray) and \
-                self.is_signed and not other.is_signed:
-            other = other.signed()
-        result = self * other
-        if not self.is_signed:
-            result = result.unsigned()
-        value = result.resize(self.high, self.low)
-        self._val = value._val
+        if isinstance(other, (integer_types, float)):
+            tmp = sfixba(other)
+            value = tmp.resize(self)
+        elif isinstance(other, bitarray):
+            value = other
+        else:
+            return NotImplemented
+
+        result = self * value
+        self._resize(result)
         self._wrap()
         return self
 
     def __ifloordiv__(self, other):
-        if isinstance(other, bitarray) and \
-                self.is_signed and not other.is_signed:
-            other = other.signed()
-        result = self // other
-        if not self.is_signed:
-            result = result.unsigned()
-        value = result.resize(self.high, self.low)
-        self._val = value._val
+        if isinstance(other, (integer_types, float)):
+            tmp = sfixba(other)
+            value = tmp.resize(self)
+        elif isinstance(other, bitarray):
+            value = other
+        else:
+            return NotImplemented
+
+        result = self // value
+        self._resize(result)
+        self._wrap()
+        return self
+
+    def __itruediv__(self, other):
+        if isinstance(other, (integer_types, float)):
+            tmp = sfixba(other)
+            value = tmp.resize(self)
+        elif isinstance(other, bitarray):
+            value = sfixba(other)
+        else:
+            return NotImplemented
+
+        result = self / value
+        self._resize(result)
         self._wrap()
         return self
 
     def __imod__(self, other):
-        if isinstance(other, bitarray) and \
-                self.is_signed and not other.is_signed:
-            other = other.signed()
-        result = self % other
-        if not self.is_signed:
-            result = result.unsigned()
-        value = result.resize(self.high, self.low)
-        self._val = value._val
+        if isinstance(other, (integer_types, float)):
+            tmp = sfixba(other)
+            value = tmp.resize(self)
+        elif isinstance(other, bitarray):
+            value = sfixba(other)
+        else:
+            return NotImplemented
+
+        result = self % value
+        self._resize(result)
         self._wrap()
         return self
 
     def __ipow__(self, other, modulo=None):
         return NotImplemented
 
+    def __iand__(self, other):
+        if isinstance(other, bitarray):
+            value = sfixba(other, self)
+        else:
+            return NotImplemented
+
+        return bitarray.__iand__(self, value)            
+
+    def __ior__(self, other):
+        if isinstance(other, bitarray):
+            value = sfixba(other, self)
+        else:
+            return NotImplemented
+
+        return bitarray.__ior__(self, value)            
+
+    def __ixor__(self, other):
+        if isinstance(other, bitarray):
+            value = sfixba(other, self)
+        else:
+            return NotImplemented
+
+        return bitarray.__ixor__(self, value)            
+
+    def __ilshift__(self, other):
+        if isinstance(other, integer_types):
+            value = other
+        elif isinstance(other, uintba):
+            value = other._val
+        else:
+            return NotImplemented
+        
+        if value >= 0:
+            self._val <<= value
+            self._wrap()
+            return self
+        else:
+            return NotImplemented
+
+    def __irshift__(self, other):
+        if isinstance(other, integer_types):
+            value = other
+        elif isinstance(other, uintba):
+            value = other._val
+        else:
+            return NotImplemented
+
+        if value >= 0:
+            self._val >>= value
+            self._wrap()
+            return self
+        else:
+            return NotImplemented
+
     def __invert__(self):
         result = type(self)(0, self)
         result._val = ~self._val
         return result
+
+    def scalb(self, n):
+        '''Scales the result by a power of 2.  Width of input = width of
+        output with the binary point moved.'''
+        if isinstance(n, (int, sintba)):
+            value = int(n)
+            result = sfixba(0, self._high + value, self._low + value)
+            result._val = self._val
+            return result
+        else:
+            raise TypeError("The scale factor must be integer or sintba")
+
+    def floor(self):
+        result = sfixba(self)
+        if result.high <= 1:
+            result._val = 0
+        elif result.low < 0:
+            result[0:result.low] = 0
+        return result;
 
     def __int__(self):
         result = self.resize(self._high, 0)
@@ -1026,106 +1133,130 @@ class sfixba(bitarray):
 
     # comparisons
     def __eq__(self, other):
+        high = self._high
+        low = self._low
+        left = self
         if isinstance(other, integer_types):
-            value = type(self)(other, self)
+            right = sfixba(other).resize(self)
         elif isinstance(other, float):
-            value = type(self)(other, self)
-        elif isinstance(other, sfixba):
-            value = other
+            right = sfixba(other).resize(self)
         elif isinstance(other, bitarray):
-            value = type(self)(other, maths=self)
+            if isinstance(other, uintba):
+                other_high = other._high + 1
+            else:
+                other_high = other._high
+            high = max(self._high, other_high)
+            low = min(self._low, other._low)
+            right = sfixba(other).resize(high, low)
+            left = self.resize(high, low)
         else:
-            return NotImplemented            
-        high = max(self._high, value._high)
-        low = min(self._low, value._low)
-        l = self.resize(high, low)
-        r = value.resize(high, low)
-        return l._val == r._val
+            return NotImplemented
+        return left._val == right._val
 
     def __ne__(self, other):
+        high = self._high
+        low = self._low
+        left = self
         if isinstance(other, integer_types):
-            value = type(self)(other, self)
+            right = sfixba(other).resize(self)
         elif isinstance(other, float):
-            value = type(self)(other, self)
-        elif isinstance(other, sfixba):
-            value = other
+            right = sfixba(other).resize(self)
         elif isinstance(other, bitarray):
-            value = type(self)(other, maths=self)
+            if isinstance(other, uintba):
+                other_high = other._high + 1
+            else:
+                other_high = other._high
+            high = max(self._high, other_high)
+            low = min(self._low, other._low)
+            right = sfixba(other).resize(high, low)
+            left = self.resize(high, low)
         else:
-            return NotImplemented            
-        high = max(self._high, value._high)
-        low = min(self._low, value._low)
-        l = self.resize(high, low)
-        r = value.resize(high, low)
-        return l._val != r._val
+            return NotImplemented
+        return left._val != right._val
 
     def __lt__(self, other):
+        high = self._high
+        low = self._low
+        left = self
         if isinstance(other, integer_types):
-            value = type(self)(other, self)
+            right = sfixba(other).resize(self)
         elif isinstance(other, float):
-            value = type(self)(other, self)
-        elif isinstance(other, sfixba):
-            value = other
+            right = sfixba(other).resize(self)
         elif isinstance(other, bitarray):
-            value = type(self)(other, maths=self)
+            if isinstance(other, uintba):
+                other_high = other._high + 1
+            else:
+                other_high = other._high
+            high = max(self._high, other_high)
+            low = min(self._low, other._low)
+            right = sfixba(other).resize(high, low)
+            left = self.resize(high, low)
         else:
-            return NotImplemented            
-        high = max(self._high, value._high)
-        low = min(self._low, value._low)
-        l = self.resize(high, low)
-        r = value.resize(high, low)
-        return l._val < r._val
+            return NotImplemented
+        return left._val < right._val
 
     def __le__(self, other):
+        high = self._high
+        low = self._low
+        left = self
         if isinstance(other, integer_types):
-            value = type(self)(other, self)
+            right = sfixba(other).resize(self)
         elif isinstance(other, float):
-            value = type(self)(other, self)
-        elif isinstance(other, sfixba):
-            value = other
+            right = sfixba(other).resize(self)
         elif isinstance(other, bitarray):
-            value = type(self)(other, maths=self)
+            if isinstance(other, uintba):
+                other_high = other._high + 1
+            else:
+                other_high = other._high
+            high = max(self._high, other_high)
+            low = min(self._low, other._low)
+            right = sfixba(other).resize(high, low)
+            left = self.resize(high, low)
         else:
-            return NotImplemented            
-        high = max(self._high, value._high)
-        low = min(self._low, value._low)
-        l = self.resize(high, low)
-        r = value.resize(high, low)
-        return l._val <= r._val
+            return NotImplemented
+        return left._val <= right._val
 
     def __gt__(self, other):
+        high = self._high
+        low = self._low
+        left = self
         if isinstance(other, integer_types):
-            value = type(self)(other, self)
+            right = sfixba(other).resize(self)
         elif isinstance(other, float):
-            value = type(self)(other, self)
-        elif isinstance(other, sfixba):
-            value = other
+            right = sfixba(other).resize(self)
         elif isinstance(other, bitarray):
-            value = type(self)(other, maths=self)
+            if isinstance(other, uintba):
+                other_high = other._high + 1
+            else:
+                other_high = other._high
+            high = max(self._high, other_high)
+            low = min(self._low, other._low)
+            right = sfixba(other).resize(high, low)
+            left = self.resize(high, low)
         else:
-            return NotImplemented            
-        high = max(self._high, value._high)
-        low = min(self._low, value._low)
-        l = self.resize(high, low)
-        r = value.resize(high, low)
-        return l._val > r._val
+            return NotImplemented
+        return left._val > right._val
 
     def __ge__(self, other):
+        high = self._high
+        low = self._low
+        left = self
         if isinstance(other, integer_types):
-            value = type(self)(other, self)
+            right = sfixba(other).resize(self)
         elif isinstance(other, float):
-            value = type(self)(other, self)
-        elif isinstance(other, sfixba):
-            value = other
+            right = sfixba(other).resize(self)
         elif isinstance(other, bitarray):
-            value = type(self)(other, maths=self)
+            if isinstance(other, uintba):
+                other_high = other._high + 1
+            else:
+                other_high = other._high
+            high = max(self._high, other_high)
+            low = min(self._low, other._low)
+            right = sfixba(other).resize(high, low)
+            left = self.resize(high, low)
         else:
-            return NotImplemented            
-        high = max(self._high, value._high)
-        low = min(self._low, value._low)
-        l = self.resize(high, low)
-        r = value.resize(high, low)
-        return l._val >= r._val
+            return NotImplemented
+        return left._val >= right._val
 
     # representation
 
@@ -1183,26 +1314,3 @@ class sfixba(bitarray):
         result._resize(value, maths.overflow, maths.rounding)
         result._wrap()
         return result
-
-    def scalb(self, n):
-        '''Scales the result by a power of 2.  Width of input = width of
-        output with the binary point moved.'''
-        if isinstance(n, (int, sintba)):
-            value = int(n)
-            result = sfixba(0, self._high + value, self._low + value)
-            result._val = self._val
-            return result
-        else:
-            raise TypeError("The scale factor must be integer or sintba")
-
-    def floor(self):
-        high = max(self.high, 2)
-        result = sfixba(self).resize(high, 0, fixmath(
-                                     rounding=fixmath.roundings.truncate))
-        return result;
-
-    def unsigned(self):
-        return self.__abs__()
-    
-    def signed(self):
-        return copy(self)

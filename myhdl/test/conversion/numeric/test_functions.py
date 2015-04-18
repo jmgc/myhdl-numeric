@@ -11,9 +11,9 @@ random.seed(2)
 from myhdl import *
 from myhdl.conversion import verify
 
-NRTESTS = 50
+NRTESTS = 10
 
-def resizeCheck(delta, i, j):
+def functionCheck(delta, i, j):
     values = tuple(range(-128, 128))
     f_value = Signal(sfixba(0, 2, 0))
     fs_value = Signal(sfixba(0, f_value.high + delta, f_value.low + delta))
@@ -24,7 +24,10 @@ def resizeCheck(delta, i, j):
         for i in range(len(values)):
             yield delay(10)
             i_value = values[i]
-            f_value.next = sfixba(i_value)
+            si_value = sfixba(i_value, 8, -3)
+            sis_value = si_value.resize(8, 0)
+            f_value.next = sis_value
+            #f_value.next = sfixba(i_value)
             yield delay(10)
             tmp = f_value.scalb(-5)
             fs_value.next = tmp
@@ -80,6 +83,10 @@ def binaryOps(
             else:
                 Modulo.next = 0
             Mul.next = left * right
+            # Icarus doesn't support ** yet
+            #if left < 256 and right < 40:
+            #    Pow.next = left ** right
+    ##         Pow.next = 0
             if right >= 0:
                 RightShift.next = left >> int(right)
             else:
@@ -99,12 +106,17 @@ def binaryOps(
 
 
 def binaryBench(l, r):
-    maxP = min(l.max, r.max)
-    minP = max(l.min, r.min)
+    tmp_i = 10
+    tmp_si = sfixba(tmp_i)
+    tmp_sis = tmp_si.scalb(-1)
 
-    seqP = tuple(range(minP, maxP))
-    seqM = tuple([randrange(l.max - l.min) + l.min for i in range(NRTESTS)])
-    seqN = tuple([randrange(r.max - r.min) + r.min for i in range(NRTESTS)])
+    M = 2**(l.high - l.low - 1)
+    N = 2**(r.high - r.low - 1)
+    P = min(M, N)
+
+    seqP = tuple(range(P))
+    seqM = tuple([randrange(M) for i in range(NRTESTS)])
+    seqN = tuple([randrange(N) for i in range(NRTESTS)])
 
     left = Signal(l)
     right = Signal(r)
@@ -112,18 +124,16 @@ def binaryBench(l, r):
     Bitor = Signal(l | r)
     Bitxor = Signal(l ^ r)
     FloorDiv = Signal(l // r)
-    LeftShift = Signal(l.resize(l.high * 8, l.low * 8))
+    #TrueDiv = Signal(l / r)
+    LeftShift = Signal(left.resize(left.high * 8, left.low * 8))
     Modulo = Signal(l % r)
     Mul = Signal(l * r)
-    Pow = Signal(l.resize(l.high * 8, l.low * 8))
+    Pow = Signal(left.resize(64))
     RightShift = Signal(l)
     Sub = Signal(l - r)
     Sum = Signal(l + r)
     EQ, NE, LT, GT, LE, GE = [Signal(bool()) for i in range(6)]
     Booland, Boolor = [Signal(bool()) for i in range(2)]
-
-    high = max(left.high - left.low, right.high - right.low)
-    low = 0
 
     binops = binaryOps(Bitand,
                        Bitor,
@@ -149,62 +159,63 @@ def binaryBench(l, r):
 
     @instance
     def stimulus():
-        left.next = 1
-        right.next = 1
+        tmpi = 10
+        tmpsi = sfixba(tmp_i)
+        tmpsis = tmpsi.scalb(-1)
+        left.next = tmpsis
+        right.next = tmpsis
         yield delay(10)
-        left.next = 0
-        right.next = 0
-        yield delay(10)
-        left.next = 1
-        right.next = 1
-        yield delay(10)
-        left.next = 0
-        right.next = 0
-        yield delay(10)
-        left.next[:] = left.min
-        right.next[:] = right.min
-        yield delay(10)
-        left.next[:] = left.min
-        right.next[:] = right.max-1
-        yield delay(10)
-        left.next[:] = left.max - 1
-        right.next[:] = right.min
-        yield delay(10)
-        left.next[:] = left.max - 1
-        right.next[:] = right.max - 1
-        yield delay(10)
-        for i in range(len(seqP)):
-            temp_seq = seqP[i]
-            tmp_value = sfixba(temp_seq, high, low)
-            left.next = tmp_value.scalb(left.low)
-            right.next = tmp_value.scalb(right.low)
-            yield delay(10)
-        for i in range(NRTESTS):
-            tmpM = seqM[i]
-            tmp_sm = sfixba(tmpM, left.high - left.low + 1, 0)
-            tmp_sms = tmp_sm.scalb(left.low)
-            left.next = tmp_sms
-            tmpN = seqN[i]
-            tmp_sn = sfixba(tmpN, right.high - right.low + 1, 0)
-            tmp_sns = tmp_sn.scalb(right.low)
-            right.next = tmp_sns
-            yield delay(10)
+#         left.next = 1
+#         right.next = 1
+#         yield delay(10)
+#         left.next = 0
+#         right.next = 0
+#         yield delay(10)
+#         left.next[:] = 0
+#         right.next = N-1
+#         yield delay(10)
+#         left.next = M-1
+#         right.next[:] = 0
+#         yield delay(10)
+#         left.next = M-1
+#         right.next = N-1
+#         for i in range(len(seqP)):
+#             left.next = sfixed(seqP[i]).scalb(left.low)
+#             right.next = seqP[i]
+#             yield delay(10)
+#         for i in range(NRTESTS):
+#             tmpM = seqM[i]
+#             l_low = left.low
+#             tmp_sm = sfixba(tmpM)
+#             print(tmp_sm)
+#             tmp_sms = tmp_sm.scalb(l_low)
+#             left.next = tmp_sms
+#             tmpN = seqN[i]
+#             r_low = right.low
+#             tmp_sn = sfixba(tmpN)
+#             print(tmp_sn)
+#             tmp_sns = tmp_sn.scalb(r_low)
+#             right.next = tmp_sns
+#             yield delay(10)
         # raise StopSimulation
 
 
     @instance
     def check():
-        count = 0
         while True:
             yield left, right
             yield delay(1)
-            print("count: ", count)
+
             print("left: ", left)
             print("right: ", right)
             print("and: ", left, right, Bitand)
             print("or: ", left, right, Bitor)
             print("xor: ", left, right, Bitxor)
+            #print(TrueDiv)
             print("<<: ", left, right, LeftShift)
+
+            # print Pow, Pow_v
+
             print(">>: ", left, right, RightShift)
             print("+: ", left, right, Sum)
             print("-: ", left, right, Sub)
@@ -220,108 +231,10 @@ def binaryBench(l, r):
             print("bool_and: ", int(Booland))
             print("bool_or: ", int(Boolor))
 
-            count = count + 1
-
     return binops, stimulus, check
 
 def checkBinary(m, n):
     assert verify(binaryBench, m, n) == 0
-
-def divOp(TrueDiv,
-          left, right):
-
-    @instance
-    def logic():
-        while 1:
-            yield left, right
-            if right != 0:
-                if left == 86.5:
-                    pass
-                TrueDiv.next = left / right
-            else:
-                TrueDiv.next = 0
-    return logic
-
-
-def divBench(l, r):
-    maxP = min(l.max, r.max)
-    minP = max(l.min, r.min)
-
-    seqP = tuple(range(minP, maxP))
-    seqM = tuple([randrange(l.max - l.min) + l.min for i in range(NRTESTS)])
-    seqN = tuple([randrange(r.max - r.min) + r.min for i in range(NRTESTS)])
-
-    left = Signal(l)
-    right = Signal(r)
-    TrueDiv = Signal(l / r)
-
-    high = max(left.high - left.low, right.high - right.low)
-    low = 0
-
-    divop = divOp(TrueDiv,
-                       left, right)
-
-    @instance
-    def stimulus():
-        left.next = 1
-        right.next = 1
-        yield delay(10)
-        left.next = 0
-        right.next = 0
-        yield delay(10)
-        left.next = 1
-        right.next = 1
-        yield delay(10)
-        left.next = 0
-        right.next = 0
-        yield delay(10)
-        left.next[:] = left.min
-        right.next[:] = right.min
-        yield delay(10)
-        left.next[:] = left.min
-        right.next[:] = right.max-1
-        yield delay(10)
-        left.next[:] = left.max - 1
-        right.next[:] = right.min
-        yield delay(10)
-        left.next[:] = left.max - 1
-        right.next[:] = right.max - 1
-        yield delay(10)
-        for i in range(len(seqP)):
-            temp_seq = seqP[i]
-            tmp_value = sfixba(temp_seq, high, low)
-            left.next = tmp_value.scalb(left.low)
-            right.next = tmp_value.scalb(right.low)
-            yield delay(10)
-        for i in range(NRTESTS):
-            tmpM = seqM[i]
-            tmp_sm = sfixba(tmpM, left.high - left.low + 1, 0)
-            tmp_sms = tmp_sm.scalb(left.low)
-            left.next = tmp_sms
-            tmpN = seqN[i]
-            tmp_sn = sfixba(tmpN, right.high - right.low + 1, 0)
-            tmp_sns = tmp_sn.scalb(right.low)
-            right.next = tmp_sns
-            yield delay(10)
-        # raise StopSimulation
-
-
-    @instance
-    def check():
-        count = 0
-        while True:
-            yield left, right
-            yield delay(1)
-            print("count: ", count)
-            print("left: ", left)
-            print("right: ", right)
-            print("/:", left, right, TrueDiv)
-            count = count + 1
-
-    return divop, stimulus, check
-
-def checkDiv(m, n):
-    assert verify(divBench, m, n) == 0
 
 def multiOps(
               Bitand,
@@ -450,7 +363,7 @@ def unaryBench(m):
         for i in range(NRTESTS):
             arg.next = seqM[i]
             yield delay(10)
-        #raise StopSimulation
+        raise StopSimulation
 
     @instance
     def check():
@@ -487,76 +400,70 @@ def augmOps(  Bitand,
     @instance
     def logic():
         # var = intbv(0)[min(64, len(left) + len(right)):]
+        var = intbv(0)[len(left) + len(right):]
+        var2 = intbv(0)[64:]
         while True:
             yield left, right
-            var = left.val
-            var &= right.val
+            var[:] = left
+            var &= right
             Bitand.next = var
-            var = left.val
-            var |= right.val
+            var[:] = left
+            var |= right
             Bitor.next = var
-            var = left.val
-            var ^= right.val
+            var[:] = left
+            var ^= left
             Bitxor.next = var
             if right != 0:
-                var = left.val
-                var //= right.val
+                var[:] = left
+                var //= right
                 FloorDiv.next = var
             if left >= right:
-                var = left.val
-                var -= right.val
+                var[:] = left
+                var -= right
                 Sub.next = var
-            var = left.val
-            var += right.val
+            var[:] = left
+            var += right
             Sum.next = var
-            if left >= left.min and left < left.max and right >= 0  and right < 26:
-                var = left.val
-                var <<= int(right.val)
-                LeftShift.next = var
-            else:
-                LeftShift.next = 0
+            if left < 256 and right < 26:
+                var2[:] = left
+                var2 <<= right
+                LeftShift.next = var2
             if right != 0:
-                var = left.val
-                var %= right.val
+                var[:] = left
+                var %= right
                 Modulo.next = var
-            else:
-                Modulo.next = 0
-            var = left.val
-            var *= right.val
+            var[:] = left
+            var *= right
             Mul.next = var
-            if right >= 0  and right < 26:
-                var = left.val
-                var >>= int(right.val)
-                RightShift.next = var
-            else:
-                RightShift.next = 0
+            var[:] = left
+            var >>= right
+            RightShift.next = var
     return logic
 
 
         
 
-def augmBench(l, r):
-    maxP = min(l.max, r.max)
-    minP = max(l.min, r.min)
 
-    seqM = tuple([randrange(l.max - l.min) + l.min for i in range(NRTESTS)])
-    seqN = tuple([randrange(r.max - r.min) + r.min for i in range(NRTESTS)])
+def augmBench(m, n):
 
-    if l == 255 and r == -128:
-        pass
+    M = 2**m
+    N = 2**n
+    
+    seqM = tuple([randrange(M) for i in range(NRTESTS)])
+    seqN = tuple([randrange(N) for i in range(NRTESTS)])
 
-    left = Signal(l)
-    right = Signal(r)
-    Bitand = Signal(l)
-    Bitor = Signal(l)
-    Bitxor = Signal(l)
-    FloorDiv = Signal(l)
-    LeftShift = Signal(l)
-    Modulo = Signal(l)
-    Mul = Signal(l)
-    RightShift = Signal(l)
-    Sub = Signal(l)
-    Sum = Signal(l)
+    left = Signal(intbv(0)[m:])
+    right = Signal(intbv(0)[n:])
+    Bitand = Signal(intbv(0)[max(m, n):])
+    Bitor = Signal(intbv(0)[max(m, n):])
+    Bitxor = Signal(intbv(0)[max(m, n):])
+    FloorDiv = Signal(intbv(0)[m:])
+    LeftShift = Signal(intbv(0)[64:])
+    Modulo = Signal(intbv(0)[m:])
+    Mul = Signal(intbv(0)[m+n:])
+    RightShift = Signal(intbv(0)[m:])
+    Sub = Signal(intbv(0)[max(m, n):])
+    Sum = Signal(intbv(0)[max(m, n)+1:])
 
     augmops = augmOps( Bitand,
                        Bitor,
@@ -578,149 +485,90 @@ def augmBench(l, r):
         left.next = 0
         right.next = 0
         yield delay(10)
-        left.next = 1
-        right.next = 1
-        yield delay(10)
         left.next = 0
+        right.next = N-1
+        yield delay(10)
+        left.next = M-1
         right.next = 0
         yield delay(10)
-        left.next[:] = left.min
-        right.next[:] = right.min
-        yield delay(10)
-        left.next[:] = left.min
-        right.next[:] = right.max-1
-        yield delay(10)
-        left.next[:] = left.max - 1
-        right.next[:] = right.min
-        yield delay(10)
-        left.next[:] = left.max - 1
-        right.next[:] = right.max - 1
-        yield delay(10)
+        left.next = M-1
+        right.next = N-1
         for i in range(NRTESTS):
-            tmpM = seqM[i]
-            tmp_sm = sfixba(tmpM, left.high - left.low + 1, 0)
-            tmp_sms = tmp_sm.scalb(left.low)
-            left.next = tmp_sms
-            tmpN = seqN[i]
-            tmp_sn = sfixba(tmpN, right.high - right.low + 1, 0)
-            tmp_sns = tmp_sn.scalb(right.low)
-            right.next = tmp_sns
-            yield delay(10)            
+            left.next = seqM[i]
+            right.next = seqN[i]
+            yield delay(10)
+            
 
     @instance
     def check():
-        count = 0
         while True:
             yield left, right
             yield delay(1)
-            print("count: ", count)
-            print("left: ", left)
-            print("right: ", right)
-            print("and: ", left, right, Bitand)
-            print("or: ", left, right, Bitor)
-            print("xor: ", left, right, Bitxor)
-            print("<<: ", left, right, LeftShift)
-            print(">>: ", left, right, RightShift)
-            print("+: ", left, right, Sum)
-            print("-: ", left, right, Sub)
-            print("//: ", left, right, FloorDiv)
-            print("%: ", left, right, Modulo)
-            print("*: ", left, right, Mul)
-
-            count = count + 1
+            print(left, right)
+            print(Bitand)
+            print(Bitor)
+            print(Bitxor)
+            print(Sub)
+            print(Sum)
+            print(FloorDiv)
+            print(LeftShift)
+            print(Modulo)
+            print(Mul)
+            print(RightShift)
             
     return augmops, stimulus, check
 
 
+def checkAugmOps(m, n):
+    assert verify(augmBench, m, n) == 0
+
+def testAugmOps():
+    for m, n in ((4, 4,), (5, 3), (2, 6), (8, 7)):
+        yield checkAugmOps, m, n
+
 
 class Test(unittest.TestCase):
-    sim = True
+#     def test_SimBinary(self):
+#         self.vectors()
+#         for left in self.lefts:
+#             for right in self.rights:
+#                 #tb_fsm = traceSignals(delayBufferTestBench)
+#                 #sim = Simulation(tb_fsm)
+#                 toVHDL(binaryBench, left, right)
+#                 sim = Simulation(binaryBench(left, right))
+#                 sim.run()
 
     def vectors(self):
-        self.lefts = (uintba(9, 8),
-                      sintba(10, 6),
-                      sintba(-10, 8),
+        self.lefts = (#uintba(9, 8),
+                      #sintba(10, 6),
+                      #sintba(-10, 8),
                       sfixba(20, 9, -4),
-                      sfixba(-13, 10, -3),)
+                      sfixba(-13, 10, -3))
         self.rights = (#uintba(3, 4),
-                       sintba(9, 8),
-                       sintba(-10, 5),
+                       #sintba(9, 8),
+                       #sintba(-10, 5),
                        sfixba(1, 4, 0),
                        sfixba(13, 12, 3),)
 
-    def div_vectors(self):
-        self.lefts = (sfixba(20, 9, -4),
-                      sfixba(-13, 10, -3),
-                      sfixba(-13, 10, 1),)
-        self.rights = (sfixba(1, 4, 0),
-                       sfixba(13, 12, 3),
-                       sfixba(-13, 8, -3),)
+#     def test_Binary(self):
+#         self.vectors()
+#         for left in self.lefts:
+#             for right in self.rights:
+#                 self.assertEqual(conversion.verify(binaryBench, left, right), 0)
+            
+    def testSimFunctions(self):
+        #tb_fsm = traceSignals(functionCheck)
+        #sim = Simulation(tb_fsm)
+        toVHDL(functionCheck, 0, 3, 0)
+        sim = Simulation(functionCheck(0, 3, 0))
+        sim.run()
 
-    if sim:
-        def test_AugmentedSim(self):
-            self.vectors()
-            for left in self.lefts:
-                for right in self.rights:
-                    #tb_fsm = traceSignals(delayBufferTestBench)
-                    #sim = Simulation(tb_fsm)
-                    toVHDL(augmBench, left, right)
-                    sim = Simulation(augmBench(left, right))
-                    sim.run()
-    else:
-        def test_AugmentedVer(self):
-            self.vectors()
-            for left in self.lefts:
-                for right in self.rights:
-                    self.assertEqual(conversion.verify(augmBench, left, right), 0)
-
-#     if sim:
-#         def test_BinarySim(self):
-#             self.vectors()
-#             for left in self.lefts:
-#                 for right in self.rights:
-#                     #tb_fsm = traceSignals(delayBufferTestBench)
-#                     #sim = Simulation(tb_fsm)
-#                     #toVHDL(binaryBench, left, right)
-#                     sim = Simulation(binaryBench(left, right))
-#                     sim.run()
-#     else:
-#         def test_BinaryVer(self):
-#             self.vectors()
-#             for left in self.lefts:
-#                 for right in self.rights:
-#                     self.assertEqual(conversion.verify(binaryBench, left, right), 0)
-# 
-#     if sim:
-#         def test_DivisionSim(self):
-#             self.div_vectors()
-#             for left in self.lefts:
-#                 for right in self.rights:
-#                     #tb_fsm = traceSignals(delayBufferTestBench)
-#                     #sim = Simulation(tb_fsm)
-#                     toVHDL(divBench, left, right)
-#                     sim = Simulation(divBench(left, right))
-#                     sim.run()
-#     else:
-#         def test_DivisionVer(self):
-#             self.div_vectors()
-#             for left in self.lefts:
-#                 for right in self.rights:
-#                     self.assertEqual(conversion.verify(divBench, left, right), 0)
-
-#     if sim:
-#         def testSimResize(self):
-#             #tb_fsm = traceSignals(resizeCheck)
-#             #sim = Simulation(tb_fsm)
-#             #toVHDL(resizeCheck)
-#             sim = Simulation(resizeCheck())
-#             sim.run()
-#     else:
-#         def testResize(self):
-#             for delta in range(-5, 0):
-#                 for i in range(0, 8):
-#                     for j in range(delta, i-1):
-#                         self.assertEqual(conversion.verify(resizeCheck,
-#                                                            delta, i, j), 0)
+#     def testFunctions(self):
+#         for delta in range(-5, 0):
+#             for i in range(0, 8):
+#                 for j in range(delta, i-1):
+#                     self.assertEqual(conversion.verify(functionCheck,
+#                                                        delta, i, j), 0)
 
         
 if __name__ == "__main__":

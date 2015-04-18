@@ -23,6 +23,7 @@
 from __future__ import absolute_import
 
 from myhdl._bin import bin
+from myhdl._Signal import _Signal
 from myhdl._compat import string_types
 
 class EnumType(object):
@@ -112,16 +113,18 @@ def enum(*names, **kwargs):
         __le__ = __ge__ = __lt__ = __gt__ = _notImplementedCompare
 
         def __eq__(self, other):
+            if isinstance(other, _Signal):
+                other = other._val
             if not isinstance(other, EnumItemType) or type(self) is not type(other):
-                return NotImplemented
-            else:
-                return self is other
+                raise TypeError("Type mismatch in enum item comparison")
+            return self is other
 
         def __ne__(self, other):
+            if isinstance(other, _Signal):
+                other = other._val
             if not isinstance(other, EnumItemType) or type(self) is not type(other):
-                return NotImplemented
-            else:
-                return self is not other
+                raise TypeError("Type mismatch in enum item comparison")
+            return self is not other
 
         def __hash__(self):
             return self.__index__()

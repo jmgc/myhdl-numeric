@@ -65,23 +65,6 @@ def resize(val, format):
     tmp &= ~wrap
     return tmp | val
 
-def divide(l, r):
-    neg_quot = False
-    
-    if r < 0:
-        r = -r
-        neg_quot = True
-    if l < 0:
-        l = -l
-        neg_quot = not neg_quot
-
-    division = l // r
-    
-    if neg_quot:
-        division = -division
-
-    return division
-
 class TestIntBaInit(TestCase):
     def testDefaultValue(self):
         warnings.filterwarnings('error')
@@ -333,14 +316,10 @@ class TestSIntBaAsInt(TestCase):
     def binaryCheck(self, op, imin=0, imax=None, jmin=0, jmax=None):
         warnings.filterwarnings('error')
         self.seqSetup(imin=imin, imax=imax, jmin=jmin, jmax=jmax)
-        if op is operator.floordiv:
-            op_ = divide
-        else:
-            op_ = op
         for i, j in zip(self.seqi, self.seqj):
             bi = sintba(long(i), 128)
             bj = sintba(j, 128)
-            ref = op_(long(i), j)
+            ref = op(long(i), j)
             try:
                 try:
                     r1 = op(bi, j)
@@ -368,20 +347,17 @@ class TestSIntBaAsInt(TestCase):
                                      "{0}, {1}, {2}".format(r3, wrap(ref, r3),
                                                          op))
             except TypeError:
-                self.assertTrue(op in (operator.truediv, operator.pow))
+                self.assertTrue(op in (operator.truediv, operator.itruediv,
+                                       operator.pow, operator.ipow))
         warnings.resetwarnings()
 
     def augmentedAssignCheck(self, op, imin=0, imax=None, jmin=0, jmax=None):
         warnings.filterwarnings('error')
         self.seqSetup(imin=imin, imax=imax, jmin=jmin, jmax=jmax)
-        if op is operator.ifloordiv:
-            op_ = divide
-        else:
-            op_ = op
         for i, j in zip(self.seqi, self.seqj):
             bj = sintba(j, 128)
             ref = long(i)
-            ref = op_(ref, j)
+            ref = op(ref, j)
             r1 = bi1 = sintba(long(i), 128)
             try:
                 try:
@@ -434,24 +410,19 @@ class TestSIntBaAsInt(TestCase):
         warnings.resetwarnings()
 
     def comparisonCheck(self, op, imin=0, imax=None, jmin=0, jmax=None):
-        #warnings.filterwarnings('error')
+        warnings.filterwarnings('error')
         self.seqSetup(imin=imin, imax=imax, jmin=jmin, jmax=jmax)
         for i, j in zip(self.seqi, self.seqj):
             bi = sintba(i)
             bj = sintba(j)
+            ref = op(i, j)
             r1 = op(bi, j)
-            #ref1 = op(bi, wrap(j, bi))
-            ref1 = op(bi, j)
             r2 = op(i, bj)
-            #ref2 = op(wrap(i, bj), bj)
-            ref2 = op(i, bj)
             r3 = op(bi, bj)
-            #ref3 = op(i, j)
-            ref3 = op(i, j)
-            self.assertEqual(r1, ref1)
-            self.assertEqual(r2, ref2)
-            self.assertEqual(r3, ref3)
-        #warnings.resetwarnings()
+            self.assertEqual(r1, ref)
+            self.assertEqual(r2, ref)
+            self.assertEqual(r3, ref)
+        warnings.resetwarnings()
 
     def testAdd(self):
         self.binaryCheck(operator.add)
@@ -466,16 +437,10 @@ class TestSIntBaAsInt(TestCase):
         self.binaryCheck(operator.truediv, jmin=1)
 
     def testFloorDiv(self):
-        self.binaryCheck(operator.floordiv, imin=-512, imax=512,
-                             jmin=1, jmax=512)
-        self.binaryCheck(operator.floordiv, imin=-512, imax=512,
-                             jmin=-512, jmax=-1)
+        self.binaryCheck(operator.floordiv, jmin=1)
 
     def testMod(self):
-        self.binaryCheck(operator.mod, imin=-512, imax=512,
-                             jmin=1, jmax=512)
-        self.binaryCheck(operator.mod, imin=-512, imax=512,
-                             jmin=-512, jmax=-1)
+        self.binaryCheck(operator.mod, jmin=1)
 
     def testPow(self):
         self.binaryCheck(operator.pow, jmax=64)
@@ -505,16 +470,10 @@ class TestSIntBaAsInt(TestCase):
         self.augmentedAssignCheck(operator.imul, imax=maxint)  # XXX doesn't work for long i???
 
     def testIFloorDiv(self):
-        self.augmentedAssignCheck(operator.ifloordiv, imin=-512, imax=512,
-                                      jmin=1, jmax=512)
-        self.augmentedAssignCheck(operator.ifloordiv, imin=-512, imax=512,
-                                      jmin=-512, jmax=-1)
+        self.augmentedAssignCheck(operator.ifloordiv, jmin=1)
 
     def testIMod(self):
-        self.augmentedAssignCheck(operator.imod, imin=-512, imax=512,
-                                      jmin=1, jmax=512)
-        self.augmentedAssignCheck(operator.imod, imin=-512, imax=512,
-                                      jmin=-512, jmax=-1)
+        self.augmentedAssignCheck(operator.imod, jmin=1)
 
     def testIPow(self):
         self.augmentedAssignCheck(operator.ipow, jmax=64)
@@ -640,7 +599,7 @@ class TestSIntBaBounds(TestCase):
                                    operator.itruediv))
         if not isinstance(a._val, (int, long)):
             return # prune
-        if abs(i) > maxint * maxint:
+        if abs(a) > maxint * maxint:
             return # keep it reasonable
         if a > i:
             b = sintba(i)
