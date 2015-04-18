@@ -1105,10 +1105,10 @@ class TestSFixBaAsInt(TestCase):
                                       jmin=-512, jmax=-1)
    
     def testIPow(self):
-        self.binaryMathCheck(operator.ipow, imin=-512, imax=-1,
-                             jmin=-8, jmax=8)
-        self.binaryMathCheck(operator.ipow, imin=1, imax=512,
-                             jmin=-8, jmax=8)
+        self.augmentedMathAssignCheck(operator.ipow, imin=-512, imax=-1,
+                                      jmin=-8, jmax=8)
+        self.augmentedMathAssignCheck(operator.ipow, imin=1, imax=512,
+                                      jmin=-8, jmax=8)
    
     def testIAnd(self):
         self.augmentedLogicalAssignCheck(operator.iand, imin=-512, imax=512,
