@@ -1078,7 +1078,19 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
             self.visit(arg)
             self.write(post)
             return
-
+        elif f == intbv.signed: # note equality comparison
+            # this call comes from a getattr
+            arg = fn.value
+            pre, suf = self.inferCast(node.vhd, node.vhdOri)
+            opening, closing = '', ''
+            if isinstance(arg.vhd, vhd_unsigned):
+                opening, closing = "signed(", ")"
+            self.write(pre)
+            self.write(opening)
+            self.visit(arg)
+            self.write(closing)
+            self.write(suf)
+            return
         elif (type(f) in class_types) and issubclass(f, Exception):
             self.write(f.__name__)
         elif f in (posedge, negedge):
