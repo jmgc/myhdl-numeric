@@ -47,9 +47,9 @@ from myhdl._ShadowSignal import _ShadowSignal, _SliceSignal, _TristateDriver
 from myhdl._util import _isTupleOfInts, _dedent, _flatten, _makeAST
 from myhdl._resolverefs import _AttrRefTransformer
 from myhdl._compat import builtins, integer_types, string_types, PY2, ast_parse, long
-from myhdl.numeric._sfixba import sfixba
-
-from myhdl.numeric._bitarray import bitarray
+from ..numeric._bitarray import bitarray
+from ..numeric._conversion import (numeric_functions_dict,
+                                   numeric_attributes_dict)
 
 myhdlObjects = myhdl.__dict__.values()
 builtinObjects = builtins.__dict__.values()
@@ -57,8 +57,6 @@ builtinObjects = builtins.__dict__.values()
 _enumTypeSet = set()
 _constDict = {}
 _extConstDict = {}
-
-
 
 def _makeName(n, prefixes, namedict):
     #Take care of names with periods
@@ -418,7 +416,6 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
         tree.hasRom = False
         tree.hasLos = False
         tree.hasPrint = False
-        tree.hasFixedPoint = False
         self.tree = tree
         self.labelStack = []
         self.refStack = ReferenceStack()
@@ -446,7 +443,9 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
         else:
             r_obj = r
         result = l / r_obj
-        if isinstance(result, integer_types):
+        if result is NotImplemented:
+            raise NotImplementedError()
+        elif isinstance(result, integer_types):
             node.obj = long(-1)
         else:
             node.obj = result
@@ -517,10 +516,10 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
                 self._add_sub_size(node, l, r)
             elif isinstance(node.op, ast.FloorDiv):
                 self._floordiv_size(node, l, r)
-            elif isinstance(node.op, ast.FloorDiv):
-                if isinstance(l, sfixba) or isinstance(r, sfixba):
+            elif isinstance(node.op, ast.Div):
+                try:
                     self._truediv_size(node, l, r)
-                else:
+                except NotImplementedError:
                     self.raiseError(node, _error.NotSupported, "true division - consider '//'")
             elif (not isinstance(l, string_types)) and isinstance(node.op, ast.Mod):
                 self._mod_size(node, l, r)
@@ -589,24 +588,20 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
                 node.obj = obj.negedge
             elif node.attr in ('val', 'next'):
                 node.obj = obj.val
-        if isinstance(obj, (intbv, _Signal)):
+        if isinstance(obj, intbv) or \
+                (isinstance(obj, _Signal) and isinstance(obj.val, intbv)):
             if node.attr == 'min':
                 node.obj = obj.min
             elif node.attr == 'max':
                 node.obj = obj.max
             elif node.attr == 'signed':
                 node.obj = intbv.signed
-        if isinstance(obj, (bitarray, _Signal)):
-            if node.attr == 'high':
-                node.obj = obj.high
-            elif node.attr == 'low':
-                node.obj = obj.low
-            elif node.attr == 'resize':
-                node.obj = bitarray.resize
-            elif node.attr == 'scalb':
-                node.obj = sfixba.scalb
-            elif node.attr == 'floor':
-                node.obj = sfixba.floor
+        if isinstance(obj, bitarray) or \
+                (isinstance(obj, _Signal) and isinstance(obj.val, bitarray)):
+            if node.attr in numeric_attributes_dict.keys():
+                node.obj = getattr(obj, node.attr)
+            elif node.attr in numeric_functions_dict:
+                node.obj = numeric_functions_dict[node.attr]
         if isinstance(obj, EnumType):
             assert hasattr(obj, node.attr), node.attr
             node.obj = getattr(obj, node.attr)
@@ -640,8 +635,6 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
             if isinstance(obj, (intbv, bitarray)):
                 if len(obj) == 0:
                     self.raiseError(node, _error.IntbvBitWidth, n)
-                if isinstance(obj, sfixba):
-                    self.tree.hasFixedPoint = True
             if isinstance(obj, modbv):
                 if not obj._hasFullRange():
                     self.raiseError(node, _error.ModbvRange, n)
@@ -693,13 +686,10 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
         argsAreInputs = True
         if type(f) is type and issubclass(f, (intbv, bitarray)):
             node.obj = self.getVal(node)
-        elif f in (bitarray.resize, sfixba.scalb, sfixba.floor):
+        elif f in numeric_functions_dict.values():
             # Add the object as the first argument.
             node.obj = self.getVal(node)
-            node.args.insert(0, ast.Name())
-            name = self.getObjName(node.func)
-            node.args[0].id = name
-            node.args[0].ctx = ast.Load
+            node.args.insert(0, node.func.value)
         elif f is concat:
             node.obj = self.getVal(node)
         elif f is len:
@@ -730,7 +720,7 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
         elif f is repr:
             self.raiseError(node, _error.NotSupported, "backquote or repr")
         elif f in builtinObjects:
-            if f.__name__ == "exec":
+            if f.__name__ == 'exec':
                 self.raiseError(node, _error.NotSupported, "exec function")
             pass
         elif type(f) is FunctionType:
@@ -770,7 +760,8 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
                 if n in tree.inputs:
                     self.visit(arg)
         elif type(f) is MethodType:
-            self.raiseError(node,_error.NotSupported, "method call: '%s'" % f.__name__)
+            self.raiseError(node,_error.NotSupported, "method call: '%s'" %
+                            fname)
         else:
             debug_info = [e for e in ast.iter_fields(node.func)]
             raise AssertionError("Unexpected callable %s" % str(debug_info))
@@ -1353,7 +1344,6 @@ class _AnalyzeFuncVisitor(_AnalyzeVisitor):
             if self.tree.returnObj is None:
                 self.raiseError(node, _error.NotSupported,
                                 "pure function without return value")
-
 
 
     def visit_Return(self, node):

@@ -32,6 +32,7 @@ use ieee.numeric_std.all;
 """
     if fixed:
         result += """
+use ieee.math_utility_pkg.all;
 use ieee.fixed_pkg.all;
 """
     result += """ 
@@ -64,12 +65,56 @@ package pck_myhdl_%(version)s is
     function bool (arg: integer) return boolean;
 
     function "-" (arg: unsigned) return signed;
-"""    
+    
+    function resize (arg: unsigned; size_res: unsigned) return unsigned;
+    
+    function resize (arg: signed; size_res: signed) return signed;
+
+    function c_l2u (arg: std_logic; size: integer) return unsigned;
+
+    function c_l2s (arg: std_logic; size: integer) return signed;
+
+    function c_i2u (arg: integer; size: integer) return unsigned;
+
+    function c_i2s (arg: integer; size: integer) return signed;
+
+    function c_u2u (arg: unsigned; size: integer) return unsigned;
+
+    function c_u2s (arg: unsigned; size: integer) return signed;
+
+    function c_s2u (arg: signed; size: integer) return unsigned;
+
+    function c_s2s (arg: signed; size: integer) return signed;
+"""
     if fixed:
         result += """
     function bool (arg: sfixed) return boolean;
 
     function floor (arg: sfixed) return sfixed;
+
+    function c_l2f (arg: std_logic; high: integer; low: integer) return sfixed;
+
+    function c_i2f (arg: integer; high: integer; low: integer) return sfixed;
+
+    function c_u2f (arg: unsigned; high: integer; low: integer) return sfixed;
+
+    function c_s2f (arg: signed; high: integer; low: integer) return sfixed;
+
+    function c_f2f (arg: sfixed; high: integer; low: integer) return sfixed;
+
+    function c_f2u (arg: sfixed; size: integer) return unsigned;
+
+    function c_f2s (arg: sfixed; size: integer) return signed;
+
+    function t_f2u (arg: sfixed; size: integer) return unsigned;
+
+    function t_f2s (arg: sfixed; size: integer) return signed;
+
+    function t_f2f (arg: sfixed; high: integer; low: integer) return sfixed;
+
+    function t_u2f (arg: unsigned; high: integer; low: integer) return sfixed;
+
+    function t_s2f (arg: signed; high: integer; low: integer) return sfixed;
 """
     result += """
 end pck_myhdl_%(version)s;
@@ -170,6 +215,60 @@ package body pck_myhdl_%(version)s is
     begin
         return - signed(resize(arg, arg'length+1));
     end function "-";
+
+    function resize (arg: unsigned; size_res: unsigned) return unsigned is
+    begin
+        return resize(arg, size_res'length);
+    end function resize;
+
+    function resize (arg: signed; size_res: signed) return signed is
+    begin
+        return resize(arg, size_res'length);
+    end function resize;
+
+    function c_l2u (arg: std_logic; size: integer) return unsigned is
+        variable result: unsigned((size - 1) downto 0);
+    begin
+        result := (others => arg);
+        return result;
+    end function c_l2u;
+
+    function c_l2s (arg: std_logic; size: integer) return signed is
+        variable result: signed((size - 1) downto 0);
+    begin
+        result := (others => arg);
+        return result;
+    end function c_l2s;
+
+    function c_i2u (arg: integer; size: integer) return unsigned is
+    begin
+        return unsigned(to_signed(arg, size + 1)((size-1) downto 0));
+    end function c_i2u;
+
+    function c_i2s (arg: integer; size: integer) return signed is
+    begin
+        return to_signed(arg, size + 1)((size-1) downto 0);
+    end function c_i2s;
+
+    function c_u2u (arg: unsigned; size: integer) return unsigned is
+    begin
+        return resize(arg, size);
+    end function c_u2u;
+
+    function c_u2s (arg: unsigned; size: integer) return signed is
+    begin
+        return signed(resize(arg, size));
+    end function c_u2s;
+
+    function c_s2u (arg: signed; size: integer) return unsigned is
+    begin
+        return unsigned(resize(arg, size + 1)((size-1) downto 0));
+    end function c_s2u;
+
+    function c_s2s (arg: signed; size: integer) return signed is
+    begin
+        return signed(resize(arg, size + 1)((size-1) downto 0));
+    end function c_s2s;
 """
     if fixed:
         result += """
@@ -178,17 +277,87 @@ package body pck_myhdl_%(version)s is
         return arg /= 0;
     end function bool;
 
-    function floor (arg: sfixed) return sfixed is
-        variable result:    sfixed(arg'high downto arg'low);
+    function max(left, right: integer) return integer is
     begin
-        result := arg;
-        if result'high <= 0 then
-            result := (others => '0');
-        elsif result'low < 0 then
-            result(-1 downto result'low) := (others => '0');
+        if left > right then
+            return left;
+        else
+            return right;
         end if;
+    end;
+
+    function floor (arg: sfixed) return sfixed is
+        constant left_index:    integer := max(arg'left, 1); 
+        variable result:    sfixed(left_index downto 0);
+    begin
+        result := resize(arg, result'left, result'right, fixed_overflow_style,
+                        fixed_truncate);
         return result;
     end function floor;
+
+    function c_l2f (arg: std_logic; high: integer; low: integer) return sfixed is
+        variable result: sfixed(high downto low);
+    begin
+        result := (others => arg);
+        return result;
+    end function c_l2f;
+
+    function c_i2f (arg: integer; high: integer; low: integer) return sfixed is
+        variable tmp: sfixed(max(high, 1) downto 0);
+    begin
+        tmp := to_sfixed(arg, tmp'left, 0);
+        return resize(tmp, high, low);
+    end function c_i2f;
+
+    function c_f2u (arg: sfixed; size: integer) return unsigned is
+    begin
+        return to_unsigned(to_ufixed(arg), size);
+    end function c_f2u;
+
+    function c_f2s (arg: sfixed; size: integer) return signed is
+    begin
+        return to_signed(arg, size);
+    end function c_f2s;
+
+    function c_f2f (arg: sfixed; high: integer; low: integer) return sfixed is
+    begin
+        return resize(arg, high, low);
+    end function c_f2f;
+
+    function c_u2f (arg: unsigned; high: integer; low: integer) return sfixed is
+    begin
+        return resize(to_sfixed(to_ufixed(arg)), high, low);
+    end function c_u2f;
+
+    function c_s2f (arg: signed; high: integer; low: integer) return sfixed is
+    begin
+        return resize(to_sfixed(arg), high, low);
+    end function c_s2f;
+
+    function t_u2f (arg: unsigned; high: integer; low: integer) return sfixed is
+    begin
+        return to_sfixed(to_ufixed(arg, high, low, fixed_wrap, fixed_truncate))(high downto low);
+    end function t_u2f;
+
+    function t_s2f (arg: signed; high: integer; low: integer) return sfixed is
+    begin
+        return to_sfixed(to_ufixed(unsigned(arg), high, low, fixed_wrap, fixed_truncate))(high downto low);
+    end function t_s2f;
+
+    function t_f2f (arg: sfixed; high: integer; low: integer) return sfixed is
+    begin
+        return resize(arg, high + 1, low, fixed_wrap, fixed_truncate)(high downto low);
+    end function t_f2f;
+
+    function t_f2u (arg: sfixed; size: integer) return unsigned is
+    begin
+        return to_unsigned(to_ufixed(arg), size, fixed_wrap, fixed_truncate);
+    end function t_f2u;
+
+    function t_f2s (arg: sfixed; size: integer) return signed is
+    begin
+        return to_signed(arg, size + 1, fixed_wrap, fixed_truncate)(size-1 downto 0);
+    end function t_f2s;
 """
     result += """
 end pck_myhdl_%(version)s;

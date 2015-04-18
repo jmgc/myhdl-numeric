@@ -11,7 +11,7 @@ random.seed(2)
 from myhdl import *
 from myhdl.conversion import verify
 
-NRTESTS = 50
+NRTESTS = 10
 
 def resizeCheck(delta, i, j):
     values = tuple(range(-128, 128))
@@ -40,7 +40,7 @@ def binaryOps(
               Bitor,
               Bitxor,
               FloorDiv,
-              #TrueDiv,
+              # TrueDiv,
               LeftShift,
               Modulo,
               Mul,
@@ -69,9 +69,7 @@ def binaryOps(
                 FloorDiv.next = left // right
             else:
                 FloorDiv.next = 0
-                #TrueDiv.next = left / right
-    ##         if left < 256 and right < 40:
-            if right >= 0 and right < 16: # fails in ghdl for > 26
+            if right >= 0 and right < 16:  # fails in ghdl for > 26
                 LeftShift.next = left.resize(LeftShift) << int(right)
             else:
                 LeftShift.next = 0
@@ -84,7 +82,6 @@ def binaryOps(
                 RightShift.next = left >> int(right)
             else:
                 RightShift.next = 0
-            #if left >= right:
             Sub.next = left - right
             Sum.next = left + right
             EQ.next = left == right
@@ -102,9 +99,17 @@ def binaryBench(l, r):
     maxP = min(l.max, r.max)
     minP = max(l.min, r.min)
 
+    if l.is_signed:
+        lv = (l.min, 0, l.max - 1)
+    else:
+        lv = (0, l.max - 1)
+    if r.is_signed:
+        rv = (r.min, 0, r.max - 1)
+    else:
+        rv = (0, r.max - 1)
     seqP = tuple(range(minP, maxP))
-    seqM = tuple([randrange(l.max - l.min) + l.min for i in range(NRTESTS)])
-    seqN = tuple([randrange(r.max - r.min) + r.min for i in range(NRTESTS)])
+    seqM = tuple([randrange(l.min, l.max - 1) for i in range(NRTESTS)])
+    seqN = tuple([randrange(r.min, r.max - 1) for i in range(NRTESTS)])
 
     left = Signal(l)
     right = Signal(r)
@@ -129,7 +134,7 @@ def binaryBench(l, r):
                        Bitor,
                        Bitxor,
                        FloorDiv,
-                       #TrueDiv,
+                       # TrueDiv,
                        LeftShift,
                        Modulo,
                        Mul,
@@ -149,45 +154,24 @@ def binaryBench(l, r):
 
     @instance
     def stimulus():
-        left.next = 1
-        right.next = 1
+        left.next[:] = 1
+        right.next[:] = 1
         yield delay(10)
-        left.next = 0
-        right.next = 0
-        yield delay(10)
-        left.next = 1
-        right.next = 1
-        yield delay(10)
-        left.next = 0
-        right.next = 0
-        yield delay(10)
-        left.next[:] = left.min
-        right.next[:] = right.min
-        yield delay(10)
-        left.next[:] = left.min
-        right.next[:] = right.max-1
-        yield delay(10)
-        left.next[:] = left.max - 1
-        right.next[:] = right.min
-        yield delay(10)
-        left.next[:] = left.max - 1
-        right.next[:] = right.max - 1
-        yield delay(10)
+        for i in range(len(lv)):
+            for j in range(len(rv)):
+                left.next[:] = lv[i]
+                right.next[:] = rv[j]
+                yield delay(10)
         for i in range(len(seqP)):
-            temp_seq = seqP[i]
-            tmp_value = sfixba(temp_seq, high, low)
-            left.next = tmp_value.scalb(left.low)
-            right.next = tmp_value.scalb(right.low)
+            tmpP = seqP[i]
+            left.next[:] = tmpP
+            right.next[:] = tmpP
             yield delay(10)
         for i in range(NRTESTS):
             tmpM = seqM[i]
-            tmp_sm = sfixba(tmpM, left.high - left.low + 1, 0)
-            tmp_sms = tmp_sm.scalb(left.low)
-            left.next = tmp_sms
+            left.next[:] = tmpM
             tmpN = seqN[i]
-            tmp_sn = sfixba(tmpN, right.high - right.low + 1, 0)
-            tmp_sns = tmp_sn.scalb(right.low)
-            right.next = tmp_sns
+            right.next[:] = tmpN
             yield delay(10)
         # raise StopSimulation
 
@@ -219,13 +203,10 @@ def binaryBench(l, r):
             print(">=: ", left, right, int(GE))
             print("bool_and: ", int(Booland))
             print("bool_or: ", int(Boolor))
-
+    
             count = count + 1
 
     return binops, stimulus, check
-
-def checkBinary(m, n):
-    assert verify(binaryBench, m, n) == 0
 
 def divOp(TrueDiv,
           left, right):
@@ -235,8 +216,6 @@ def divOp(TrueDiv,
         while 1:
             yield left, right
             if right != 0:
-                if left == 86.5:
-                    pass
                 TrueDiv.next = left / right
             else:
                 TrueDiv.next = 0
@@ -247,6 +226,14 @@ def divBench(l, r):
     maxP = min(l.max, r.max)
     minP = max(l.min, r.min)
 
+    if l.is_signed:
+        lv = (l.min, 0, l.max - 1)
+    else:
+        lv = (0, l.max - 1)
+    if r.is_signed:
+        rv = (r.min, -1, 1, r.max - 1)
+    else:
+        rv = (1, r.max - 1)
     seqP = tuple(range(minP, maxP))
     seqM = tuple([randrange(l.max - l.min) + l.min for i in range(NRTESTS)])
     seqN = tuple([randrange(r.max - r.min) + r.min for i in range(NRTESTS)])
@@ -263,45 +250,22 @@ def divBench(l, r):
 
     @instance
     def stimulus():
-        left.next = 1
-        right.next = 1
+        left.next[:] = 1
+        right.next[:] = 1
         yield delay(10)
-        left.next = 0
-        right.next = 0
-        yield delay(10)
-        left.next = 1
-        right.next = 1
-        yield delay(10)
-        left.next = 0
-        right.next = 0
-        yield delay(10)
-        left.next[:] = left.min
-        right.next[:] = right.min
-        yield delay(10)
-        left.next[:] = left.min
-        right.next[:] = right.max-1
-        yield delay(10)
-        left.next[:] = left.max - 1
-        right.next[:] = right.min
-        yield delay(10)
-        left.next[:] = left.max - 1
-        right.next[:] = right.max - 1
+        for i in range(len(lv)):
+            for j in range(len(rv)):
+                left.next[:] = lv[i]
+                right.next[:] = rv[j]
+                yield delay(10)
         yield delay(10)
         for i in range(len(seqP)):
-            temp_seq = seqP[i]
-            tmp_value = sfixba(temp_seq, high, low)
-            left.next = tmp_value.scalb(left.low)
-            right.next = tmp_value.scalb(right.low)
+            left.next[:] = seqP[i]
+            right.next[:] = seqP[i]
             yield delay(10)
         for i in range(NRTESTS):
-            tmpM = seqM[i]
-            tmp_sm = sfixba(tmpM, left.high - left.low + 1, 0)
-            tmp_sms = tmp_sm.scalb(left.low)
-            left.next = tmp_sms
-            tmpN = seqN[i]
-            tmp_sn = sfixba(tmpN, right.high - right.low + 1, 0)
-            tmp_sns = tmp_sn.scalb(right.low)
-            right.next = tmp_sns
+            left.next[:] = seqM[i]
+            right.next[:] = seqN[i]
             yield delay(10)
         # raise StopSimulation
 
@@ -344,22 +308,31 @@ def multiOps(
 
 def multiBench(m, n, p):
 
-    M = 2**m
-    N = 2**n
-    P = 2**p
-
-    Q = min(M, N, P)
+    Q = min(m.max, n.max, p.max)
     seqQ = tuple(range(1, Q))
-    seqM = tuple([randrange(M) for i in range(NRTESTS)])
-    seqN = tuple([randrange(N) for i in range(NRTESTS)])
-    seqP = tuple([randrange(P) for i in range(NRTESTS)])
+    seqM = tuple([randrange(m.min, m.max) for i in range(NRTESTS)])
+    seqN = tuple([randrange(n.min, n.max) for i in range(NRTESTS)])
+    seqP = tuple([randrange(p.min, p.max) for i in range(NRTESTS)])
+    
+    if m.is_signed:
+        mv = (m.min, 0, m.max - 1)
+    else:
+        mv = (0, m.max - 1)
+    if n.is_signed:
+        nv = (n.min, 0, n.max - 1)
+    else:
+        nv = (0, n.max - 1)
+    if p.is_signed:
+        pv = (p.min, 0, p.max - 1)
+    else:
+        pv = (0, p.max - 1)
 
-    argm = Signal(intbv(0)[m:])
-    argn = Signal(intbv(0)[n:])
-    argp = Signal(intbv(0)[p:])
-    Bitand = Signal(intbv(0)[max(m, n, p):])
-    Bitor = Signal(intbv(0)[max(m, n, p):])
-    Bitxor = Signal(intbv(0)[max(m, n, p):])
+    argm = Signal(m)
+    argn = Signal(n)
+    argp = Signal(p)
+    Bitand = Signal(m & n & p)
+    Bitor = Signal(m | n | p)
+    Bitxor = Signal(m ^ n ^ p)
     Booland, Boolor = [Signal(bool()) for i in range(2)]
 
     multiops = multiOps(Bitand,
@@ -371,45 +344,41 @@ def multiBench(m, n, p):
 
     @instance
     def stimulus():
+        argm.next[:] = 1
+        argn.next[:] = 1
+        argp.next[:] = 1
+        yield delay(10)
+        for j in range(len(mv)):
+            for k in range(len(nv)):
+                for l in range(len(pv)):
+                    argm.next[:] = mv[j]
+                    argn.next[:] = nv[k]
+                    argp.next[:] = pv[l]
+                    yield delay(10)
         for i in range(len(seqQ)):
-            argm.next = seqQ[i]
-            argn.next = seqQ[i]
-            argp.next = seqQ[i]
+            argm.next[:] = seqQ[i]
+            argn.next[:] = seqQ[i]
+            argp.next[:] = seqQ[i]
             yield delay(10)
         for i in range(NRTESTS):
-            argm.next = seqM[i]
-            argn.next = seqN[i]
-            argp.next = seqP[i]
+            argm.next[:] = seqM[i]
+            argn.next[:] = seqN[i]
+            argp.next[:] = seqP[i]
             yield delay(10)
-##         for j, k, l in ((0, 0, 0),   (0, 0, P-1), (0, N-1, P-1),
-##                         (M-1, 0, 0),  (M-1, 0, P-1), (M-1, N-1, 0),
-##                         (0, N-1, 0), (M-1, N-1, P-1)):
-##             argm.next = j
-##             argn.next = k
-##             argp.next = l
-##             yield delay(10)
 
     @instance
     def check():
         while 1:
             yield argm, argn, argp
             yield delay(1)
-
-            print(Bitand)
-            print(Bitor)
-            print(Bitxor)
-            print(int(Booland))
-            print(int(Boolor))
+            print("args: ", argm, argn, argp)
+            print("&: ", Bitand)
+            print("1: ", Bitor)
+            print("^: ", Bitxor)
+            print("and: ", int(Booland))
+            print("or:", int(Boolor))
 
     return multiops, stimulus, check
-
-def checkMultiOps(m, n, p):
-    assert verify(multiBench, m, n, p) == 0
-
-def testMultiOps():
-    for m, n, p in ((4, 4, 4,), (5, 3, 2), (3, 4, 6), (3, 7, 4)):
-        yield checkMultiOps, m, n, p
-
 
 def unaryOps(
              Not_kw,
@@ -424,20 +393,22 @@ def unaryOps(
             Not_kw.next = not arg
             Invert.next = ~arg
             # unary operators not supported ?
-            #UnaryAdd.next = +arg
-            # UnarySub.next = --arg
+            UnaryAdd.next = +arg
+            if arg.is_signed:
+                UnarySub.next = -arg
+            else:
+                UnarySub.next = 0
     return logic
 
 def unaryBench(m):
 
-    M = 2**m
-    seqM = tuple([randrange(M) for i in range(NRTESTS)])
+    seqM = tuple([randrange(m.min, m.max) for i in range(NRTESTS)])
 
-    arg = Signal(intbv(0)[m:])
+    arg = Signal(m)
     Not_kw = Signal(bool(0))
-    Invert = Signal(intbv(0)[m:])
-    UnaryAdd = Signal(intbv(0)[m:])
-    UnarySub = Signal(intbv(0)[m:])
+    Invert = Signal(m)
+    UnaryAdd = Signal(m)
+    UnarySub = Signal(m.unsigned())
 
     unaryops = unaryOps(Not_kw,
                         Invert,
@@ -448,32 +419,24 @@ def unaryBench(m):
     @instance
     def stimulus():
         for i in range(NRTESTS):
-            arg.next = seqM[i]
+            arg.next[:] = seqM[i]
             yield delay(10)
-        #raise StopSimulation
+        # raise StopSimulation
 
     @instance
     def check():
         while 1:
             yield arg
             yield delay(1)
-            print(int(Not_kw))
-            print(Invert)
-            # check unary operator support in vhdl
-            # print UnaryAdd
-            # print UnarySub
+            print("arg: ", arg)
+            print("bool not: ", int(Not_kw))
+            print("~: ", Invert)
+            print("+: ", UnaryAdd)
+            print("-: ", UnarySub)
 
     return unaryops, stimulus, check
 
-def checkUnaryOps(m):
-    assert verify(unaryBench, m) == 0
-    
-def testUnaryOps():
-    for m in (4, 7):
-        yield checkUnaryOps, m
-
-
-def augmOps(  Bitand,
+def augmOps(Bitand,
               Bitor,
               Bitxor,
               FloorDiv,
@@ -489,47 +452,49 @@ def augmOps(  Bitand,
         # var = intbv(0)[min(64, len(left) + len(right)):]
         while True:
             yield left, right
-            var = left.val
-            var &= right.val
-            Bitand.next = var
-            var = left.val
-            var |= right.val
-            Bitor.next = var
-            var = left.val
-            var ^= right.val
-            Bitxor.next = var
-            if right != 0:
+            if left.min < 0 or right >= 0:
                 var = left.val
-                var //= right.val
-                FloorDiv.next = var
-            if left >= right:
+                var &= right.val
+                Bitand.next = var
+                var = left.val
+                var |= right.val
+                Bitor.next = var
+                var = left.val
+                var ^= right.val
+                Bitxor.next = var
+                if right != 0:
+                    var = left.val
+                    var //= right.val
+                    FloorDiv.next = var
+                else:
+                    FloorDiv.next = 0
                 var = left.val
                 var -= right.val
                 Sub.next = var
-            var = left.val
-            var += right.val
-            Sum.next = var
-            if left >= left.min and left < left.max and right >= 0  and right < 26:
                 var = left.val
-                var <<= int(right.val)
-                LeftShift.next = var
-            else:
-                LeftShift.next = 0
-            if right != 0:
+                var += right.val
+                Sum.next = var
+                if left >= left.min and left < left.max and right >= 0  and right < 26:
+                    var = left.val
+                    var <<= int(right.val)
+                    LeftShift.next = var
+                else:
+                    LeftShift.next = 0
+                if right != 0:
+                    var = left.val
+                    var %= right.val
+                    Modulo.next = var
+                else:
+                    Modulo.next = 0
                 var = left.val
-                var %= right.val
-                Modulo.next = var
-            else:
-                Modulo.next = 0
-            var = left.val
-            var *= right.val
-            Mul.next = var
-            if right >= 0  and right < 26:
-                var = left.val
-                var >>= int(right.val)
-                RightShift.next = var
-            else:
-                RightShift.next = 0
+                var *= right.val
+                Mul.next = var
+                if right >= 0  and right < 26:
+                    var = left.val
+                    var >>= int(right.val)
+                    RightShift.next = var
+                else:
+                    RightShift.next = 0
     return logic
 
 
@@ -539,11 +504,16 @@ def augmBench(l, r):
     maxP = min(l.max, r.max)
     minP = max(l.min, r.min)
 
-    seqM = tuple([randrange(l.max - l.min) + l.min for i in range(NRTESTS)])
-    seqN = tuple([randrange(r.max - r.min) + r.min for i in range(NRTESTS)])
-
-    if l == 255 and r == -128:
-        pass
+    if l.is_signed:
+        lv = (l.min, 0, l.max - 1)
+    else:
+        lv = (0, l.max - 1)
+    if r.is_signed:
+        rv = (r.min, 0, r.max - 1)
+    else:
+        rv = (0, r.max - 1)
+    seqM = tuple([randrange(l.min, l.max) for i in range(NRTESTS)])
+    seqN = tuple([randrange(r.min, r.max) for i in range(NRTESTS)])
 
     left = Signal(l)
     right = Signal(r)
@@ -558,7 +528,7 @@ def augmBench(l, r):
     Sub = Signal(l)
     Sum = Signal(l)
 
-    augmops = augmOps( Bitand,
+    augmops = augmOps(Bitand,
                        Bitor,
                        Bitxor,
                        FloorDiv,
@@ -572,39 +542,18 @@ def augmBench(l, r):
 
     @instance
     def stimulus():
-        left.next = 1
-        right.next = 1
+        left.next[:] = 1
+        right.next[:] = 1
         yield delay(10)
-        left.next = 0
-        right.next = 0
-        yield delay(10)
-        left.next = 1
-        right.next = 1
-        yield delay(10)
-        left.next = 0
-        right.next = 0
-        yield delay(10)
-        left.next[:] = left.min
-        right.next[:] = right.min
-        yield delay(10)
-        left.next[:] = left.min
-        right.next[:] = right.max-1
-        yield delay(10)
-        left.next[:] = left.max - 1
-        right.next[:] = right.min
-        yield delay(10)
-        left.next[:] = left.max - 1
-        right.next[:] = right.max - 1
-        yield delay(10)
+        for i in range(len(lv)):
+            for j in range(len(rv)):
+                left.next[:] = lv[i]
+                right.next[:] = rv[j]
+                yield delay(10)
         for i in range(NRTESTS):
-            tmpM = seqM[i]
-            tmp_sm = sfixba(tmpM, left.high - left.low + 1, 0)
-            tmp_sms = tmp_sm.scalb(left.low)
-            left.next = tmp_sms
+            left.next[:] = seqM[i]
             tmpN = seqN[i]
-            tmp_sn = sfixba(tmpN, right.high - right.low + 1, 0)
-            tmp_sns = tmp_sn.scalb(right.low)
-            right.next = tmp_sns
+            right.next[:] = seqN[i]
             yield delay(10)            
 
     @instance
@@ -634,94 +583,165 @@ def augmBench(l, r):
 
 
 class Test(unittest.TestCase):
-    sim = True
+    select_test ={'augmented': True,
+                  'binary': True,
+                  'division': True,
+                  'resize': True,
+                  'multi': True,
+                  'unary': True
+                  }
+    sim = False
 
     def vectors(self):
-        self.lefts = (uintba(9, 8),
-                      sintba(10, 6),
-                      sintba(-10, 8),
-                      sfixba(20, 9, -4),
-                      sfixba(-13, 10, -3),)
-        self.rights = (#uintba(3, 4),
-                       sintba(9, 8),
-                       sintba(-10, 5),
+        self.lefts = (uintba(0, 8),
+                      sintba(0, 6),
+                      sintba(0, 3),
+                      sfixba(0, 2, -4),
+                      sfixba(0, 5, 2),
+                      )
+        self.rights = (uintba(1, 4),
+                       sintba(1, 4),
+                       sintba(1, 5),
                        sfixba(1, 4, 0),
-                       sfixba(13, 12, 3),)
+                       sfixba(1, 7, 3),
+                       )
 
     def div_vectors(self):
-        self.lefts = (sfixba(20, 9, -4),
-                      sfixba(-13, 10, -3),
-                      sfixba(-13, 10, 1),)
+        self.lefts = (sfixba(0, 9, -4),
+                      sfixba(0, 5, -3),
+                      sfixba(0, 5, 1),
+                      )
         self.rights = (sfixba(1, 4, 0),
-                       sfixba(13, 12, 3),
-                       sfixba(-13, 8, -3),)
+                       sfixba(1, 7, 3),
+                       sfixba(1, 3, -3),
+                       )
 
-    if sim:
-        def test_AugmentedSim(self):
-            self.vectors()
-            for left in self.lefts:
-                for right in self.rights:
-                    #tb_fsm = traceSignals(delayBufferTestBench)
-                    #sim = Simulation(tb_fsm)
-                    toVHDL(augmBench, left, right)
-                    sim = Simulation(augmBench(left, right))
+    def multi_vectors(self):
+        self.mv = (uintba(0, 3),
+                   sintba(0, 3),
+                   sfixba(0, 5, 2),
+                   )
+        self.nv = (uintba(0, 4),
+                   sintba(0, 4),
+                   sfixba(0, 3, -3),
+                   )
+        self.pv = (uintba(0, 3),
+                   sintba(0, 4),
+                   sfixba(0, 7, 4),
+                   )
+
+    if select_test['augmented']:
+        if sim:
+            def test_AugmentedSim(self):
+                self.vectors()
+                for left in self.lefts:
+                    for right in self.rights:
+                        #tb_fsm = traceSignals(delayBufferTestBench)
+                        #sim = Simulation(tb_fsm)
+                        toVHDL(augmBench, left, right)
+                        sim = Simulation(augmBench(left, right))
+                        sim.run()
+        else:
+            def test_AugmentedVer(self):
+                self.vectors()
+                for left in self.lefts:
+                    for right in self.rights:
+                        self.assertEqual(conversion.verify(augmBench,
+                                                           left, right), 0,
+                                         "Format: {0}, {1}".format(repr(left),
+                                                                   repr(right)))
+    if select_test['binary']:
+        if sim:
+            def test_BinarySim(self):
+                self.vectors()
+                for left in self.lefts:
+                    for right in self.rights:
+                        # tb_fsm = traceSignals(delayBufferTestBench)
+                        # sim = Simulation(tb_fsm)
+                        toVHDL(binaryBench, left, right)
+                        sim = Simulation(binaryBench(left, right))
+                        sim.run()
+        else:
+            def test_BinaryVer(self):
+                self.vectors()
+                for left in self.lefts:
+                    for right in self.rights:
+                        self.assertEqual(conversion.verify(binaryBench, left, right), 0)
+
+    if select_test['division']:
+        if sim:
+            def test_DivisionSim(self):
+                self.div_vectors()
+                for left in self.lefts:
+                    for right in self.rights:
+                        # tb_fsm = traceSignals(divBench)
+                        # sim = Simulation(tb_fsm)
+                        toVHDL(divBench, left, right)
+                        sim = Simulation(divBench(left, right))
+                        sim.run()
+        else:
+            def test_DivisionVer(self):
+                self.div_vectors()
+                for left in self.lefts:
+                    for right in self.rights:
+                        self.assertEqual(conversion.verify(divBench, left, right), 0)
+
+    if select_test['resize']:
+        if sim:
+            def testResizeSim(self):
+                for delta in range(-5, 0):
+                    for i in range(0, 8):
+                        for j in range(delta, i - 1):
+                            # tb_fsm = traceSignals(resizeCheck)
+                            # sim = Simulation(tb_fsm)
+                            toVHDL(resizeCheck, delta, i, j)
+                            sim = Simulation(resizeCheck(delta, i, j))
+                            sim.run()
+        else:
+            def testResizeVer(self):
+                for delta in range(-5, 0):
+                    for i in range(0, 8):
+                        for j in range(delta, i - 1):
+                            self.assertEqual(conversion.verify(resizeCheck,
+                                                               delta, i, j), 0)
+
+    if select_test['multi']:
+        if sim:
+            def testMultiSim(self):
+                self.multi_vectors()
+                for m in self.mv:
+                    for n in self.mv:
+                        for p in self.pv:
+                            # tb_fsm = traceSignals(multiOpsBench)
+                            # sim = Simulation(tb_fsm)
+                            toVHDL(multiBench, m, n, p)
+                            sim = Simulation(multiBench(m, n, p))
+                            sim.run()
+        else:
+            def testMultiVer(self):
+                self.multi_vectors()
+                for m in self.mv:
+                    for n in self.mv:
+                        for p in self.pv:
+                            self.assertEqual(conversion.verify(multiBench,
+                                                               m, n, p), 0)
+ 
+    if select_test['unary']:
+        if sim:
+            def testUnarySim(self):
+                self.vectors()
+                for m in self.lefts:
+                    # tb_fsm = traceSignals(multiOpsBench)
+                    # sim = Simulation(tb_fsm)
+                    toVHDL(unaryBench, m)
+                    sim = Simulation(unaryBench(m))
                     sim.run()
-    else:
-        def test_AugmentedVer(self):
-            self.vectors()
-            for left in self.lefts:
-                for right in self.rights:
-                    self.assertEqual(conversion.verify(augmBench, left, right), 0)
+        else:
+            def testUnaryVer(self):
+                self.vectors()
+                for m in self.lefts:
+                    self.assertEqual(conversion.verify(unaryBench, m), 0)
 
-#     if sim:
-#         def test_BinarySim(self):
-#             self.vectors()
-#             for left in self.lefts:
-#                 for right in self.rights:
-#                     #tb_fsm = traceSignals(delayBufferTestBench)
-#                     #sim = Simulation(tb_fsm)
-#                     #toVHDL(binaryBench, left, right)
-#                     sim = Simulation(binaryBench(left, right))
-#                     sim.run()
-#     else:
-#         def test_BinaryVer(self):
-#             self.vectors()
-#             for left in self.lefts:
-#                 for right in self.rights:
-#                     self.assertEqual(conversion.verify(binaryBench, left, right), 0)
-# 
-#     if sim:
-#         def test_DivisionSim(self):
-#             self.div_vectors()
-#             for left in self.lefts:
-#                 for right in self.rights:
-#                     #tb_fsm = traceSignals(delayBufferTestBench)
-#                     #sim = Simulation(tb_fsm)
-#                     toVHDL(divBench, left, right)
-#                     sim = Simulation(divBench(left, right))
-#                     sim.run()
-#     else:
-#         def test_DivisionVer(self):
-#             self.div_vectors()
-#             for left in self.lefts:
-#                 for right in self.rights:
-#                     self.assertEqual(conversion.verify(divBench, left, right), 0)
 
-#     if sim:
-#         def testSimResize(self):
-#             #tb_fsm = traceSignals(resizeCheck)
-#             #sim = Simulation(tb_fsm)
-#             #toVHDL(resizeCheck)
-#             sim = Simulation(resizeCheck())
-#             sim.run()
-#     else:
-#         def testResize(self):
-#             for delta in range(-5, 0):
-#                 for i in range(0, 8):
-#                     for j in range(delta, i-1):
-#                         self.assertEqual(conversion.verify(resizeCheck,
-#                                                            delta, i, j), 0)
-
-        
 if __name__ == "__main__":
     unittest.main()
