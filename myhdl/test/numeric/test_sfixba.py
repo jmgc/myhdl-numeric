@@ -1049,7 +1049,9 @@ class TestSFixBaAsInt(TestCase):
                              jmin=-512, jmax=-1)
    
     def testPow(self):
-        self.binaryMathCheck(operator.pow, imin=-512, imax=512,
+        self.binaryMathCheck(operator.pow, imin=-512, imax=-1,
+                             jmin=-8, jmax=8)
+        self.binaryMathCheck(operator.pow, imin=1, imax=512,
                              jmin=-8, jmax=8)
    
     def testLShift(self):
