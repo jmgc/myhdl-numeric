@@ -290,7 +290,7 @@ def unaryBench(m):
     M = 2**m
     seqM = tuple([randrange(M) for i in range(NRTESTS)])
 
-    arg = Signal(intbv(0)[m:])
+    arg = Signal(intbv(m)[m:])
     Not_kw = Signal(bool(0))
     Invert = Signal(intbv(0)[m:])
     UnaryAdd = Signal(intbv(0)[m:])
@@ -307,7 +307,7 @@ def unaryBench(m):
         for i in range(NRTESTS):
             arg.next = seqM[i]
             yield delay(10)
-        raise StopSimulation
+        #raise StopSimulation
 
     @instance
     def check():
