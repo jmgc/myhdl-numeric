@@ -650,6 +650,7 @@ class Test(unittest.TestCase):
                                                            left, right), 0,
                                          "Format: {0}, {1}".format(repr(left),
                                                                    repr(right)))
+
     if select_test['binary']:
         if sim:
             def test_BinarySim(self):
