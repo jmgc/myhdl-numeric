@@ -26,3 +26,4 @@ sintba -- mutable signed integer class with bit array properties
 sfixba -- mutable fixed point class with bit array properties
 fixmath -- defines the mathematical behavior of sfisba
 """
+__version__ = "0.1.dev0"
