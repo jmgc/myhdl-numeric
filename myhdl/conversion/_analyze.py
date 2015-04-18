@@ -589,7 +589,7 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
             elif node.attr in ('val', 'next'):
                 node.obj = obj.val
         if isinstance(obj, intbv) or \
-                (isinstance(obj, _Signal) and isinstance(obj.val, intbv)):
+                (isinstance(obj, _Signal) and isinstance(obj._init, intbv)):
             if node.attr == 'min':
                 node.obj = obj.min
             elif node.attr == 'max':
@@ -597,7 +597,7 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
             elif node.attr == 'signed':
                 node.obj = intbv.signed
         if isinstance(obj, bitarray) or \
-                (isinstance(obj, _Signal) and isinstance(obj.val, bitarray)):
+                (isinstance(obj, _Signal) and isinstance(obj._init, bitarray)):
             if node.attr in numeric_attributes_dict.keys():
                 node.obj = getattr(obj, node.attr)
             elif node.attr in numeric_functions_dict:
