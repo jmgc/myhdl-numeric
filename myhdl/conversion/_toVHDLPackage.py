@@ -122,6 +122,24 @@ end pck_myhdl_%(version)s;
 
 package body pck_myhdl_%(version)s is
 
+    function max(left, right: integer) return integer is
+    begin
+        if left > right then
+            return left;
+        else
+            return right;
+        end if;
+    end;
+
+    function min(left, right: integer) return integer is
+    begin
+        if left < right then
+            return left;
+        else
+            return right;
+        end if;
+    end;
+
     function stdl (arg: boolean) return std_logic is
     begin
         if arg then
@@ -229,14 +247,17 @@ package body pck_myhdl_%(version)s is
     function c_l2u (arg: std_logic; size: integer) return unsigned is
         variable result: unsigned((size - 1) downto 0);
     begin
-        result := (others => arg);
+        result := (others => '0');
+        result(0) := arg;
         return result;
     end function c_l2u;
 
     function c_l2s (arg: std_logic; size: integer) return signed is
-        variable result: signed((size - 1) downto 0);
+        constant r_high: integer := max(size - 1, 1);
+        variable result: signed(r_high downto 0);
     begin
-        result := (others => arg);
+        result := (others => '0');
+        result(0) := arg;
         return result;
     end function c_l2s;
 
@@ -261,13 +282,21 @@ package body pck_myhdl_%(version)s is
     end function c_u2s;
 
     function c_s2u (arg: signed; size: integer) return unsigned is
+        constant t_size: natural    := size + 1;
+        constant o_left: natural    := size - 1;
+        variable tmp: unsigned(size downto 0);
     begin
-        return unsigned(resize(arg, size + 1)((size-1) downto 0));
+        tmp := unsigned(resize(arg, t_size));
+        return tmp(o_left downto 0);
     end function c_s2u;
 
     function c_s2s (arg: signed; size: integer) return signed is
+        constant t_size: natural    := size + 1;
+        constant o_left: natural    := size - 1;
+        variable tmp: signed(size downto 0);
     begin
-        return signed(resize(arg, size + 1)((size-1) downto 0));
+        tmp := resize(arg, t_size);
+        return tmp(o_left downto 0);
     end function c_s2s;
 """
     if fixed:
@@ -276,15 +305,6 @@ package body pck_myhdl_%(version)s is
     begin
         return arg /= 0;
     end function bool;
-
-    function max(left, right: integer) return integer is
-    begin
-        if left > right then
-            return left;
-        else
-            return right;
-        end if;
-    end;
 
     function floor (arg: sfixed) return sfixed is
         constant left_index:    integer := max(arg'left, 1); 
@@ -296,9 +316,12 @@ package body pck_myhdl_%(version)s is
     end function floor;
 
     function c_l2f (arg: std_logic; high: integer; low: integer) return sfixed is
-        variable result: sfixed(high downto low);
+        constant r_high: integer := max(high, 1);
+        constant l_low: integer := min(low, 0);
+        variable result: sfixed(r_high downto r_low);
     begin
-        result := (others => arg);
+        result := (others => '0');
+        result(0) := arg;
         return result;
     end function c_l2f;
 

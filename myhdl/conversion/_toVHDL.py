@@ -222,7 +222,8 @@ class _ToVHDLConvertor(object):
             for sig in siglist:
                 if not sig._used:
                     continue
-                if issubclass(inferVhdlClass(sig._init), vhd_sfixed):
+                tipe = inferVhdlClass(sig._init)
+                if tipe is not None and issubclass(tipe, vhd_sfixed):
                     fixed_point = True
                     break
         if pfile:
@@ -624,18 +625,10 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
     def inferCast(vhd, ori):
         pre, suf = "", ""
         if isinstance(vhd, vhd_nat):
-            if isinstance(ori, vhd_nat):
-                pass
-            elif isinstance(ori, vhd_int):
-                pre, suf = "natural(", ")"
-            else:
+            if not isinstance(ori, vhd_nat):
                 pre, suf = "to_integer(", ")"
         elif isinstance(vhd, vhd_int):
-            if isinstance(ori, vhd_nat):
-                pre, suf = "integer(", ")"
-            elif isinstance(ori, vhd_int):
-                pass
-            else:
+            if not isinstance(ori, vhd_int):
                 pre, suf = "to_integer(", ")"
         elif isinstance(vhd, vhd_unsigned):
             if isinstance(ori, vhd_unsigned):
@@ -1555,7 +1548,7 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
 
     def accessSlice(self, node):
         if isinstance(node.value, ast.Call) and \
-           isinstance(node.value.func.obj, (intbv, bitarray)) and \
+           issubclass(node.value.func.obj, (intbv, bitarray)) and \
            _isConstant(node.value.args[0], self.tree.symdict):
             c = self.getVal(node)._val
             pre, post = "", ""
@@ -1599,7 +1592,7 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
         if lower is None:
             self.write("%s" % high)
         else:
-            self.write("(")
+            self.write("integer(")
             self.visit(lower)
             self.write("-1)")
         self.write(" downto ")
@@ -1881,7 +1874,7 @@ class _ConvertAlwaysDecoVisitor(_ConvertVisitor):
 def _convertInitVal(reg, init):
     pre, suf = '', ''
     if isinstance(reg, _Signal):
-        tipe = reg._type
+        tipe = tipe = inferVhdlObj(reg._init)
         if not reg._numeric:
             pre, suf = 'std_logic_vector(', ')'
     else:
@@ -1911,7 +1904,7 @@ def _convertInitVal(reg, init):
                                                      high,
                                                      low, suf)        
     else:
-        assert isinstance(init, vhd_enum)
+        assert isinstance(tipe, vhd_enum)
         v = init._toVHDL()
     return v
 
@@ -2996,10 +2989,14 @@ class _AnnotateTypesVisitor(ast.NodeVisitor, _ConversionMixin):
             if isinstance(left.vhd, vhd_unsigned):
                 left.vhd = vhd_signed(left.vhd.size + 1)
         elif isinstance(left.vhd, vhd_unsigned):
-            if isinstance(right.vhd, vhd_int):
+            if isinstance(right.vhd, vhd_nat):
+                pass
+            elif isinstance(right.vhd, vhd_int):
                 left.vhd = vhd_signed(left.vhd.size + 1)
         elif isinstance(right.vhd, vhd_unsigned):
-            if isinstance(right.vhd, vhd_int):
+            if isinstance(right.vhd, vhd_nat):
+                pass
+            elif isinstance(right.vhd, vhd_int):
                 right.vhd = vhd_signed(right.vhd.size + 1)
 
         if isinstance(op, ast.Add):

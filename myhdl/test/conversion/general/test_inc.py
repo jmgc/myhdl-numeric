@@ -63,7 +63,7 @@ def inc2(count, enable, clock, reset, n):
             count.next = 0
         else:
             if enable:
-                if count == n-1:
+                if count == n - 1:
                     count.next = 0
                 else:
                     count.next = count + 1
@@ -165,16 +165,16 @@ def IncBench(inc):
 
 def test_incReg():  
     assert verify(IncBench, incRef) == 0
-    
+
 def test_inc():  
     assert verify(IncBench, inc) == 0
-    
+
 def test_inc2():  
     assert verify(IncBench, inc2) == 0
-    
+
 def testIncTask():
     assert verify(IncBench, incTask) == 0
-    
+
 def testIncFunc():
     assert verify(IncBench, incFunc) == 0
     
