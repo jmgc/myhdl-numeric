@@ -532,6 +532,9 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
                 self._bitop_size(node, l, r)
             elif isinstance(node.op, (ast.LShift, ast.RShift, ast.Pow)):
                 node.obj = node.left.obj
+                if isinstance(node.obj, _Signal) and \
+                        issubclass(node.obj._type, intbv):
+                    node.obj = node.obj._init
             else:
                 raise AssertionError("Unknown binary operator: %s" % node.op)
             if isinstance(node.obj, (integer_types, intbv)):
@@ -655,7 +658,8 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
                     pass
                 elif isinstance(curObj, type(obj)):
                     self.tree.vardict[n] = obj
-                elif isinstance(obj, integer_types) and isinstance(curObj, bool):
+                elif isinstance(obj, integer_types) and \
+                        isinstance(curObj, bool):
                     self.tree.vardict[n] = obj
                 else:
                     self.raiseError(node, _error.TypeMismatch, n)
