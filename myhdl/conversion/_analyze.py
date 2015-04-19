@@ -521,13 +521,16 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
                     self._truediv_size(node, l, r)
                 except NotImplementedError:
                     self.raiseError(node, _error.NotSupported, "true division - consider '//'")
-            elif (not isinstance(l, string_types)) and isinstance(node.op, ast.Mod):
-                self._mod_size(node, l, r)
+            elif isinstance(node.op, ast.Mod):
+                if isinstance(l, string_types):
+                    node.obj = long(-1)
+                else:
+                    self._mod_size(node, l, r)
             elif isinstance(node.op, ast.Mult):
                 self._mul_size(node, l, r)
             elif isinstance(node.op, (ast.BitAnd, ast.BitOr, ast.BitXor)):
                 self._bitop_size(node, l, r)
-            elif isinstance(node.op, (ast.LShift, ast.RShift)):
+            elif isinstance(node.op, (ast.LShift, ast.RShift, ast.Pow)):
                 node.obj = node.left.obj
             else:
                 raise AssertionError("Unknown binary operator: %s" % node.op)
