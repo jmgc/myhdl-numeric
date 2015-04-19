@@ -527,8 +527,10 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
                 self._mul_size(node, l, r)
             elif isinstance(node.op, (ast.BitAnd, ast.BitOr, ast.BitXor)):
                 self._bitop_size(node, l, r)
+            elif isinstance(node.op, (ast.LShift, ast.RShift)):
+                node.obj = node.left.obj
             else:
-                node.obj = long(-1)
+                raise AssertionError("Unknown binary operator: %s" % node.op)
             if isinstance(node.obj, (integer_types, intbv)):
                 node.obj = long(node.obj)
         else:
