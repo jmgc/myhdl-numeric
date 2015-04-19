@@ -820,13 +820,16 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
         self.refStack.push()
         self.visit(node.target)
         var = node.target.id
-        self.tree.vardict[var] = int(-1)
 
         cf = node.iter
         self.visit(cf)
         self.require(node, isinstance(cf, ast.Call), "Expected (down)range call")
         f = self.getObj(cf.func)
         self.require(node, f in (range, downrange), "Expected (down)range call")
+        if len(cf.args) == 1 or (cf.args[0].obj >= 0 and cf.args[1] >= 0):
+            self.tree.vardict[var] = 0
+        else:
+            self.tree.vardict[var] = -1
 
         for stmt in node.body:
             self.visit(stmt)
