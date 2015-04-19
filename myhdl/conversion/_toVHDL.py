@@ -1874,13 +1874,13 @@ class _ConvertAlwaysDecoVisitor(_ConvertVisitor):
 def _convertInitVal(reg, init):
     pre, suf = '', ''
     if isinstance(reg, _Signal):
-        tipe = tipe = inferVhdlObj(reg._init)
+        tipe = inferVhdlObj(reg._init)
         if not reg._numeric:
             pre, suf = 'std_logic_vector(', ')'
     else:
         assert isinstance(reg, (intbv, bitarray))
         tipe = inferVhdlObj(reg)
-    if tipe is vhd_boolean:
+    if isinstance(tipe, (vhd_boolean, vhd_std_logic)):
         v = "'1'" if init else "'0'"
     elif isinstance(tipe, vhd_unsigned):
         vhd_tipe = tipe.toStr(False)
