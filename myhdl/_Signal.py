@@ -310,9 +310,11 @@ class _Signal(object):
         self._next._handleBounds()
 
     def _setNextBitArray(self, val):
-        if not (isinstance(val, bitarray) or isinstance(val, integer_types)):
-            raise TypeError("Expected int or bitarray child, got %s" % type(val))
-        self._next = type(self._init)(val, self._init)
+        try:
+            self._next = type(self._init)(val, self._init)
+        except:
+            raise TypeError("Not valid type for %s: %s" %
+                            (self._type, type(val)))
 
     def _setNextNonmutable(self, val):
         if not isinstance(val, self._type):
