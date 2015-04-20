@@ -1887,7 +1887,7 @@ def _convertInitVal(reg, init):
         if abs(init) < 2**31:
             v = '%sto_%s(%s, %s)%s' % (pre, vhd_tipe, init, tipe.size, suf)
         else:
-            v = '%s%s\'("%s")%s' % (pre, vhd_tipe, bin(init, tipe.size, suf))
+            v = '%s%s\'("%s")%s' % (pre, vhd_tipe, bin(init, tipe.size), suf)
     elif isinstance(tipe, vhd_signed):
         vhd_tipe = tipe.toStr(False)
         if abs(init) < 2**31:
@@ -1898,11 +1898,10 @@ def _convertInitVal(reg, init):
         vhd_tipe = tipe.toStr(False)
         high = tipe.size[0]
         low = tipe.size[1]
-        v = '%sfrom_string%s("%s", %s, %s)%s' % (pre,
-                                                 bin(init,
-                                                     tipe.size[0] - tipe.size[1] + 1),
-                                                     high,
-                                                     low, suf)        
+        v = '%sfrom_string("%s", %s, %s)%s' % (pre,
+                                               bin(init,
+                                                   tipe.size[0] - tipe.size[1] + 1),
+                                                   high, low, suf)        
     else:
         assert isinstance(tipe, vhd_enum)
         v = init._toVHDL()
