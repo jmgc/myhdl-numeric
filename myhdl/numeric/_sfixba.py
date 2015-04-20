@@ -207,9 +207,8 @@ class sfixba(bitarray):
             else:
                 self._from_bitarray(value, high, low)
         else:
-            warnings.warn("sfixba constructor val should be float, int, " \
-                          "string or bitarray child: {0}".format(type(value)),
-                          RuntimeWarning)
+            raise TypeError("sfixba constructor val should be float, int, " \
+                            "string or bitarray child: {0}".format(type(value)))
 
     _signed = True
 
