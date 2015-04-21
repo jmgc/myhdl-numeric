@@ -27,3 +27,17 @@ work_vcom/
 # Test artifacts
 myhdl/**/*.v
 myhdl/**/*.vhd
+
+*.html
+
+*.js
+
+myhdl/test/numeric/coverage_html/keybd_closed.png
+
+myhdl/test/numeric/coverage_html/keybd_open.png
+
+myhdl/test/numeric/coverage_html/status.dat
+
+myhdl/test/numeric/coverage_html/style.css
+
+myhdl/test/numeric/.coverage
