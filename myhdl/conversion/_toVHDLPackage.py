@@ -115,6 +115,10 @@ package pck_myhdl_%(version)s is
     function t_u2f (arg: unsigned; high: integer; low: integer) return sfixed;
 
     function t_s2f (arg: signed; high: integer; low: integer) return sfixed;
+    
+    function c_u2r (arg: unsigned) return real;
+    
+    function c_s2r (arg: signed) return real;
 """
     result += """
 end pck_myhdl_%(version)s;
@@ -381,6 +385,16 @@ package body pck_myhdl_%(version)s is
     begin
         return to_signed(arg, size + 1, fixed_wrap, fixed_truncate)(size-1 downto 0);
     end function t_f2s;
+
+    function c_u2r (arg: unsigned) return real is
+    begin
+        return to_real(to_ufixed(arg));
+    end function c_u2r;
+    
+    function c_s2r (arg: signed) return real is
+    begin
+        return to_real(to_sfixed(arg));
+    end function c_s2r;
 """
     result += """
 end pck_myhdl_%(version)s;

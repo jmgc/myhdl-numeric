@@ -618,6 +618,14 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
         return s
 
     @staticmethod
+    def RealRepr(obj):
+        if obj >= 0:
+            s = "%s" % real(obj)
+        else:
+            s = "(- %s)" % abs(real(obj))
+        return s
+
+    @staticmethod
     def BitRepr(item, var):
         return '"%s"' % bin(item, len(var))
 
@@ -630,6 +638,15 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
         elif isinstance(vhd, vhd_int):
             if not isinstance(ori, vhd_int):
                 pre, suf = "to_integer(", ")"
+        elif isinstance(vhd, vhd_real):
+            if isinstance(ori, vhd_int):
+                pre, suf = "real(", ")"
+            elif isinstance(ori, vhd_unsigned):
+                pre, suf = "c_u2r(", ")"
+            elif isinstance(ori, vhd_signed):
+                pre, suf = "c_s2r(", ")"
+            elif not isinstance(ori, vhd_real):
+                pre, suf = "to_real(", ")"
         elif isinstance(vhd, vhd_unsigned):
             if isinstance(ori, vhd_unsigned):
                 if vhd.size != ori.size:
@@ -696,6 +713,8 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
             elif isinstance(ori, vhd_string):
                 pre, suf = "from_string(", ", %s, %s)" % \
                             (vhd.size[0], vhd.size[1])
+            elif isinstance(ori, vhd_real):
+                pre, suf = "to_sfixed(", ", %s, %s)" % (vhd.size[0], vhd.size[1])
             else:
                 pre, suf = "c_i2f(", ", %s, %s)" % (vhd.size[0], vhd.size[1])
         elif isinstance(vhd, vhd_boolean):
@@ -1063,6 +1082,11 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
             # convert number argument to integer
             if isinstance(node.args[0], ast.Num):
                 node.args[0].n = int(node.args[0].n)
+        elif f is float:
+            opening, closing = '', ''
+            # convert number argument to integer
+            if isinstance(node.args[0], ast.Num):
+                node.args[0].n = float(node.args[0].n)
         elif inspect.isclass(f) and issubclass(f, (intbv, bitarray)):
             pre, post = "", ""
             arg = node.args[0]
@@ -1186,6 +1210,16 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
             if n < 0:
                 self.write(pre)
             self.write(n)
+            if n < 0:
+                self.write(suf)
+        elif isinstance(node.vhd, vhd_real):
+            if isinstance(node.vhdOri, vhd_int):
+                pre, suf = "real(", ")"
+            elif isinstance(node.vhdOri, vhd_real):
+                pre, suf = "(", ")"
+            if n < 0:
+                self.write(pre)
+            self.write(float(n))
             if n < 0:
                 self.write(suf)
 
@@ -1441,7 +1475,7 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
                 # print the symbol for an integer in the global constant dict
                 if n in _constDict and obj == _constDict[n]:
                     assert abs(obj) < 2**31
-                    if isinstance(node.vhd, vhd_int):
+                    if isinstance(node.vhd, (vhd_int, vhd_real)):
                         s = n
                     elif isinstance(node.vhd, vhd_boolean):
                         s = "bool(%s)" % n
@@ -1458,6 +1492,8 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
                 else:
                     if isinstance(node.vhd, vhd_int):
                         s = self.IntRepr(obj)
+                    elif isinstance(node.vhd, vhd_real):
+                        s = self.RealRepr(obj)
                     elif isinstance(node.vhd, vhd_std_logic):
                         s = "'%s'" % int(obj)
                     elif isinstance(node.vhd, vhd_unsigned):
@@ -2092,13 +2128,13 @@ class vhd_int(vhd_type):
     __xor__ = __rxor__ = vhd_type._not_implemented
     
     def __abs__(self):
-        return vhd_int
+        return vhd_int()
 
     def __pos__(self):
-        return vhd_int
+        return vhd_int()
     
     def __neg__(self):
-        return vhd_int
+        return vhd_int()
     
     def __inv__(self):
         return NotImplemented
@@ -2124,19 +2160,51 @@ class vhd_nat(vhd_int):
     __xor__ = __rxor__ = vhd_type._not_implemented
     
     def __abs__(self):
-        return vhd_nat
+        return vhd_nat()
 
     def __pos__(self):
-        return vhd_nat
+        return vhd_nat()
     
     def __neg__(self):
-        return vhd_int
+        return vhd_int()
     
     def __inv__(self):
         return NotImplemented
 
     def maybeNegative(self):
         return False
+
+class vhd_real(vhd_type):
+    def toStr(self, constr=True):
+        return "real"
+
+    def _direct(self, other):
+        if isinstance(other, vhd_real):
+            return vhd_real(-1)
+        else:
+            return NotImplemented
+
+    __add__ = __sub__ = __mul__ = __truediv__ = __mod__ = __pow__ = _direct
+    __radd__ = __rsub__ = __rmul__ = __rtruediv__ = __rmod__ = _direct
+    __rpow__ = _direct
+    __floordiv__ = __floordiv = _direct 
+    __and__ = __rand__ = __or__ = __ror__ = vhd_type._not_implemented
+    __xor__ = __rxor__ = vhd_type._not_implemented
+    
+    def __abs__(self):
+        return vhd_real()
+
+    def __pos__(self):
+        return vhd_real()
+    
+    def __neg__(self):
+        return vhd_real()
+    
+    def __inv__(self):
+        return NotImplemented
+
+    def maybeNegative(self):
+        return True
 
 
 class vhd_string(vhd_type):
@@ -2533,7 +2601,7 @@ class vhd_sfixed(vhd_type):
             return "sfixed"
 
     def __add__(self, other):
-        if isinstance(other, vhd_int):
+        if isinstance(other, (vhd_int, vhd_real)):
             return vhd_sfixed((self.size[0] + 1, self.size[1]))
         elif isinstance(other, vhd_vector):
             return vhd_sfixed((max(self.size[0], other.size - 1) + 1,
@@ -2547,7 +2615,7 @@ class vhd_sfixed(vhd_type):
     __radd__ = __add__
 
     def __sub__(self, other):
-        if isinstance(other, vhd_int):
+        if isinstance(other, (vhd_int, vhd_real)):
             return vhd_sfixed((self.size[0] + 1, self.size[1]))
         elif isinstance(other, vhd_vector):
             return vhd_sfixed((max(self.size[0], other.size - 1) + 1,
@@ -2561,7 +2629,7 @@ class vhd_sfixed(vhd_type):
     __rsub__ = __sub__
 
     def __mul__(self, other):
-        if isinstance(other, vhd_int):
+        if isinstance(other, (vhd_int, vhd_real)):
             return vhd_sfixed((2 * self.size[0] + 1, 2 * self.size[1]))
         elif isinstance(other, vhd_vector):
             return vhd_sfixed((self.size[0] + other.size - 1, self.size[1]))
@@ -2574,7 +2642,7 @@ class vhd_sfixed(vhd_type):
     __rmul__ = __mul__
 
     def __floordiv__(self, other):
-        if isinstance(other, vhd_int):
+        if isinstance(other, (vhd_int, vhd_real)):
             return vhd_sfixed((self.size[0] - self.size[1] + 1,
                                self.size[1] - self.size[0]))
         elif isinstance(other, vhd_vector):
@@ -2589,7 +2657,7 @@ class vhd_sfixed(vhd_type):
     __rfloordiv__ = __floordiv__
 
     def __truediv__(self, other):
-        if isinstance(other, vhd_int):
+        if isinstance(other, (vhd_int, vhd_real)):
             return vhd_sfixed((self.size[0] + 1,
                                self.size[1] - self.size[0]))
         elif isinstance(other, vhd_vector):
@@ -2604,7 +2672,7 @@ class vhd_sfixed(vhd_type):
     __rtruediv__ = __truediv__
 
     def __mod__(self, other):
-        if isinstance(other, vhd_int):
+        if isinstance(other, (vhd_int, vhd_real)):
             return vhd_sfixed((self.size[0], min(self.size[1], 0)))
         elif isinstance(other, vhd_vector):
             return vhd_sfixed((other.size - 1,
@@ -2676,7 +2744,7 @@ class vhd_sfixed(vhd_type):
         if isinstance(left.vhd, vhd_sfixed):
             if isinstance(right.vhd, vhd_sfixed):
                 pass
-            elif isinstance(right.vhd, vhd_int):
+            elif isinstance(right.vhd, (vhd_int, vhd_real)):
                 if isinstance(op, (ast.Add, ast.Sub)):
                     left.vhd.size = (ns_high - 1, ns_low)
                 elif isinstancd(op, (ast.Mod, ast.FloorDiv, ast.Div)):
@@ -2689,7 +2757,7 @@ class vhd_sfixed(vhd_type):
             else:
                 raise AssertionError("unexpected operand %s" % right.vhd)
         elif isinstance(right.vhd, vhd_sfixed):
-            if isinstance(left.vhd, vhd_int):
+            if isinstance(left.vhd, (vhd_int, vhd_real)):
                 if isinstance(op, (ast.Add, ast.Sub)):
                     right.vhd.size = (ns_high - 1, ns_low)
                 elif isinstance(op, (ast.Mod, ast.FloorDiv, ast.Div)):
@@ -2767,6 +2835,8 @@ def inferVhdlClass(obj):
             vhd = vhd_nat
         else:
             vhd = vhd_int
+    elif isinstance(obj, float):
+        vhd = vhd_real
     return vhd
 
 def inferVhdlObj(obj):
@@ -2791,7 +2861,7 @@ def inferVhdlObj(obj):
         else:
             tipe = obj._type
         vhd = vhd(tipe)
-    elif issubclass(vhd, (vhd_int, vhd_nat)):
+    elif issubclass(vhd, (vhd_int, vhd_real)):
         vhd = vhd()
     return vhd
 
@@ -2856,6 +2926,9 @@ class _AnnotateTypesVisitor(ast.NodeVisitor, _ConversionMixin):
         elif f in _flatten(integer_types, ord):
             node.vhd = vhd_int()
             node.args[0].vhd = vhd_int()
+        elif f is float:
+            node.vhd = vhd_real()
+            node.args[0].vhd = vhd_real()
         elif f in (intbv, modbv):
             node.vhd = vhd_int()
         elif f in numeric_types:
@@ -2906,10 +2979,13 @@ class _AnnotateTypesVisitor(ast.NodeVisitor, _ConversionMixin):
         node.vhdOri = copy(node.vhd)
 
     def visit_Num(self, node):
-        if node.n < 0:
-            node.vhd = vhd_int()
+        if node.n is float:
+            node.vhd = vhd_real()
         else:
-            node.vhd = vhd_nat()
+            if node.n < 0:
+                node.vhd = vhd_int()
+            else:
+                node.vhd = vhd_nat()
         node.vhdOri = copy(node.vhd)
 
     def visit_For(self, node):
@@ -2998,6 +3074,12 @@ class _AnnotateTypesVisitor(ast.NodeVisitor, _ConversionMixin):
                 pass
             elif isinstance(right.vhd, vhd_int):
                 right.vhd = vhd_signed(right.vhd.size + 1)
+        elif isinstance(left.vhd, vhd_real):
+            if isinstance(right.vhd, vhd_int):
+                right.vhd = vhd_real(-1)
+        elif isinstance(right.vhd, vhd_real):
+            if isinstance(left.vhd, vhd_int):
+                left.vhd = vhd_real(-1)
 
         if isinstance(op, ast.Add):
             node.vhd = left.vhd + right.vhd
@@ -3102,7 +3184,7 @@ class _AnnotateTypesVisitor(ast.NodeVisitor, _ConversionMixin):
             elif isinstance(node.vhd, vhd_nat):
                 node.vhd = vhd_int()
         elif isinstance(node.op, ast.Invert):
-            if isinstance(node.vhd, vhd_int):
+            if isinstance(node.vhd, (vhd_int, vhd_real)):
                 raise AssertionError("Cannot invert natural or " \
                                      "integer values")
         node.vhdOri = copy(node.vhd)

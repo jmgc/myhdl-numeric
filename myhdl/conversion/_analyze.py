@@ -658,8 +658,11 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
                     pass
                 elif isinstance(curObj, type(obj)):
                     self.tree.vardict[n] = obj
-                elif isinstance(obj, (integer_types, float)) and \
+                elif isinstance(obj, integer_types) and \
                         isinstance(curObj, bool):
+                    self.tree.vardict[n] = obj
+                elif isinstance(obj, float) and \
+                        isinstance(curObj, (bool, integer_types)):
                     self.tree.vardict[n] = obj
                 else:
                     self.raiseError(node, _error.TypeMismatch, n)
@@ -710,6 +713,8 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
             node.obj = int(-1)
 ##         elif f in (posedge , negedge):
 ##             node.obj = _EdgeDetector()
+        elif f is float:
+            node.obj = float(-1.0)
         elif f is delay:
             node.obj = delay(0)
         ### suprize: identity comparison on unbound methods doesn't work in python 2.5??
