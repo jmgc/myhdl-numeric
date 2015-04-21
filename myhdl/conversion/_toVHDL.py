@@ -1534,7 +1534,7 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
             else:
                 self.raiseError(node, _error.UnsupportedType, "%s, %s" % (n, type(obj)))
         else:
-            raise AssertionError("name ref: %s" % n)
+            raise ToVHDLError(_error.NotSupported, "name ref: %s" % n)
         self.write(s)
 
     def visit_Pass(self, node):
@@ -2324,6 +2324,8 @@ class vhd_vector(vhd_type):
     @staticmethod
     def inferBinaryOpCast(node, left, right, op):
         ns, os = node.vhd.size, node.vhdOri.size
+        if type(ns) is tuple:
+            ns = ns[0] + 1
         ds = ns - os
         if ds > 0:
             if isinstance(left.vhd, vhd_vector) and \
@@ -2345,7 +2347,8 @@ class vhd_vector(vhd_type):
                     left.vhd.size += ds
                     node.vhdOri.size = ns
                 else:
-                    raise AssertionError("unexpected op %s" % op)
+                    raise ToVHDLError(_error.NotSupported,
+                                      "unexpected op %s" % op)
             elif isinstance(left.vhd, vhd_vector) and \
                     isinstance(right.vhd, vhd_int):
                 if isinstance(op, (ast.Add, ast.Sub, ast.Mod, ast.FloorDiv)):
@@ -2355,7 +2358,8 @@ class vhd_vector(vhd_type):
                     left.vhd.size += ds
                     node.vhdOri.size = 2 * left.vhd.size
                 else:
-                    raise AssertionError("unexpected op %s" % op)
+                    raise ToVHDLError(_error.NotSupported,
+                                      "unexpected op %s" % op)
             elif isinstance(left.vhd, vhd_int) and\
                     isinstance(right.vhd, vhd_vector):
                 if isinstance(op, (ast.Add, ast.Sub, ast.Mod, ast.FloorDiv)):
@@ -2364,7 +2368,8 @@ class vhd_vector(vhd_type):
                 elif isinstance(op, ast.Mult):
                     node.vhdOri.size = 2 * right.vhd.size
                 else:
-                    raise AssertionError("unexpected op %s" % op)
+                    raise ToVHDLError(_error.NotSupported,
+                                      "unexpected op %s" % op)
 
     @staticmethod
     def inferShiftOpCast(node, left, right, op):
@@ -2753,7 +2758,8 @@ class vhd_sfixed(vhd_type):
                     left.vhd.size = (left.vhd.size[0] + ds_high,
                                      left.vhd.size[1] + ds_low)
                 else:
-                    raise AssertionError("unexpected op %s" % op)
+                    raise ToVHDLError(_error.NotSupported,
+                                      "unexpected op %s" % op)
             else:
                 raise AssertionError("unexpected operand %s" % right.vhd)
         elif isinstance(right.vhd, vhd_sfixed):
@@ -2766,10 +2772,12 @@ class vhd_sfixed(vhd_type):
                     right.vhd.size = (right.vhd.size[0] + ds_high,
                                       right.vhd.size[1] + ds_low)
                 else:
-                    raise AssertionError("unexpected op %s" % op)
+                    raise ToVHDLError(_error.NotSupported,
+                                      "unexpected op %s" % op)
             else:
-                raise AssertionError("unexpected operand %s for %s" % \
-                                     (op, left.vhd))
+                raise ToVHDLError(_error.NotSupported,
+                                  "unexpected operand %s for %s" % \
+                                  (op, left.vhd))
         if isinstance(op, ast.Add):
             node.vhdOri = left.vhd + right.vhd
         elif isinstance(op, ast.Sub):
@@ -2785,7 +2793,7 @@ class vhd_sfixed(vhd_type):
         elif isinstance(op, ast.Pow):
             node.vhdOri = left.vhd ** right.vhd
         else:
-            raise AssertionError("Unknown op")
+            raise ToVHDLError(_error.NotSupported, "Unknown op %s" % op)
 
     @staticmethod
     def inferShiftOpCast(node, left, right, op):
@@ -2823,7 +2831,7 @@ def inferVhdlClass(obj):
         elif isinstance(obj, sfixba) or isinstance(obj._val, sfixba):
             vhd = vhd_sfixed
         else:
-            raise AssertionError("Not valid bitarray child.")
+            raise ToVHDLError(_error.NotSupported, "Not valid bitarray child.")
     elif (isinstance(obj, _Signal) and obj._type is bool) or \
             isinstance(obj, bool):
         vhd = vhd_std_logic
@@ -3096,7 +3104,7 @@ class _AnnotateTypesVisitor(ast.NodeVisitor, _ConversionMixin):
         elif isinstance(op, ast.Pow):
             node.vhd = left.vhd ** right.vhd
         else:
-            raise AssertionError("Unknown op")
+            raise ToVHDLError(_error.NotSupported, "Unknown op %s" % op)
 
         node.vhdOri = copy(node.vhd)
 
@@ -3185,8 +3193,9 @@ class _AnnotateTypesVisitor(ast.NodeVisitor, _ConversionMixin):
                 node.vhd = vhd_int()
         elif isinstance(node.op, ast.Invert):
             if isinstance(node.vhd, (vhd_int, vhd_real)):
-                raise AssertionError("Cannot invert natural or " \
-                                     "integer values")
+                raise ToVHDLError(_error.NotSupported,
+                                  "Cannot invert natural or " \
+                                  "integer values")
         node.vhdOri = copy(node.vhd)
 
     def visit_While(self, node):
