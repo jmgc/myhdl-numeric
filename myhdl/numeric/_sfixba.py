@@ -1186,7 +1186,7 @@ class sfixba(bitarray):
     def scalb(self, n):
         '''Scales the result by a power of 2.  Width of input = width of
         output with the binary point moved.'''
-        if isinstance(n, (int, sintba)):
+        if isinstance(n, (integer_types, sintba)):
             value = int(n)
             result = sfixba(0, self._high + value, self._low + value)
             result._val = self._val
