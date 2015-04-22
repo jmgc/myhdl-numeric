@@ -135,15 +135,6 @@ package body pck_myhdl_%(version)s is
         end if;
     end;
 
-    function min(left, right: integer) return integer is
-    begin
-        if left < right then
-            return left;
-        else
-            return right;
-        end if;
-    end;
-
     function stdl (arg: boolean) return std_logic is
     begin
         if arg then
@@ -305,6 +296,15 @@ package body pck_myhdl_%(version)s is
 """
     if fixed:
         result += """
+    function min(left, right: integer) return integer is
+    begin
+        if left < right then
+            return left;
+        else
+            return right;
+        end if;
+    end;
+
     function bool (arg: sfixed) return boolean is
     begin
         return arg /= 0;
