@@ -31,7 +31,7 @@ class uintba(sintba):
     def _from_int(self, value, high, low=0):
         if value < 0:
             raise TypeError("Only natural values are allowed: " \
-                          "{}".format(value), RuntimeWarning)
+                          "{}".format(value))
         sintba._from_int(self, value, high, low)
 
     def _resize(self, value):
