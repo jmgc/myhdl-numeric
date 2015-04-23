@@ -633,7 +633,7 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
     def inferCast(vhd, ori):
         pre, suf = "", ""
         if isinstance(vhd, vhd_nat):
-            if not isinstance(ori, vhd_nat):
+            if not isinstance(ori, vhd_int):
                 pre, suf = "to_integer(", ")"
         elif isinstance(vhd, vhd_int):
             if not isinstance(ori, vhd_int):
