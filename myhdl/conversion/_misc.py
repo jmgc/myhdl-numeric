@@ -22,9 +22,9 @@
 """
 from __future__ import absolute_import
 
-
 import inspect
 import ast
+import traceback as tb
 
 import myhdl
 from myhdl import *
@@ -148,7 +148,12 @@ class _ConversionMixin(object):
         expr.col_offset = node.col_offset
         c = compile(expr, '<string>', 'eval')
         warnings.simplefilter('ignore', RuntimeWarning)
-        val = eval(c, self.tree.symdict, self.tree.vardict)
+        try:
+            val = eval(c, self.tree.symdict, self.tree.vardict)
+        except Exception as e:
+            raise ConversionError(_error.NotSupported,
+                                  tb.format_exc() +
+                                  ast.dump(expr, include_attributes=True))
         warnings.simplefilter('default', RuntimeWarning)
         # val = eval(_unparse(node), self.tree.symdict, self.tree.vardict)
         return val
