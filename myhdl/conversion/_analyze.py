@@ -423,8 +423,18 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
         self.access = _access.INPUT
         self.kind = _kind.NORMAL
 
-    def _add_sub_size(self, node, l, r):
-        result = abs(l) + abs(r)
+    def _add_size(self, node, l, r):
+        result = l + r
+        if isinstance(result, integer_types):
+            if result < 0:
+                node.obj = long(-1)
+            else:
+                node.obj = long(0)
+        else:
+            node.obj = result
+
+    def _sub_size(self, node, l, r):
+        result = l - r
         if isinstance(result, integer_types):
             node.obj = long(-1)
         else:
@@ -446,7 +456,10 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
         if result is NotImplemented:
             raise NotImplementedError()
         elif isinstance(result, integer_types):
-            node.obj = long(-1)
+            if l < 0 or r < 0:
+                node.obj = long(-1)
+            else:
+                node.obj = long(0)
         else:
             node.obj = result
 
@@ -464,7 +477,10 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
             r_obj = r
         result = l // r_obj
         if isinstance(result, integer_types):
-            node.obj = long(-1)
+            if l < 0 or r < 0:
+                node.obj = long(-1)
+            else:
+                node.obj = long(0)
         else:
             node.obj = result
 
@@ -482,14 +498,20 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
             r_obj = r
         result = l % r_obj
         if isinstance(result, integer_types):
-            node.obj = long(-1)
+            if l < 0 or r < 0:
+                node.obj = long(-1)
+            else:
+                node.obj = long(0)
         else:
             node.obj = result
 
     def _mul_size(self, node, l, r):
         result = abs(l) * abs(r)
         if isinstance(result, integer_types):
-            node.obj = long(-1)
+            if l < 0 or r < 0:
+                node.obj = long(-1)
+            else:
+                node.obj = long(0)
         else:
             node.obj = result
     
@@ -512,8 +534,10 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
             r = node.right.obj
             if isinstance(r, _Signal):
                 r = r._val
-            if isinstance(node.op, (ast.Add, ast.Sub)):
-                self._add_sub_size(node, l, r)
+            if isinstance(node.op, ast.Add):
+                self._add_size(node, l, r)
+            elif isinstance(node.op, ast.Sub):
+                self._sub_size(node, l, r)
             elif isinstance(node.op, ast.FloorDiv):
                 self._floordiv_size(node, l, r)
             elif isinstance(node.op, ast.Div):
@@ -655,7 +679,8 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
             if n in self.tree.vardict:
                 curObj = self.tree.vardict[n]
                 if isinstance(obj, type(curObj)):
-                    pass
+                    if isinstance(obj, integer_types) and obj < 0:
+                        self.tree.vardict[n] = obj
                 elif isinstance(curObj, type(obj)):
                     self.tree.vardict[n] = obj
                 elif isinstance(obj, integer_types) and \
@@ -706,11 +731,14 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
             node.obj = self.getVal(node)
         elif f is len:
             self.access = _access.UNKNOWN
-            node.obj = int(0) # XXX
+            node.obj = long(0) # XXX
         elif f is bool:
             node.obj = bool()
         elif f in _flatten(integer_types, ord):
-            node.obj = int(-1)
+            if self.getVal(node) < 0:
+                node.obj = long(-1)
+            else:
+                node.obj = long(0)
 ##         elif f in (posedge , negedge):
 ##             node.obj = _EdgeDetector()
         elif f is float:
