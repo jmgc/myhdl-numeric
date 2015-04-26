@@ -25,7 +25,8 @@ import shlex
 import subprocess
 
 from myhdl._intbv import intbv
-from myhdl import _simulator, CosimulationError
+from myhdl import CosimulationError
+from myhdl._simulator import _simulator
 from myhdl._compat import PY2, string_types, to_bytes, to_str
 
 _MAXLINE = 4096
