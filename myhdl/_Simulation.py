@@ -70,6 +70,7 @@ class Simulation(object):
         self._finished = False
         del _simulator._futureEvents[:]
         del _simulator._siglist[:]
+        del _simulator._signals[:]
         
         
     def _finalize(self):

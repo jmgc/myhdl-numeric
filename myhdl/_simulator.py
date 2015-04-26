@@ -25,13 +25,14 @@ now -- function that returns the current simulation time
 """
 
 class __simulator:
-    _signals = []
-    _siglist = []
-    _futureEvents = []
-    _time = 0
-    _cosim = 0
-    _tracing = 0
-    _tf = None
+    def __init__(self):
+        self._signals = []
+        self._siglist = []
+        self._futureEvents = []
+        self._time = 0
+        self._cosim = 0
+        self._tracing = 0
+        self._tf = None
 
 _simulator = __simulator()
 

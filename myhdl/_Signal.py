@@ -205,7 +205,7 @@ class _Signal(object):
                 del self._negedgeWaiters[:]
             if next is None:
                 self._val = None
-            elif isinstance(val, (intbv, bitarray)):
+            elif isinstance(val, intbv):
                 self._val._val = next._val
             elif isinstance(val, (integer_types, EnumItemType)):
                 self._val = next
@@ -219,7 +219,7 @@ class _Signal(object):
 
     @property
     def val(self):
-        return self._val
+        return copy(self._val)
 
     # support for the 'next' attribute
     @property
@@ -320,7 +320,7 @@ class _Signal(object):
             self._next = type(self._init)(val, self._init)
         except:
             raise TypeError("Not valid type for %s: %s" %
-                            (self._type, type(val)))
+                            (type(self._init), type(val)))
 
     def _setNextNonmutable(self, val):
         if not isinstance(val, self._type):

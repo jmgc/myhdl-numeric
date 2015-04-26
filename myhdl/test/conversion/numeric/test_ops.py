@@ -588,7 +588,7 @@ class Test(unittest.TestCase):
                   'division': True,
                   'resize': True,
                   'multi': True,
-                  'unary': True
+                  'unary': True,
                   }
     sim = False
 
@@ -625,9 +625,9 @@ class Test(unittest.TestCase):
                    sintba(0, 4),
                    sfixba(0, 3, -3),
                    )
-        self.pv = (uintba(0, 3),
-                   sintba(0, 4),
-                   sfixba(0, 7, 4),
+        self.pv = (uintba(1, 3),
+                   sintba(1, 4),
+                   sfixba(1, 7, 4),
                    )
 
     if select_test['augmented']:
