@@ -2,6 +2,7 @@ from __future__ import absolute_import
 import ast
 import itertools
 from types import FunctionType
+from copy import copy
 
 from ._util import _flatten, _makeAST, _genfunc
 from ._enum import EnumType
@@ -64,10 +65,18 @@ class _AttrRefTransformer(ast.NodeTransformer):
 
         attrobj = getattr(obj, node.attr)
 
-        name = node.value.id + '_' + node.attr
-        new_name = next(s for s in _suffixer(name) if s not in self.data.symdict)
-        self.data.symdict[new_name] = attrobj
-        self.data.objlist.append(new_name)
+        new_name = node.value.id+'.'+node.attr
+        if new_name not in self.data.symdict:
+            self.data.symdict[new_name] = attrobj
+            self.data.objlist.append(new_name)
+        else:
+            pass
+# Reverting pull #64
+#         name = node.value.id + '_' + node.attr
+#         new_name = next(s for s in _suffixer(name) if s not in self.data.symdict)
+#         self.data.symdict[new_name] = attrobj
+#         self.data.objlist.append(new_name)
+# end revert pull #64
 
         new_node = ast.Name(id=new_name, ctx=node.value.ctx)
         return ast.copy_location(new_node, node)

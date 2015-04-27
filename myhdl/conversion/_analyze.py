@@ -59,6 +59,17 @@ _constDict = {}
 _extConstDict = {}
 
 def _makeName(n, prefixes, namedict):
+    # Revert pull #64
+    #Take care of names with periods
+    #For attribute references, periods are replaced with '_'.
+    if '.' in n:
+        n = n.replace('.', '_')
+        if n in namedict:
+            i = 0
+            while (n + '_{0}'.format(i)) in namedict:
+                i += 1
+            n += '_{0}'.format(i)
+    # end revert pull #64
     # trim empty prefixes
     prefixes = [p for p in prefixes if p]
     if len(prefixes) > 1:
