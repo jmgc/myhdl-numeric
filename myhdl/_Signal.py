@@ -205,7 +205,7 @@ class _Signal(object):
                 del self._negedgeWaiters[:]
             if next is None:
                 self._val = None
-            elif isinstance(val, intbv):
+            elif isinstance(val, (intbv, bitarray)):
                 self._val._val = next._val
             elif isinstance(val, (integer_types, EnumItemType)):
                 self._val = next
