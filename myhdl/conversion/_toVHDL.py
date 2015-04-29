@@ -2259,8 +2259,8 @@ class vhd_boolean(vhd_type):
         return 'boolean'
 
     def _logical(self, other):
-        if isinstance(other, vhd_bool):
-            return vhd_bool()
+        if isinstance(other, vhd_boolean):
+            return vhd_boolean()
         else:
             return NotImplemented
 
@@ -2824,18 +2824,20 @@ def inferVhdlClass(obj):
             vhd = vhd_unsigned
     elif (isinstance(obj, _Signal) and obj._type is bitarray) or \
             isinstance(obj, bitarray):
-        if isinstance(obj, uintba) or isinstance(obj._val, uintba):
+        if isinstance(obj, _Signal):
+            obj = obj._init
+        if isinstance(obj, uintba):
             vhd = vhd_unsigned
-        elif isinstance(obj, sintba) or isinstance(obj._val, sintba):
+        elif isinstance(obj, sintba):
             vhd = vhd_signed
-        elif isinstance(obj, sfixba) or isinstance(obj._val, sfixba):
+        elif isinstance(obj, sfixba):
             vhd = vhd_sfixed
         else:
             raise ToVHDLError(_error.NotSupported, "Not valid bitarray child.")
     elif (isinstance(obj, _Signal) and obj._type is bool) or \
             isinstance(obj, bool):
         vhd = vhd_std_logic
-    elif (isinstance(obj, _Signal) and isinstance(obj._val, EnumItemType)) or\
+    elif (isinstance(obj, _Signal) and isinstance(obj._init, EnumItemType)) or\
             isinstance(obj, EnumItemType):
         vhd = vhd_enum
     elif isinstance(obj, integer_types):
