@@ -34,7 +34,7 @@ elif [ "$CI_TARGET" == "ghdl" ]; then
   run_test make -C "myhdl/test/bugs" GHDL
 elif [ "$CI_TARGET" == "numeric" ]; then
   ghdl --dispconfig
-  sudo -E cp vhdl/fixed_pkg.vhdl vhdl/math_utility_pkg.vhdl /usr/lib/ghdl/lib/gcc/x86_64-linux-gnu/4.8/vhdl/src/ieee/.
+  sudo -E cp vhdl/fixed_pkg.vhdl vhdl/fixed_float_types.vhdl /usr/lib/ghdl/lib/gcc/x86_64-linux-gnu/4.8/vhdl/src/ieee/.
   MYHDL_WORK_DIR=`pwd`
   cd /usr/lib/ghdl/lib/gcc/x86_64-linux-gnu/4.8/vhdl/lib/v93/ieee
   sudo -E ghdl -a --ieee=none --std=93 -P../std --work=ieee ../../../src/ieee/fixed_float_types.vhdl
