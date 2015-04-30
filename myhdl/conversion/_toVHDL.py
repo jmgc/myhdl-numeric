@@ -317,7 +317,7 @@ def _writeModuleHeader(f, intf, needPck, lib, arch, useClauses, doc, numeric,
     print("use IEEE.std_logic_1164.all;", file=f)
     print("use IEEE.numeric_std.all;", file=f)
     if fixed:
-        print("use IEEE.math_utility_pkg.all;", file=f)
+        print("use IEEE.fixed_float_types.all;", file=f)
         print("use IEEE.fixed_pkg.all;", file=f)
     print("use std.textio.all;", file=f)
     print(file=f)
