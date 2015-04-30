@@ -711,7 +711,7 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
             elif isinstance(ori, vhd_std_logic):
                 pre, suf = "c_l2f(", ", %s, %s)" % (vhd.size[0], vhd.size[1])
             elif isinstance(ori, vhd_string):
-                pre, suf = "from_string(", ", %s, %s)" % \
+                pre, suf = "c_str2f(", ", %s, %s)" % \
                             (vhd.size[0], vhd.size[1])
             elif isinstance(ori, vhd_real):
                 pre, suf = "to_sfixed(", ", %s, %s)" % (vhd.size[0], vhd.size[1])
@@ -966,7 +966,7 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
                 elif isinstance(lhs.vhd, vhd_sfixed):
                     high = size[0]
                     low = size[1]
-                    self.write('resize(from_string(')
+                    self.write('resize(c_str2f(')
                     self.write('"%s"' % bin(n, high + 1))
                     self.write('), %s, %s);' % (high, low))
                 else:
@@ -1185,7 +1185,7 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
                 self.write('signed\'("%s")' % bin(n, node.vhd.size))
         elif isinstance(node.vhd, vhd_sfixed):
             if isinstance(n, integer_types):
-                self.write('resize(from_string("%s"), %s, %s)' % \
+                self.write('resize(c_str2f("%s"), %s, %s)' % \
                            (bin(n, node.vhd.size[0] + 1),
                             node.vhd.size[0],
                             node.vhd.size[1]))
@@ -1507,7 +1507,7 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
                         else:
                             s = 'signed\'("%s")' % bin(obj, node.vhd.size)
                     elif isinstance(node.vhd, vhd_sfixed):
-                        s = "from_string(%s, %s, %s)" % \
+                        s = "c_str2f(%s, %s, %s)" % \
                                 (bin(obj, node.vhd.size[0] -
                                      node.vhd.size[1] + 1),
                                  node.vhd.size[0], node.vhd.size[1])
@@ -1601,7 +1601,7 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
                     pre, post = "signed'(", ")"
                     c = '"%s"' % bin(c, node.vhd.size)
             elif isinstance(node.vhd, vhd_sfixed):
-                pre, post = "from_string(", ", %s, %s)" % \
+                pre, post = "c_str2f(", ", %s, %s)" % \
                         (node.vhd.size[0], node.vhd.size[1])
                 c = '"%s"' % bin(c, node.vhd.size[0] - node.vhd.size[1] + 1)
             self.write(pre)

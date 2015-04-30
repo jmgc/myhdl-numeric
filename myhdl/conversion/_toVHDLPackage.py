@@ -119,6 +119,11 @@ package pck_myhdl_%(version)s is
     function c_u2r (arg: unsigned) return real;
     
     function c_s2r (arg: signed) return real;
+
+    function c_str2f (value: std_logic_vector; high: integer; low: integer)
+            return sfixed;
+
+    function c_str2f (value: std_logic_vector) return sfixed;
 """
     result += """
 end pck_myhdl_%(version)s;
@@ -395,6 +400,19 @@ package body pck_myhdl_%(version)s is
     begin
         return to_real(to_sfixed(arg));
     end function c_s2r;
+
+    function c_str2f (value: std_logic_vector) return sfixed is
+    begin
+        return c_str2f(value, value'length - 1, 0);
+    end function c_str2f;
+
+    function c_str2f (value: std_logic_vector; high: integer; low: integer)
+            return sfixed is
+        variable result : sfixed (high downto low) ;
+    begin
+        result := sfixed(value);
+        return result;
+    end function c_str2f;
 """
     result += """
 end pck_myhdl_%(version)s;
