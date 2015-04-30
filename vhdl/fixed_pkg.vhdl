@@ -19,7 +19,7 @@ use STD.TEXTIO.all;
 library IEEE;
 use IEEE.STD_LOGIC_1164.all;
 use IEEE.NUMERIC_STD.all;
-use IEEE.math_utility_pkg.all;
+use IEEE.fixed_float_types.all;
 
 package fixed_pkg is
 -- generic (

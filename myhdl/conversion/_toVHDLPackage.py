@@ -32,7 +32,7 @@ use ieee.numeric_std.all;
 """
     if fixed:
         result += """
-use ieee.math_utility_pkg.all;
+use ieee.fixed_float_types.all;
 use ieee.fixed_pkg.all;
 """
     result += """ 
