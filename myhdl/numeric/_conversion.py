@@ -26,7 +26,8 @@ from ._sfixba import sfixba
 
 numeric_types = (bitarray, sintba, uintba, sfixba)
 
-numeric_functions_dict = {'scalb': sfixba.scalb,
+numeric_functions_dict = {'resize': bitarray.resize,
+                          'scalb': sfixba.scalb,
                           'floor': sfixba.floor,
                           }
 
