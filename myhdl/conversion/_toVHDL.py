@@ -1934,10 +1934,10 @@ def _convertInitVal(reg, init):
         vhd_tipe = tipe.toStr(False)
         high = tipe.size[0]
         low = tipe.size[1]
-        v = '%sfrom_string("%s", %s, %s)%s' % (pre,
-                                               bin(init,
-                                                   tipe.size[0] - tipe.size[1] + 1),
-                                                   high, low, suf)        
+        v = '%sc_str2f("%s", %s, %s)%s' % (pre,
+                                           bin(init,
+                                               tipe.size[0] - tipe.size[1] + 1),
+                                               high, low, suf)        
     else:
         assert isinstance(tipe, vhd_enum)
         v = init._toVHDL()
