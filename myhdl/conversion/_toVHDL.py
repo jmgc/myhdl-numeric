@@ -128,6 +128,8 @@ class _ToVHDLConvertor(object):
     def __call__(self, func, *args, **kwargs):
         global _converting
         if _converting:
+            if 'VHDLVersion' in kwargs:
+                kwargs.pop('VHDLVersion')
             return func(*args, **kwargs) # skip
         else:
             # clean start
@@ -144,6 +146,9 @@ class _ToVHDLConvertor(object):
         else:
             name = str(self.name)
         try:
+            version = None
+            if 'VHDLVersion' in kwargs:
+                version = kwargs.pop('VHDLVersion')
             h = _HierExtr(name, func, *args, **kwargs)
         finally:
             _converting = 0
@@ -228,7 +233,7 @@ class _ToVHDLConvertor(object):
                     break
         if pfile:
             _writeFileHeader(pfile, ppath)
-            print(_package(fixed_point), file=pfile)
+            print(_package(version, fixed_point), file=pfile)
             pfile.close()
 
         _writeFileHeader(vfile, vpath)

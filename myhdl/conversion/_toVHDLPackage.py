@@ -24,7 +24,7 @@ import myhdl
 _version = myhdl.__version__.replace('.','')
 _shortversion = _version.replace('dev','')
 
-def _package(fixed=False):
+def _package(version=None, fixed=False):
     result = """\
 library ieee;
 use ieee.std_logic_1164.all;
@@ -65,11 +65,14 @@ package pck_myhdl_%(version)s is
     function bool (arg: integer) return boolean;
 
     function "-" (arg: unsigned) return signed;
-    
+"""
+    if version == "93":
+        result += """
     function resize (arg: unsigned; size_res: unsigned) return unsigned;
     
     function resize (arg: signed; size_res: signed) return signed;
-
+"""
+    result += """
     function c_l2u (arg: std_logic; size: integer) return unsigned;
 
     function c_l2s (arg: std_logic; size: integer) return signed;
@@ -234,6 +237,9 @@ package body pck_myhdl_%(version)s is
         return - signed(resize(arg, arg'length+1));
     end function "-";
 
+"""
+    if version == "93":
+        result += """
     function resize (arg: unsigned; size_res: unsigned) return unsigned is
     begin
         return resize(arg, size_res'length);
@@ -243,7 +249,8 @@ package body pck_myhdl_%(version)s is
     begin
         return resize(arg, size_res'length);
     end function resize;
-
+"""
+    result += """
     function c_l2u (arg: std_logic; size: integer) return unsigned is
         variable result: unsigned((size - 1) downto 0);
     begin

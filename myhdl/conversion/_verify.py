@@ -23,9 +23,10 @@ _simulateCommands = {}
 _skiplinesMap = {}
 _skipcharsMap = {}
 _ignoreMap = {}
+_languageVersion = {}
 
 def registerSimulator(name=None, hdl=None, analyze=None, elaborate=None, simulate=None, 
-                      skiplines=None, skipchars=None, ignore=None):
+                      skiplines=None, skipchars=None, ignore=None, languageVersion=None):
     if not isinstance(name, str) or (name.strip() == ""):
         raise ValueError("Invalid simulator name")
     if hdl not in ("VHDL", "Verilog"):
@@ -46,13 +47,18 @@ def registerSimulator(name=None, hdl=None, analyze=None, elaborate=None, simulat
     _skiplinesMap[name] = skiplines
     _skipcharsMap[name] = skipchars
     _ignoreMap[name] = ignore
+    if hdl == "VHDL":
+        _languageVersion[name] = languageVersion
+    else:
+        _languageVersion[name] = None
 
 registerSimulator(
     name="GHDL",
     hdl="VHDL",
     analyze="ghdl -a --workdir=work pck_myhdl_%(version)s.vhd %(topname)s.vhd",
     elaborate="ghdl -e --workdir=work -o %(unitname)s %(topname)s",
-    simulate="ghdl -r --workdir=work %(unitname)s"
+    simulate="ghdl -r --workdir=work %(unitname)s",
+    languageVersion="93"
     )
 
 
@@ -73,7 +79,8 @@ registerSimulator(
     simulate='vsim work_vcom.%(topname)s -quiet -c -do "run -all; quit -f"',
     skiplines=6,
     skipchars=2,
-    ignore=("# **", "# //", "#    Time:", "# run -all")
+    ignore=("# **", "# //", "#    Time:", "# run -all"),
+    languageVersion="2008"
     )
 
 
@@ -125,6 +132,8 @@ class  _VerificationClass(object):
         ignore = _ignoreMap[hdlsim]
 
         if hdl == "VHDL":
+            if _languageVersion[hdlsim] is not None:
+                kwargs['VHDLVersion'] = _languageVersion[hdlsim]
             inst = toVHDL(func, *args, **kwargs)
         else:
             inst = toVerilog(func, *args, **kwargs)
