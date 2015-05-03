@@ -192,7 +192,7 @@ def binaryBench(l, r):
             print(">>: ", left, right, RightShift)
             print("+: ", left, right, Sum)
             print("-: ", left, right, Sub)
-            print("//: ", left, right, FloorDiv)
+            print("floor(/): ", left, right, FloorDiv)
             print("%: ", left, right, Modulo)
             print("*: ", left, right, Mul)
             print("==: ", left, right, int(EQ))
@@ -572,7 +572,7 @@ def augmBench(l, r):
             print(">>: ", left, right, RightShift)
             print("+: ", left, right, Sum)
             print("-: ", left, right, Sub)
-            print("//: ", left, right, FloorDiv)
+            print("floor(/): ", left, right, FloorDiv)
             print("%: ", left, right, Modulo)
             print("*: ", left, right, Mul)
 
