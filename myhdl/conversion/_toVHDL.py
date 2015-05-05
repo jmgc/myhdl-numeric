@@ -867,8 +867,9 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
         self.write("(")
         if not isinstance(node.op, ast.UAdd):
             self.write(opmap[type(node.op)])
+        self.write("(")
         self.visit(node.operand)
-        self.write(")")
+        self.write("))")
         self.write(suf)
 
     def visit_Attribute(self, node):
@@ -878,7 +879,7 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
             self.getAttr(node)
 
     def setAttr(self, node):
-        assert node.attr == 'next'
+        assert node.attr == 'next', ast.dump(node)
         self.SigAss = True
         if isinstance(node.value, ast.Name):
             sig = self.tree.symdict[node.value.id]
@@ -1614,7 +1615,7 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
             self.write(post)
             return
         pre, suf = self.inferCast(node.vhd, node.vhdOri)
-        if isinstance(node.value.vhd, vhd_signed) and isinstance(node.ctx, ast.Load):
+        if isinstance(node.value.vhd, (vhd_signed, vhd_sfixed)) and isinstance(node.ctx, ast.Load):
             pre = pre + "unsigned("
             suf = ")" + suf
         self.write(pre)
