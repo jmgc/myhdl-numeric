@@ -134,6 +134,8 @@ class  _VerificationClass(object):
         if hdl == "VHDL":
             if _languageVersion[hdlsim] is not None:
                 kwargs['VHDLVersion'] = _languageVersion[hdlsim]
+            else:
+                kwargs['VHDLVersion'] = "93"
             inst = toVHDL(func, *args, **kwargs)
         else:
             inst = toVerilog(func, *args, **kwargs)
@@ -151,7 +153,6 @@ class  _VerificationClass(object):
                 except:
                     pass
 
-        #print(analyze)
         ret = subprocess.call(analyze, shell=True)
         if ret != 0:
             print("Analysis failed", file=sys.stderr)

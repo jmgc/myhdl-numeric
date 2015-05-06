@@ -30,6 +30,11 @@ library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 """
+    if version == "93":
+        result += """
+use ieee.standard_additions.all;
+use ieee.numeric_std_additions.all;
+"""
     if fixed:
         result += """
 use ieee.fixed_float_types.all;
@@ -65,12 +70,6 @@ package pck_myhdl_%(version)s is
     function bool (arg: integer) return boolean;
 
     function "-" (arg: unsigned) return signed;
-"""
-    if version == "93":
-        result += """
-    function resize (arg: unsigned; size_res: unsigned) return unsigned;
-    
-    function resize (arg: signed; size_res: signed) return signed;
 """
     result += """
     function c_l2u (arg: std_logic; size: integer) return unsigned;
@@ -133,15 +132,6 @@ end pck_myhdl_%(version)s;
 
 
 package body pck_myhdl_%(version)s is
-
-    function max(left, right: integer) return integer is
-    begin
-        if left > right then
-            return left;
-        else
-            return right;
-        end if;
-    end;
 
     function stdl (arg: boolean) return std_logic is
     begin
@@ -238,18 +228,6 @@ package body pck_myhdl_%(version)s is
     end function "-";
 
 """
-    if version == "93":
-        result += """
-    function resize (arg: unsigned; size_res: unsigned) return unsigned is
-    begin
-        return resize(arg, size_res'length);
-    end function resize;
-
-    function resize (arg: signed; size_res: signed) return signed is
-    begin
-        return resize(arg, size_res'length);
-    end function resize;
-"""
     result += """
     function c_l2u (arg: std_logic; size: integer) return unsigned is
         variable result: unsigned((size - 1) downto 0);
@@ -260,7 +238,7 @@ package body pck_myhdl_%(version)s is
     end function c_l2u;
 
     function c_l2s (arg: std_logic; size: integer) return signed is
-        constant r_high: integer := max(size - 1, 1);
+        constant r_high: integer := maximum(size - 1, 1);
         variable result: signed(r_high downto 0);
     begin
         result := (others => '0');
@@ -308,22 +286,13 @@ package body pck_myhdl_%(version)s is
 """
     if fixed:
         result += """
-    function min(left, right: integer) return integer is
-    begin
-        if left < right then
-            return left;
-        else
-            return right;
-        end if;
-    end;
-
     function bool (arg: sfixed) return boolean is
     begin
         return arg /= 0;
     end function bool;
 
     function floor (arg: sfixed) return sfixed is
-        constant left_index:    integer := max(arg'left, 1); 
+        constant left_index:    integer := maximum(arg'left, 1); 
         variable result:    sfixed(left_index downto 0);
     begin
         result := resize(arg, result'left, result'right, fixed_overflow_style,
@@ -332,8 +301,8 @@ package body pck_myhdl_%(version)s is
     end function floor;
 
     function c_l2f (arg: std_logic; high: integer; low: integer) return sfixed is
-        constant r_high: integer := max(high, 1);
-        constant r_low: integer := min(low, 0);
+        constant r_high: integer := maximum(high, 1);
+        constant r_low: integer := minimum(low, 0);
         variable result: sfixed(r_high downto r_low);
     begin
         result := (others => '0');
@@ -342,7 +311,7 @@ package body pck_myhdl_%(version)s is
     end function c_l2f;
 
     function c_i2f (arg: integer; high: integer; low: integer) return sfixed is
-        variable tmp: sfixed(max(high, 1) downto 0);
+        variable tmp: sfixed(maximum(high, 1) downto 0);
     begin
         tmp := to_sfixed(arg, tmp'left, 0);
         return resize(tmp, high, low);

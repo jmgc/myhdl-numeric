@@ -146,7 +146,7 @@ class _ToVHDLConvertor(object):
         else:
             name = str(self.name)
         try:
-            version = None
+            version = "93"
             if 'VHDLVersion' in kwargs:
                 version = kwargs.pop('VHDLVersion')
             h = _HierExtr(name, func, *args, **kwargs)
@@ -240,7 +240,7 @@ class _ToVHDLConvertor(object):
         if needPck:
             _writeCustomPackage(vfile, intf)
         _writeModuleHeader(vfile, intf, needPck, lib, arch, useClauses, doc,
-                           numeric, fixed_point)
+                           numeric, version, fixed_point)
         _writeFuncDecls(vfile)
         _writeConstants(vfile)
         _writeTypeDefs(vfile)
@@ -317,10 +317,13 @@ def _writeCustomPackage(f, intf):
 
 
 def _writeModuleHeader(f, intf, needPck, lib, arch, useClauses, doc, numeric,
-                       fixed = False):
+                       version="93", fixed = False):
     print("library IEEE;", file=f)
     print("use IEEE.std_logic_1164.all;", file=f)
     print("use IEEE.numeric_std.all;", file=f)
+    if version == "93":
+        print("use IEEE.standard_additions.all;", file=f)
+        print("use IEEE.numeric_std_additions.all;", file=f)
     if fixed:
         print("use IEEE.fixed_float_types.all;", file=f)
         print("use IEEE.fixed_pkg.all;", file=f)
@@ -867,9 +870,8 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
         self.write("(")
         if not isinstance(node.op, ast.UAdd):
             self.write(opmap[type(node.op)])
-        self.write("(")
         self.visit(node.operand)
-        self.write("))")
+        self.write(")")
         self.write(suf)
 
     def visit_Attribute(self, node):
@@ -922,7 +924,10 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
             if node.attr in numeric_attributes_dict:
                 pre, suf = self.inferCast(node.vhd, node.vhdOri)
                 self.write(pre)
-                self.write("%s" % node.obj)
+                if node.obj < 0:
+                    self.write("(%s)" % node.obj)
+                else:
+                    self.write("%s" % node.obj)
                 self.write(suf)
         if isinstance(obj, EnumType):
             assert hasattr(obj, node.attr)
@@ -1557,9 +1562,9 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
                 if s.conv is int:
                     a.vhd = vhd_int()
                 else:
-                    if isinstance(a.vhdOri, vhd_vector):
-                        a.vhd = vhd_int()
-                    elif isinstance(a.vhdOri, vhd_std_logic):
+                    #if isinstance(a.vhdOri, vhd_vector):
+                    #    a.vhd = vhd_int()
+                    if isinstance(a.vhdOri, vhd_std_logic):
                         a.vhd = vhd_boolean()
                     elif isinstance(a.vhdOri, vhd_enum):
                         a.vhd = vhd_string()
