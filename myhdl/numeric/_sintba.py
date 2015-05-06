@@ -27,20 +27,14 @@ import warnings
 
 class sintba(bitarray):
     def __init__(self, *args, **kwargs):
-        value, high, low = self._get_arguments(*args, **kwargs)
+        if 'low' in kwargs:
+            if kwargs['low'] != 0:
+                raise TypeError("The low parameter must be 0 or None " \
+                                "{0}".format(low))
+        else:
+            kwargs['low'] = 0
 
-        if low is None:
-            if (high is not None):
-                low = getattr(high, 'low', 0)
-                high = getattr(high, 'high', high)
-            else:
-                low = 0
-
-        if low != 0:
-            raise TypeError("The low parameter must be 0 or None " \
-                            "{0}".format(low))
-
-        bitarray.__init__(self, value, high, low)
+        bitarray.__init__(self, *args, **kwargs)
 
     _signed = True
 
@@ -476,12 +470,9 @@ class sintba(bitarray):
         return self._val >= value
 
     # representation
-    def __str__(self):
-        return str(self._val)
-
     def __repr__(self):
         return type(self).__name__ + \
-                "({0}, high={1})".format(self._val, self._high)
+                "({0:x}, high={1})".format(self._val, self._high)
 
     def resize(*args):
         length = len(args)

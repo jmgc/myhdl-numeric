@@ -317,7 +317,6 @@ class sfixba(bitarray):
                               RuntimeWarning, stacklevel=2)
     
             self._resize(ba_value, self.overflow, self.rounding)
-            self._wrap()
         else:
             ba_value = self._convert_float(value)
             self._handle_limits(high, low, len(ba_value))
@@ -327,7 +326,7 @@ class sfixba(bitarray):
 #             self._high = high
 #             self._low = low
 
-            self._wrap()
+        self._wrap()
 
     def _convert_string(self, value):
         dec_point = False

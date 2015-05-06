@@ -590,7 +590,7 @@ class Test(unittest.TestCase):
                   'multi': True,
                   'unary': True,
                   }
-    sim = False
+    sim = True
 
     def vectors(self):
         self.lefts = (uintba(0, 8),
@@ -667,7 +667,10 @@ class Test(unittest.TestCase):
                 self.vectors()
                 for left in self.lefts:
                     for right in self.rights:
-                        self.assertEqual(conversion.verify(binaryBench, left, right), 0)
+                        self.assertEqual(conversion.verify(binaryBench,
+                                                           left, right), 0,
+                                         "Format: {0}, {1}".format(repr(left),
+                                                                   repr(right)))
 
     if select_test['division']:
         if sim:
@@ -685,7 +688,10 @@ class Test(unittest.TestCase):
                 self.div_vectors()
                 for left in self.lefts:
                     for right in self.rights:
-                        self.assertEqual(conversion.verify(divBench, left, right), 0)
+                        self.assertEqual(conversion.verify(divBench,
+                                                           left, right), 0,
+                                         "Format: {0}, {1}".format(repr(left),
+                                                                   repr(right)))
 
     if select_test['resize']:
         if sim:
@@ -704,7 +710,9 @@ class Test(unittest.TestCase):
                     for i in range(0, 8):
                         for j in range(delta, i - 1):
                             self.assertEqual(conversion.verify(resizeCheck,
-                                                               delta, i, j), 0)
+                                                               delta, i, j), 0,
+                                             "Format: {0}, {1}".format(delta,
+                                                                       i, j))
 
     if select_test['multi']:
         if sim:
@@ -725,7 +733,10 @@ class Test(unittest.TestCase):
                     for n in self.mv:
                         for p in self.pv:
                             self.assertEqual(conversion.verify(multiBench,
-                                                               m, n, p), 0)
+                                                               m, n, p), 0,
+                                             "Format: {0}, {1}".format(repr(m),
+                                                                       repr(n),
+                                                                       repr(p)))
  
     if select_test['unary']:
         if sim:
@@ -741,8 +752,8 @@ class Test(unittest.TestCase):
             def testUnaryVer(self):
                 self.vectors()
                 for m in self.lefts:
-                    self.assertEqual(conversion.verify(unaryBench, m), 0)
-
+                    self.assertEqual(conversion.verify(unaryBench, m), 0,
+                                     "Format: {0}, {1}".format(repr(m)))
 
 if __name__ == "__main__":
     unittest.main()

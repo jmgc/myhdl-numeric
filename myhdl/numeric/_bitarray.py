@@ -47,12 +47,14 @@ class bitarray(object):
             if value._val == 0:
                 self._zero(value, high, low)
             else:
+                if (value.is_signed is True) and (self.is_signed is False):
+                    value = value.unsigned()
+
                 self._from_bitarray(value, high, low)
         else:
             warnings.warn("bitarray constructor val should be int, string " \
                             "or bitarray child: {}".format(type(value)),
                           RuntimeWarning)
-        self._wrap()
 
     _signed = None
     
@@ -596,9 +598,9 @@ class bitarray(object):
 
     # representation
     def __str__(self):
-        length = self._high - self.low
+        length = self._high - self._low
         format_str = '{{:0{}b}}'.format(length)
-        result_str = format_str.format(self._val)
+        result_str = format_str.format(self._val & ((1 << length) - 1))
         return result_str
 
     def __repr__(self):
