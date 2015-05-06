@@ -599,7 +599,7 @@ class bitarray(object):
     # representation
     def __str__(self):
         length = self._high - self._low
-        format_str = '{{:0{}b}}'.format(length)
+        format_str = '{{0:0{0}b}}'.format(length)
         result_str = format_str.format(self._val & ((1 << length) - 1))
         return result_str
 
