@@ -29,6 +29,15 @@ elif [ "$CI_TARGET" == "icarus" ]; then
   run_test make -C myhdl/test/conversion/toVerilog
   run_test make -C "myhdl/test/bugs" icarus
 elif [ "$CI_TARGET" == "ghdl" ]; then
+  ghdl --dispconfig
+  sudo -E cp vhdl/fixed_pkg_c.vhdl vhdl/fixed_float_types_c.vhdl vhdl/numeric_std_additions.vhdl vhdl/standard_additions_c.vhdl /usr/lib/ghdl/lib/gcc/x86_64-linux-gnu/4.8/vhdl/src/ieee/.
+  MYHDL_WORK_DIR=`pwd`
+  cd /usr/lib/ghdl/lib/gcc/x86_64-linux-gnu/4.8/vhdl/lib/v93/ieee
+  sudo -E ghdl -a --ieee=none --std=93 -P../std --work=ieee ../../../src/ieee/standard_additions_c.vhdl
+  sudo -E ghdl -a --ieee=none --std=93 -P../std --work=ieee ../../../src/ieee/fixed_float_types_c.vhdl
+  sudo -E ghdl -a --ieee=none --std=93 -P../std --work=ieee ../../../src/ieee/fixed_pkg_c.vhdl
+  sudo -E ghdl -a --ieee=none --std=93 -P../std --work=ieee ../../../src/ieee/numeric_std_additions.vhdl
+  cd $MYHDL_WORK_DIR
   run_test make -C "myhdl/test/conversion/general" GHDL
   run_test make -C myhdl/test/conversion/toVHDL GHDL
   run_test make -C "myhdl/test/bugs" GHDL
