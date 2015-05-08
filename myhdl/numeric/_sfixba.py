@@ -228,15 +228,18 @@ class sfixba(bitarray):
 
         self._handle_limits(high, low, length)
 
-        self_length = self._high - self._low
-
-        if (abs(val) >> self._high != 0):
-            warnings.warn("Truncated int number {0}, " \
-                          "length: {1}".format(value, self._high),
-                          RuntimeWarning, stacklevel=2)
-        value = bitarray(val, length, 0)
-        self._resize(value)
-        self._wrap()
+        if self._high >= 0:
+            self_length = self._high - self._low
+    
+            if (abs(val) >> self._high != 0):
+                warnings.warn("Truncated int number {0}, " \
+                              "length: {1}".format(value, self._high),
+                              RuntimeWarning, stacklevel=2)
+            value = bitarray(val, length, 0)
+            self._resize(value)
+            self._wrap()
+        else:
+            self._val = 0
 
     def _convert_float_limits(self, arg, high, low,
                               overflow_style=None,
