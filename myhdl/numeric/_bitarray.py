@@ -158,6 +158,9 @@ class bitarray(object):
         else:
             self._val = val
 
+        if type(self)._signed:
+            length += 1  # Add the sign bit
+
         self._handle_limits(high, low, length)
 
         self_length = self._high - self._low

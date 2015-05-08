@@ -44,30 +44,6 @@ class sintba(bitarray):
     def signed(self):
         return copy(self)
 
-    def _from_int(self, value, high, low=0):
-        val = long(value)
-
-        length = bit_length(val)
-
-        if length == 0:
-            self._val = long(0)
-            length = 1
-        else:
-            self._val = long(val)
-
-        length += 1  # Add the sign bit
-
-        self._handle_limits(high, low, length)
-
-        self_length = self._high - self._low
-        
-        if (abs(self._val) >> self_length != 0):
-            warnings.warn("Integer truncated: val, len = " \
-                          "{0}, {1}". format(self._val, len(self)),
-                          RuntimeWarning)
-
-        self._wrap()
-
     def _get_max(self):
         return (long(1) << (self._high - self._low - 1))
 
