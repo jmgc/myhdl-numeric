@@ -52,9 +52,8 @@ class bitarray(object):
 
                 self._from_bitarray(value, high, low)
         else:
-            warnings.warn("bitarray constructor val should be int, string " \
-                            "or bitarray child: {}".format(type(value)),
-                          RuntimeWarning)
+            raise TypeError("bitarray constructor val should be int, string " \
+                            "or bitarray child: {}".format(type(value)))
 
     _signed = None
     
@@ -158,7 +157,7 @@ class bitarray(object):
         else:
             self._val = val
 
-        if type(self)._signed:
+        if self._signed:
             length += 1  # Add the sign bit
 
         self._handle_limits(high, low, length)
@@ -180,7 +179,7 @@ class bitarray(object):
         else:
             self._handle_limits(high, low, ba_length)
 
-        if (self._high != value._high) or (self._low != value._low):
+        if (self._high != value.high) or (self._low != value.low):
             if type(self) == type(value):
                 self._resize(value)
             else:
@@ -456,8 +455,8 @@ class bitarray(object):
 
     def __and__(self, other):
         if isinstance(other, bitarray):
-            high = max(self._high, other._high)
-            low = min(self._low, other._low)
+            high = max(self._high, other.high)
+            low = min(self._low, other.low)
             try:
                 left = self.signed().resize(high + 1, low)
                 result = type(self)(0, high, low)
@@ -474,8 +473,8 @@ class bitarray(object):
 
     def __or__(self, other):
         if isinstance(other, bitarray):
-            high = max(self._high, other._high)
-            low = min(self._low, other._low)
+            high = max(self._high, other.high)
+            low = min(self._low, other.low)
             try:
                 left = self.signed().resize(high + 1, low)
                 result = type(self)(0, high, low)
@@ -492,8 +491,8 @@ class bitarray(object):
 
     def __xor__(self, other):
         if isinstance(other, bitarray):
-            high = max(self._high, other._high)
-            low = min(self._low, other._low)
+            high = max(self._high, other.high)
+            low = min(self._low, other.low)
             try:
                 left = self.signed().resize(high + 1, low)
                 result = type(self)(0, high, low)
