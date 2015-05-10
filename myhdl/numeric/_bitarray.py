@@ -57,9 +57,9 @@ class bitarray(object):
 
     _signed = None
     
-    def _is_signed(self):
+    @property
+    def is_signed(self):
         return self._signed
-    is_signed = property(_is_signed, None)
     
     @staticmethod
     def _get_arguments(*args, **kwargs):
@@ -229,19 +229,22 @@ class bitarray(object):
         mask = (1 << length) - 1
         self._val &= mask
 
-    def _get_nrbits(self):
+    @property
+    def _nrbits(self):
         return self._high - self._low
-    _nrbits = property(_get_nrbits, None)
 
+    # support for the 'val' attribute
+    @property
+    def val(self):
+        return copy(self)
     # support for the 'high' and 'low' attributes
-
-    def _get_high(self):
+    @property
+    def high(self):
         return self._high
-    high = property(_get_high, None)
 
-    def _get_low(self):
+    @property
+    def low(self):
         return self._low
-    low = property(_get_low, None)
 
     def _get_max(self):
         raise TypeError(type(self).__name__ + " does not have a max value")
@@ -387,7 +390,14 @@ class bitarray(object):
                                                          i, j, self._low))
 
             if not isinstance(val, bitarray):
-                data = bitarray(val, i - j, 0)
+                if hasattr(val, 'val'):
+                    tmp = val.val
+                    if isinstance(tmp, bitarray):
+                        data = tmp
+                    else:
+                        data = bitarray(tmp, i - j, 0)
+                else:
+                    data = bitarray(val, i - j, 0)
             else:
                 data = val
             

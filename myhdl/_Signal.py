@@ -224,8 +224,6 @@ class _Signal(object):
     # support for the 'next' attribute
     @property
     def next(self):
-#        if self._next is self._val:
-#            self._next = deepcopy(self._val)
         _simulator._siglist.append(self)
         return self._next
 
@@ -256,12 +254,13 @@ class _Signal(object):
         return self._min
 
     # support for the 'high' and 'low' attribute
-    def _get_high(self):
+    @property
+    def high(self):
         return self._high
-    high = property(_get_high, None)
-    def _get_low(self):
+
+    @property
+    def low(self):
         return self._low
-    low = property(_get_low, None)
 
     # support for the 'driven' attribute
     @property
