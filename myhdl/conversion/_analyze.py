@@ -660,7 +660,7 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
             self.kind = _kind.NORMAL
             n = target.id
             if n in self.tree.sigdict:
-                self.raiseError(node, _error.ShadowingVar)
+                self.raiseError(node, _error.ShadowingVar, n)
             obj = self.getObj(value)
             if obj is None:
                 obj = self.getValue(value)
@@ -1178,7 +1178,12 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
         elif _isMem(node.value.obj):
             node.obj = node.value.obj[0]
         elif isinstance(node.value.obj, _Rom):
-            node.obj = int(-1)
+            for value in node.value.obj.rom:
+                if value < 0:
+                    node.obj = int(-1)
+                    break
+            else:
+                node.obj = int(1)
         elif isinstance(node.value.obj, (intbv, bitarray)):
             node.obj = bool()
         else:
