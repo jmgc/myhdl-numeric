@@ -168,7 +168,7 @@ def enum(*names, **kwargs):
             str += "\n    );"
             if self._encoding is not None:
                 codes = " ".join([self._codedict[name] for name in self._names])
-                str += '\n    attribute enum_encoding of %s: type is "%s";' % (typename, codes)
+                str += '\nattribute enum_encoding of %s: type is "%s";' % (typename, codes)
             return str
 
     return Enum(names, codedict, nrbits, encoding)
