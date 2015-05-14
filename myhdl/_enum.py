@@ -163,12 +163,12 @@ def enum(*names, **kwargs):
 
         def _toVHDL(self):
             typename =  self.__dict__['_name']
-            str = "type %s is (\n    " % typename
-            str += ",\n    ".join(self._names)         
-            str += "\n);"
+            str = "type %s is (\n        " % typename
+            str += ",\n        ".join(self._names)         
+            str += "\n    );"
             if self._encoding is not None:
                 codes = " ".join([self._codedict[name] for name in self._names])
-                str += '\nattribute enum_encoding of %s: type is "%s";' % (typename, codes)
+                str += '\n    attribute enum_encoding of %s: type is "%s";' % (typename, codes)
             return str
 
     return Enum(names, codedict, nrbits, encoding)
