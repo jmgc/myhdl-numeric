@@ -310,7 +310,7 @@ def _writeCustomPackage(f, intf):
     sortedList = list(_enumPortTypeSet)
     sortedList.sort(key=lambda x: x._name)
     for t in sortedList:
-        print("    %s" % t._toVHDL(), file=f)
+        print("%s" % t._toVHDL(), file=f)
     print(file=f)
     print("end package pck_%s;" % intf.name, file=f)
     print(file=f)
