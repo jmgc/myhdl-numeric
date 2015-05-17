@@ -2973,6 +2973,8 @@ class _AnnotateTypesVisitor(ast.NodeVisitor, _ConversionMixin):
         node.vhd = vhd_boolean()
         self.generic_visit(node)
         left, op, right = node.left, node.ops[0], node.comparators[0]
+        if left.vhd is None:
+            print(ast.dump(node))
         if isinstance(left.vhd, vhd_sfixed):
             if isinstance(right.vhd, vhd_signed):
                 right.vhd = vhd_sfixed((right.vhd.size - 1, 0))
