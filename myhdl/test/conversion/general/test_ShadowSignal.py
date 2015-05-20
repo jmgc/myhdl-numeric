@@ -1,5 +1,6 @@
 from __future__ import absolute_import, print_function
 from myhdl import *
+from conftest import bug
 
 def bench_SliceSignal():
     
@@ -16,10 +17,10 @@ def bench_SliceSignal():
             print(int(a))
             print(int(b))
             print(int(c))
-            print(d)
-            print(e)
-            print(f)
-            print(g)
+            print(int(d))
+            print(int(e))
+            print(int(f))
+            print(int(g))
 
     return check
 
@@ -52,7 +53,7 @@ def bench_ConcatSignal():
                         c.next = k
                         d.next = m
                         yield delay(10)
-                        print(s)
+                        print(int(s))
 
     return check
 
@@ -94,6 +95,7 @@ def bench_TristateSignal():
     return check
 
 
+@bug('VHDL_print', 'vhdl')
 def test_TristateSignal():
     assert conversion.verify(bench_TristateSignal) == 0
 
