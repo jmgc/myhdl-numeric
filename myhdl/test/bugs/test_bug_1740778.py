@@ -26,7 +26,7 @@ def bug_1740778 ():
         yield delay(10)
         print(v.min)
         print(v.max)
-        print(s.val)
+        print(int(s.val))
         print(s.min)
         print(s.max)
         

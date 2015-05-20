@@ -13,7 +13,7 @@ def dut():
         count.next = 50
         for i in range(300):
             yield delay(10)
-            print(count)
+            print(int(count))
             if count-1 < 0:
                count.next = 97
             else:
