@@ -13,29 +13,29 @@ from myhdl import *
 
 from conftest import bug
 
-class Intf1:
+class Intf1(object):
     def __init__(self, x):
         self.x = Signal(intbv(0, min=x.min, max=x.max))
 
-class Intf2:
+class Intf2(object):
     def __init__(self, y):
         self.y = Signal(intbv(0, min=y.min, max=y.max))
 
-class ZBus:
+class ZBus(object):
     def __init__(self, z):
         self.z = Signal(intbv(0, min=z.min, max=z.max))
 
-class Intf3:
+class Intf3(object):
     def __init__(self, z):
         self.z = ZBus(z)
 
 
-class IntfWithConstant1:
+class IntfWithConstant1(object):
     def __init__(self):
         self.const1 = 707
         self.const2 = 3
 
-class IntfWithConstant2:
+class IntfWithConstant2(object):
     def __init__(self):
         self.a = 9
         self.b = 10
