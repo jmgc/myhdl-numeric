@@ -167,11 +167,11 @@ def DecBench(dec):
     def check():
         yield reset.negedge
         yield reset.posedge
-        print(count)
+        print(int(count))
         while 1:
             yield clock.posedge
             yield delay(1)
-            print(count)
+            print(int(count))
 
     dec_inst = dec(count, enable, clock, reset, n=n)
 

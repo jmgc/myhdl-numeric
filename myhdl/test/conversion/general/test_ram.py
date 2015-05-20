@@ -118,7 +118,7 @@ def RamBench(ram, depth=128):
             yield clk.posedge
             yield delay(1)
             assert dout == i
-            print(dout)
+            print(int(dout))
         raise StopSimulation()
 
     @instance

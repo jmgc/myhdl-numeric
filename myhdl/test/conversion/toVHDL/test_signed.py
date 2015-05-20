@@ -165,24 +165,24 @@ def binaryBench(Ll, Ml, Lr, Mr):
 ##                 self.assertEqual(Bitor, Bitor_v)
 ##                 self.assertEqual(Bitxor, Bitxor_v)
 ## ##                 self.assertEqual(FloorDiv, FloorDiv_v)
-            print(left, "<<", right, "=", LeftShift)
+            print(int(left), "<<", int(right), "=", int(LeftShift))
             # print Modulo
-            print(left, "*", right, "=", Mul)
+            print(int(left), "*", int(right), "=", int(Mul))
                 # self.assertEqual(Pow, Pow_v)
-            print(left, ">>", right, "=", RightShift)
-            print(left, "-", right, "=", Sub)
-            print(left, "+(0)", right, "=", Sum)
-            print(left, "+(1)", right, "=", Sum1)
-            print(left, "+(2)", right, "=", Sum2)
-            print(left, "+(3)", right, "=", Sum3)
-            print(left, "==", right, "=", int(EQ))
-            print(left, "!=", right, "=", int(NE))
-            print(left, "<", right, "=", int(LT))
-            print(left, ">", right, "=", int(GT))
-            print(left, "<=", right, "=", int(LE))
-            print(left, ">=", right, "=", int(GE))
-            print(left, "and", right, "=", int(BoolAnd))
-            print(left, "or", right, "=", int(BoolOr))
+            print(int(left), ">>", int(right), "=", int(RightShift))
+            print(int(left), "-", int(right), "=", int(Sub))
+            print(int(left), "+(0)", int(right), "=", int(Sum))
+            print(int(left), "+(1)", int(right), "=", int(Sum1))
+            print(int(left), "+(2)", int(right), "=", int(Sum2))
+            print(int(left), "+(3)", int(right), "=", int(Sum3))
+            print(int(left), "==", int(right), "=", int(EQ))
+            print(int(left), "!=", int(right), "=", int(NE))
+            print(int(left), "<", int(right), "=", int(LT))
+            print(int(left), ">", int(right), "=", int(GT))
+            print(int(left), "<=", int(right), "=", int(LE))
+            print(int(left), ">=", int(right), "=", int(GE))
+            print(int(left), "and", int(right), "=", int(BoolAnd))
+            print(int(left), "or", int(right), "=", int(BoolOr))
 
     return binops, stimulus, check
     
@@ -257,9 +257,9 @@ def unaryBench( m):
             yield arg
             yield delay(1)
             # print BoolNot
-            print(Invert)
+            print(int(Invert))
             # print UnaryAdd
-            print(UnarySub)
+            print(int(UnarySub))
   
                                
     return unaryops, stimulus, check
@@ -401,12 +401,12 @@ def augmBench( Ll, Ml, Lr, Mr):
 ##                 self.assertEqual(Bitor, Bitor_v)
 ##                 self.assertEqual(Bitxor, Bitxor_v)
 ##                 self.assertEqual(FloorDiv, FloorDiv_v)
-            print(LeftShift)
+            print(int(LeftShift))
 ##                 self.assertEqual(Modulo, Modulo_v)
-            print(Mul)
-            print(RightShift)
-            print(Sub)
-            print(Sum)
+            print(int(Mul))
+            print(int(RightShift))
+            print(int(Sub))
+            print(int(Sum))
   
     return augmops,  stimulus, check
       

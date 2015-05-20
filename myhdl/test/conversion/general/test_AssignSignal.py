@@ -21,7 +21,7 @@ def bench_AssignSignal():
             a.next = not a
             yield delay(10)
             print(int(p))
-            print(q)
+            print(int(q))
 
     return stimulus
 

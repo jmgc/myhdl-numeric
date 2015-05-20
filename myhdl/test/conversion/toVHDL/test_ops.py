@@ -147,19 +147,19 @@ def binaryBench(m, n):
             yield left, right
             yield delay(1)
 
-            print(Bitand)
-            print(Bitor)
-            print(Bitxor)
-            print(FloorDiv)
-            print(LeftShift)
+            print(int(Bitand))
+            print(int(Bitor))
+            print(int(Bitxor))
+            print(int(FloorDiv))
+            print(int(LeftShift))
 
             # print Pow, Pow_v
 
-            print(Modulo)
-            print(RightShift)
-            print(Mul)
-            print(Sub)
-            print(Sum)
+            print(int(Modulo))
+            print(int(RightShift))
+            print(int(Mul))
+            print(int(Sub))
+            print(int(Sum))
             print(int(EQ))
             print(int(NE))
             print(int(LT))
@@ -252,9 +252,9 @@ def multiBench(m, n, p):
             yield argm, argn, argp
             yield delay(1)
 
-            print(Bitand)
-            print(Bitor)
-            print(Bitxor)
+            print(int(Bitand))
+            print(int(Bitor))
+            print(int(Bitxor))
             print(int(Booland))
             print(int(Boolor))
 
@@ -315,7 +315,7 @@ def unaryBench(m):
             yield arg
             yield delay(1)
             print(int(Not_kw))
-            print(Invert)
+            print(int(Invert))
             # check unary operator support in vhdl
             # print UnaryAdd
             # print UnarySub
@@ -448,17 +448,17 @@ def augmBench(m, n):
         while True:
             yield left, right
             yield delay(1)
-            print(left, right)
-            print(Bitand)
-            print(Bitor)
-            print(Bitxor)
-            print(Sub)
-            print(Sum)
-            print(FloorDiv)
-            print(LeftShift)
-            print(Modulo)
-            print(Mul)
-            print(RightShift)
+            print(int(left), int(right))
+            print(int(Bitand))
+            print(int(Bitor))
+            print(int(Bitxor))
+            print(int(Sub))
+            print(int(Sum))
+            print(int(FloorDiv))
+            print(int(LeftShift))
+            print(int(Modulo))
+            print(int(Mul))
+            print(int(RightShift))
             
     return augmops, stimulus, check
 

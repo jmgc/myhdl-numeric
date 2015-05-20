@@ -33,7 +33,7 @@ def intbv2list():
             a.next = i
             yield delay(10)
             assert z == a
-            print(a)
+            print(int(a))
         raise StopSimulation
 
     return extract, assemble, stimulus
@@ -187,7 +187,7 @@ def processlist(case, inv):
             a.next = i
             yield delay(10)
             assert z == ~a
-            print(z)
+            print(int(z))
         raise StopSimulation
 
     return case_inst, stimulus

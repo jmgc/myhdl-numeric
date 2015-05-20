@@ -22,11 +22,11 @@ def PrintBench():
         si2.next = -5
         yield delay(10)
         print('')
-        print(i1)
-        print(i2)
-        print("%d %d" % (i1, i2))
-        print(si1)
-        print(si2)
+        print(int(i1))
+        print(int(i2))
+        print("%d %d" % (int(i1), int(i2)))
+        print(int(si1))
+        print(int(si2))
         
         yield delay(10)
         print("This is a test")
@@ -36,12 +36,14 @@ def PrintBench():
         print(int(sb))
         
         yield delay(10)
-        print("i1 is %s" % i1)
+        print("i1 is %s" % int(i1))
         
         yield delay(10)
-        print("i1 is %s, i2 is %s" % (i1, i2))
-        print("i1 %s i2 %s b %s si1 %s si2 %s" % (i1, i2, b, si1, si2))
-        print("i1 %d i2 %d b %d si1 %d si2 %d" % (i1, i2, b, si1, si2))
+        print("i1 is %s, i2 is %s" % (int(i1), int(i2)))
+        print("i1 %s i2 %s b %s si1 %s si2 %s" %
+              (int(i1), int(i2), b, int(si1), int(si2)))
+        print("i1 %d i2 %d b %d si1 %d si2 %d" %
+              (int(i1), int(i2), b, int(si1), int(si2)))
         print(b)
         #print "%% %s" % i1
         
@@ -49,7 +51,7 @@ def PrintBench():
         print(state)
         print("the state is %s" % state)
         print("the state is %s" % (state,))
-        print("i1 is %s and the state is %s" % (i1, state))
+        print("i1 is %s and the state is %s" % (int(i1), state))
 
         # ord test
         yield delay(10)
@@ -58,10 +60,10 @@ def PrintBench():
 
         # signed
         yield delay(10)
-        print(i1.signed())
-        print(i2.signed())
-        print(si1.signed())
-        print(si2.signed())
+        print(int(i1.signed()))
+        print(int(i2.signed()))
+        print(int(si1.signed()))
+        print(int(si2.signed()))
 
     return logic
 

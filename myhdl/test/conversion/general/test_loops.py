@@ -292,7 +292,7 @@ def LoopBench(LoopTest):
         for i in range(100):
             a.next = data[i]
             yield delay(10)
-            print(z)
+            print(int(z))
 
     return stimulus, looptest_inst
 

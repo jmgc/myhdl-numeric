@@ -158,7 +158,7 @@ def IncBench(inc):
         yield clock.negedge
         while True:
             yield clock.negedge
-            print(count)
+            print(int(count))
 
     return inc_inst, clockgen, monitor
 
