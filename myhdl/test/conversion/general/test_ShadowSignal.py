@@ -79,15 +79,15 @@ def bench_TristateSignal():
         #print s
         a.next = 1
         yield delay(10)
-        print(s)
+        print(int(s))
         a.next = None
         b.next = 122
         yield delay(10)
-        print(s)
+        print(int(s))
         b.next = None
         c.next = 233
         yield delay(10)
-        print(s)
+        print(int(s))
         c.next = None
         yield delay(10)
         #print s
@@ -95,7 +95,6 @@ def bench_TristateSignal():
     return check
 
 
-@bug('VHDL_print', 'vhdl')
 def test_TristateSignal():
     assert conversion.verify(bench_TristateSignal) == 0
 
