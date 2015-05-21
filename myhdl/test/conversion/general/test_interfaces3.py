@@ -189,7 +189,7 @@ def test_three_analyze():
     analyze(m_top_const, clock, reset, x, y, intf)
 
 #revert pull #64
-@bug('33', 'vhdl')
+#@bug('33', 'vhdl')
 def test_three_verify():
     assert verify(c_testbench_three) == 0
 

@@ -1457,7 +1457,10 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
             else:
                 s = "True"
         elif n == 'None':
-            s = "(others => 'Z')"
+            if not isinstance(node.vhd.size, tuple) and (node.vhd.size == 1):
+                s = "'Z'"
+            else:
+                s = "(others => 'Z')"
         elif n in self.tree.vardict:
             s = n
             obj = self.tree.vardict[n]
