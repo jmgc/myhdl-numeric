@@ -777,7 +777,7 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
             if f.__code__.co_freevars:
                 for n, c in zip(f.__code__.co_freevars, f.__closure__):
                     obj = _cell_deref(c)
-                    if not  isinstance(obj, (integer_types, _Signal)):
+                    if not  isinstance(obj, (integer_types, float, _Signal)):
                         self.raiseError(node, _error.FreeVarTypeError, n)
                     tree.symdict[n] = obj
             v = _FirstPassVisitor(tree)
@@ -1050,6 +1050,11 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
                 node.value = node.obj
                 # put VHDL compliant integer constants in global dict
                 if n not in _constDict and abs(node.obj) < 2**31:
+                    _constDict[n] = node.obj
+            elif isinstance(node.obj, float):
+                node.value = node.obj
+                # put VHDL compliant float constants in global dict
+                if n not in _constDict:
                     _constDict[n] = node.obj
             if n in self.tree.nonlocaldict:
                 # hack: put nonlocal intbv's in the vardict

@@ -388,19 +388,22 @@ def _writeConstants(f):
         if c in _extConstDict:
             continue
         v = _constDict[c]
-        s = str(int(v))
-        sign = ''
-        if v < 0:
-            sign = '-'
-        for i in range(4, 31):
-            if abs(v) == 2**i:
-                s = "%s2**%s" % (sign, i)
-                break
-            if abs(v) == 2**i-1:
-                s = "%s2**%s-1" % (sign, i)
-                break
-        v = _constDict[c]
-        f.write("constant %s: integer := %s;\n" % (c, s))
+        if isinstance(v, integer_types):
+            s = str(int(v))
+            sign = ''
+            if v < 0:
+                sign = '-'
+            for i in range(4, 31):
+                if abs(v) == 2**i:
+                    s = "%s2**%s" % (sign, i)
+                    break
+                if abs(v) == 2**i-1:
+                    s = "%s2**%s-1" % (sign, i)
+                    break
+            f.write("constant %s: integer := %s;\n" % (c, s))
+        elif isinstance(v, float):
+            s = str(float(v))
+            f.write("constant %s: real := %s;\n" % (c, s))
     f.write("\n")
 
 def _writeTypeDefs(f):
@@ -1501,8 +1504,8 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
                         s = "to_signed(%s, %s)" % (n, node.vhd.size)
                     elif isinstance(node.vhd, vhd_sfixed):
                         s = 'resize(to_sfixed("%s", %s, 0), %s, %s)' % \
-                                    (n, vhd.size[0],
-                                     vhd.size[0], vhd.size[1])
+                                    (n, node.vhd.size[0],
+                                     node.vhd.size[0], node.vhd.size[1])
                 else:
                     if isinstance(node.vhd, vhd_int):
                         s = self.IntRepr(obj)
@@ -1525,6 +1528,19 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
                                 (bin(obj, node.vhd.size[0] -
                                      node.vhd.size[1] + 1),
                                  node.vhd.size[0], node.vhd.size[1])
+            elif isinstance(obj, float):
+                if n in _constDict and obj == _constDict[n]:
+                    if isinstance(node.vhd, vhd_real):
+                        s = n
+                    elif isinstance(node.vhd, vhd_sfixed):
+                        s = "to_sfixed(%s, %s, %s)" % (n, node.vhd.size[0],
+                                                       node.vhd.size[1])
+                else:
+                    if isinstance(node.vhd, vhd_real):
+                        s = self.RealRepr(obj)
+                    elif isinstance(node.vhd, vhd_sfixed):
+                        s = "to_sfixed(%s, %s, %s)" % (n, node.vhd.size[0],
+                                                       node.vhd.size[1])
             elif isinstance(obj, _Signal):
                 s = str(obj)
                 ori = inferVhdlObj(obj)
