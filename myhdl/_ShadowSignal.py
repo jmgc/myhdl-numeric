@@ -26,10 +26,12 @@ from __future__ import absolute_import
 import warnings
 from copy import deepcopy
 
+from myhdl._compat import long
 from myhdl._Signal import _Signal
 from myhdl._Waiter import _SignalWaiter, _SignalTupleWaiter
 from myhdl._intbv import intbv
 from myhdl._simulator import _simulator
+from myhdl._bin import bin
 
 # shadow signals
         
@@ -119,21 +121,39 @@ class _SliceSignal(_ShadowSignal):
 
 class ConcatSignal(_ShadowSignal):
 
-    __slots__ = ('_args',)
+    __slots__ = ('_args', '_sigargs', '_initval')
 
     def __init__(self, *args):
         assert len(args) >= 2
         self._args = args
-        ### XXX error checks
+        self._sigargs = sigargs = []
+
         nrbits = 0
+        val = 0
         for a in args:
-            nrbits += len(a)
-        ini = intbv(0)[nrbits:]
-        hi = nrbits
-        for a in args:
-            lo = hi - len(a)
-            ini[hi:lo] = a
-            hi = lo
+            if isinstance(a, intbv):
+                w = a._nrbits
+                v = a._val
+            elif isinstance(a, _Signal):
+                sigargs.append(a)
+                w = a._nrbits
+                if isinstance(a._val, intbv):
+                    v = a._val._val
+                else:
+                    v = a._val
+            elif isinstance(a, bool):
+                w = 1
+                v = a 
+            elif isinstance(a, str):
+                w = len(a)
+                v = long(a, 2)
+            else:
+                raise TypeError("ConcatSignal: inappropriate argument type: %s" \
+                                % type(a))
+            nrbits += w
+            val = val << w | v & (long(1) << w)-1
+        self._initval = val
+        ini = intbv(val)[nrbits:]
         _ShadowSignal.__init__(self, ini)
         gen = self.genfunc()
         self._waiter = _SignalTupleWaiter(gen)
@@ -141,48 +161,76 @@ class ConcatSignal(_ShadowSignal):
     def genfunc(self):
         set_next = _Signal.next.fset
         args = self._args
+        sigargs = self._sigargs
         nrbits = self._nrbits
-        newval = intbv(0)[nrbits:]
+        newval = intbv(self._initval)[nrbits:]
         while 1:
             hi = nrbits
             for a in args:
-                lo = hi - len(a)
-                newval[hi:lo] = a
+                if isinstance(a, bool):
+                    w = 1
+                else:
+                    w = len(a)
+                lo = hi - w
+                if a in sigargs:
+                    newval[hi:lo] = a
                 hi = lo
             set_next(self, newval)
-            yield args
+            yield sigargs
 
     def _markRead(self):
         self._read = True
-        for s in self._args:
+        for s in self._sigargs:
             s._markRead() 
 
     def _markUsed(self):
         self._used = True
-        for s in self._args:
+        for s in self._sigargs:
             s._markUsed() 
 
     def toVHDL(self):
         lines = []
+        ini = intbv(self._initval)[self._nrbits:]
         hi = self._nrbits
         for a in self._args:
-            lo = hi - len(a)
-            if len(a) == 1:
-                lines.append("%s(%s) <= %s;" % (self._name, lo, a._name))
+            if isinstance(a, bool):
+                w = 1
             else:
-                lines.append("%s(%s-1 downto %s) <= %s;" % (self._name, hi, lo, a._name))
+                w = len(a)
+            lo = hi - w
+            if w == 1:
+                if isinstance(a, _Signal): 
+                     lines.append("%s(%s) <= %s;" % (self._name, lo, a._name))
+                else:
+                     lines.append("%s(%s) <= '%s';" % (self._name, lo, bin(ini[lo])))
+            else:
+                if isinstance(a, _Signal): 
+                    lines.append("%s(%s-1 downto %s) <= %s;" % (self._name, hi, lo, a._name))
+                else:
+                    lines.append('%s(%s-1 downto %s) <= "%s";' % (self._name, hi, lo, bin(ini[hi:lo],w)))
             hi = lo
         return "\n".join(lines)
 
     def toVerilog(self):
         lines = []
+        ini = intbv(self._initval)[self._nrbits:]
         hi = self._nrbits
         for a in self._args:
-            lo = hi - len(a)
-            if len(a) == 1:
-                lines.append("assign %s[%s] = %s;" % (self._name, lo, a._name))
+            if isinstance(a, bool):
+                w = 1
             else:
-                lines.append("assign %s[%s-1:%s] = %s;" % (self._name, hi, lo, a._name))
+                w = len(a)
+            lo = hi - w 
+            if w == 1:
+                if isinstance(a, _Signal): 
+                    lines.append("assign %s[%s] = %s;" % (self._name, lo, a._name))
+                else:
+                    lines.append("assign %s[%s] = 'b%s;" % (self._name, lo, bin(ini[lo])))
+            else:
+                if isinstance(a, _Signal): 
+                    lines.append("assign %s[%s-1:%s] = %s;" % (self._name, hi, lo, a._name))
+                else:
+                    lines.append("assign %s[%s-1:%s] = 'b%s;" % (self._name, hi, lo, bin(ini[hi:lo],w)))
             hi = lo
         return "\n".join(lines)
 
