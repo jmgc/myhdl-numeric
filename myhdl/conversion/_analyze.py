@@ -732,10 +732,15 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
         elif f is bool:
             node.obj = bool()
         elif f in _flatten(integer_types, ord):
-            if self.getVal(node) < 0:
+            try:
+                value = self.getVal
+                if self.getVal(node) < 0:
+                    node.obj = long(-1)
+                else:
+                    node.obj = long(0)
+            except ConversionError:
+                #To have a default value in case the conversion fails.
                 node.obj = long(-1)
-            else:
-                node.obj = long(0)
 ##         elif f in (posedge , negedge):
 ##             node.obj = _EdgeDetector()
         elif f is float:
