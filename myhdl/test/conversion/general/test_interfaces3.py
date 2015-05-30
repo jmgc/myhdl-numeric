@@ -11,7 +11,6 @@ from myhdl.conversion import analyze, verify
 
 from myhdl import *
 
-from conftest import bug
 
 class Intf1(object):
     def __init__(self, x):
