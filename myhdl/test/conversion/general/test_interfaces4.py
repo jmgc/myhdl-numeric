@@ -116,7 +116,7 @@ def c_testbench_one():
     ra = reset.active    
     @instance
     def tbstim():
-        sdi.next = 0
+        sdi.next = False
         reset.next = ra
         yield delay(13)
         reset.next = not ra

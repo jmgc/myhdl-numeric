@@ -992,8 +992,8 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
                     self.write(' := ')
                 if isinstance(lhs.vhd, vhd_std_logic):
                     self.write("'%s';" % n)
-                elif isinstance(lhs.vhd, vhd_int):
-                    self.write("%s;" % n)
+                elif isinstance(lhs.vhd, (vhd_int, vhd_nat)):
+                    self.write("%s;" % int(n))
                 elif isinstance(lhs.vhd, vhd_sfixed):
                     high = size[0]
                     low = size[1]
