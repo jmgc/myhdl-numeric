@@ -104,22 +104,27 @@ def c_testbench_one():
     sdo = Signal(bool(0))
     tbdut = m_top(clock, reset, sdi, sdo)
 
-    @always(delay(3))
+    @instance
     def tbclk():
-        clock.next = not clock
+        clock.next = 0
+        while True:
+            yield delay(3)
+            clock.next = not clock
         
     expected = (False, False, False, True, True, True,
                 False, True, False, True)
     ra = reset.active    
     @instance
     def tbstim():
+        sdi.next = 0
         reset.next = ra
         yield delay(13)
         reset.next = not ra
         yield clock.posedge
         for ii in range(10):
             print("sdi: %d, sdo: %d" % (sdi, sdo))
-            assert sdo == expected[ii]
+            t_expected = expected[ii]
+            assert sdo == t_expected
             sdi.next = not sdi
             yield clock.posedge
 
@@ -136,7 +141,7 @@ def test_one_testbench():
     Simulation(c_testbench_one()).run()
 
 
-@bug('82')
+#@bug('82')
 def test_one_analyze():
     clock = Signal(bool(0))
     reset = ResetSignal(0, active=1, async=False)
@@ -145,7 +150,7 @@ def test_one_analyze():
     analyze(m_top, clock, reset, sdi, sdo)
 
 
-@bug('82')
+#@bug('82')
 def test_one_verify():
     assert verify(c_testbench_one) == 0
 

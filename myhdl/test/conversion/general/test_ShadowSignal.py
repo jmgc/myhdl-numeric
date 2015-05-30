@@ -1,6 +1,6 @@
 from __future__ import absolute_import, print_function
 from myhdl import *
-from conftest import bug
+from myhdl.test.conversion.conftest import bug
 
 def bench_SliceSignal():
 
