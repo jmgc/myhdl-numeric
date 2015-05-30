@@ -28,7 +28,6 @@ elif [ "$CI_TARGET" == "icarus" ]; then
   run_test make -C cosimulation/icarus test
   run_test make -C myhdl/test/conversion/toVerilog
   run_test make -C "myhdl/test/bugs" icarus
-  run_test make -C "myhdl/test/bugs" ghdl
 elif [ "$CI_TARGET" == "ghdl" ]; then
   ghdl --dispconfig
   sudo -E cp vhdl/fixed_pkg_c.vhdl vhdl/fixed_float_types_c.vhdl vhdl/numeric_std_additions.vhdl vhdl/standard_additions_c.vhdl /usr/lib/ghdl/lib/gcc/x86_64-linux-gnu/4.8/vhdl/src/ieee/.
