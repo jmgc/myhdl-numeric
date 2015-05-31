@@ -1022,8 +1022,7 @@ class sfixba(bitarray):
 
         return result
 
-    def __index__(self):
-        return NotImplemented
+    __oct__ = __hex__ = __index__ = bitarray._not_implemented_unary
 
     # comparisons
     def __eq__(self, other):
