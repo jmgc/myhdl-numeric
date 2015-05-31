@@ -38,6 +38,7 @@ from copy import copy, deepcopy
 from myhdl import sfixba, fixmath
 from myhdl import uintba
 from myhdl import sintba
+from myhdl import bitarray
 from myhdl import EnumItemType
 from math import floor, ceil, fmod, modf, ldexp, copysign
 from decimal import Decimal, ROUND_HALF_EVEN
@@ -122,7 +123,7 @@ class TestSFixBaInit(TestCase):
     def testDefaultValue(self):
         warnings.filterwarnings('error')
         value = sfixba()
-        self.assertEqual(value.__index__(), 0, "Wrong value")
+        self.assertEqual(value.internal, 0, "Wrong value")
         self.assertEqual(value.high, 1, "Wrong high value")
         self.assertEqual(value.low, 0, "Wrong low value")
         self.assertEqual(value.max, 1, "Wrong maximum value")
@@ -154,7 +155,7 @@ class TestSFixBaInit(TestCase):
     def testIntPLowValue(self):
         warnings.filterwarnings('error')
         value = sfixba(17, low=3)
-        self.assertEqual(value.__index__(), 2)
+        self.assertEqual(value.internal, 2)
         self.assertEqual(value.high, 9, "Wrong high value")
         self.assertEqual(value.low, 3, "Wrong low value")
         self.assertEqual(value.max, 32, "Wrong maximum value")
@@ -164,7 +165,7 @@ class TestSFixBaInit(TestCase):
     def testIntSLowValue(self):
         warnings.filterwarnings('error')
         value = sfixba(-17).scalb(-3)
-        self.assertEqual(value.__index__(), -17)
+        self.assertEqual(value.internal, -17)
         self.assertEqual(value.high, 3, "Wrong high value")
         self.assertEqual(value.low, -3, "Wrong low value")
         self.assertEqual(value.max, 32, "Wrong maximum value")
@@ -175,7 +176,7 @@ class TestSFixBaInit(TestCase):
     def testIntPHighValue(self):
         warnings.filterwarnings('error')
         value = sfixba(17, high=9).resize(9, 3)
-        self.assertEqual(value.__index__(), 2)
+        self.assertEqual(value.internal, 2)
         self.assertEqual(value.high, 9, "Wrong high value")
         self.assertEqual(value.low, 3, "Wrong low value")
         self.assertEqual(value.max, 32, "Wrong maximum value")
@@ -185,7 +186,7 @@ class TestSFixBaInit(TestCase):
     def testIntSHighValue(self):
         warnings.filterwarnings('error')
         value = sfixba(-17, high=7).scalb(-3)
-        self.assertEqual(value.__index__(), -17)
+        self.assertEqual(value.internal, -17)
         self.assertEqual(value.high, 4, "Wrong high value")
         self.assertEqual(value.low, -3, "Wrong low value")
         self.assertEqual(value.max, 64, "Wrong maximum value")
@@ -194,7 +195,7 @@ class TestSFixBaInit(TestCase):
     def testIntHighLowValue(self):
         warnings.filterwarnings('error')
         value = sfixba(17, high=12, low=0).scalb(3)
-        self.assertEqual(value.__index__(), 17)
+        self.assertEqual(value.internal, 17)
         self.assertEqual(value.high, 15, "Wrong high value")
         self.assertEqual(value.low, 3, "Wrong low value")
         self.assertEqual(value.max, 2048, "Wrong maximum value")
@@ -225,7 +226,7 @@ class TestSFixBaInit(TestCase):
     def testMFloatValue(self):
         warnings.filterwarnings('error')
         value = sfixba(-5.)
-        self.assertEqual(value.__index__(), -5)
+        self.assertEqual(value.internal, -5)
         self.assertEqual(value.high, 4, "Wrong high value")
         self.assertEqual(value.low, 0, "Wrong low value")
         self.assertEqual(value.max, 8, "Wrong maximum value")
@@ -258,7 +259,7 @@ class TestSFixBaInit(TestCase):
                    "-0x1.6a09e667f3bcd")
         for i, f_value, i_value, b, h in zip(cases, f_values, i_values, b_check, h_check):
             value = sfixba(f_value)
-            self.assertEqual(value.__index__(), i_value)
+            self.assertEqual(value.internal, i_value)
             self.assertEqual(value.high, 2 + i, "Wrong high value")
             self.assertEqual(value.low, -52 + i, "Wrong low value")
             self.assertEqual(value.max, 9007199254740992, "Wrong maximum value")
@@ -304,7 +305,7 @@ class TestSFixBaInit(TestCase):
         low = 3
         value = sfixba(f_value, low=low)
         i_value = int(round(f_value*(2.0 ** -low)))
-        self.assertEqual(value.__index__(),  i_value, "Wrong value {0}, {1}".format(value, i_value))
+        self.assertEqual(value.internal,  i_value, "Wrong value {0}, {1}".format(value, i_value))
         self.assertEqual(value.high, 6, "Wrong high value")
         self.assertEqual(value.low, 3, "Wrong low value")
         self.assertEqual(value.max, 4, "Wrong maximum value")
@@ -315,7 +316,7 @@ class TestSFixBaInit(TestCase):
     def testFloatSLowValue(self):
         warnings.filterwarnings('error')
         value = sfixba(-17., low=-3)
-        self.assertEqual(value.__index__(), (-17) << 3)
+        self.assertEqual(value.internal, (-17) << 3)
         self.assertEqual(value.high, 6, "Wrong high value")
         self.assertEqual(value.low, -3, "Wrong low value")
         self.assertEqual(value.max, 256, "Wrong maximum value")
@@ -425,7 +426,7 @@ class TestSFixBaInit(TestCase):
     def testFloatSHighValue(self):
         warnings.filterwarnings('error')
         value = sfixba(-17, 6, 0).scalb(-3)
-        self.assertEqual(value.__index__(), -17)
+        self.assertEqual(value.internal, -17)
         self.assertEqual(value.high, 3, "Wrong high value")
         self.assertEqual(value.low, -3, "Wrong low value")
         self.assertEqual(value.max, 32, "Wrong maximum value")
@@ -447,7 +448,7 @@ class TestSFixBaInit(TestCase):
     def testStrValue(self):
         warnings.filterwarnings('error')
         value = sfixba("0000000000000000000.11001101100111000")
-        self.assertEqual(value.__index__(), 105272)
+        self.assertEqual(value.internal, 105272)
         self.assertEqual(value.high, 19, "Wrong high value")
         self.assertEqual(value.low, -17, "Wrong low value")
         self.assertEqual(value.hex(), "+0x00000.cd9c0")
@@ -1154,10 +1155,20 @@ class TestSFixBaAsInt(TestCase):
     # XXX __complex__ seems redundant ??? (complex() works as such?)
    
     def testOct(self):
-        self.conversionCheck(oct)
+        try:
+            self.conversionCheck(oct)
+        except TypeError:
+            pass
+        else:
+            assert False
    
     def testHex(self):
-        self.conversionCheck(hex)
+        try:
+            self.conversionCheck(hex)
+        except TypeError:
+            pass
+        else:
+            assert False
    
     def testLt(self):
         self.comparisonCheck(operator.lt)
@@ -1322,7 +1333,7 @@ class TestSFixBaCopy(TestCase):
                     b = copy(a)
                     c = deepcopy(a)
                 self.assertEqual(n, m)
-                self.assertEqual(n.__index__(), m.__index__())
+                self.assertEqual(n.internal, m.internal)
                 self.assertEqual(n.high, m.high)
                 self.assertEqual(n.low, m.low)
                 self.assertEqual(len(n), len(m))

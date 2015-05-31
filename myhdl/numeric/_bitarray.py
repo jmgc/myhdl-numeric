@@ -418,7 +418,7 @@ class bitarray(object):
             if (val in (0, 1)) or (val is bool):
                 val = bool(val)
             elif isinstance(val, bitarray) and (len(val) == 1):
-                val = bool(val.__index__())
+                val = bool(val)
             else:
                 warnings.warn("bitarray[i] = v requires v in (0, 1), " \
                               "i: {0}, v: {1}".format(i, val),
@@ -594,7 +594,7 @@ class bitarray(object):
         if isinstance(other, bitarray):
             return (self._high == other.high) and \
                     (self._low == other.low) and \
-                    (self._val == other.__index__())
+                    (self._val == other._val)
         else:
             return NotImplemented
 
@@ -602,7 +602,7 @@ class bitarray(object):
         if isinstance(other, bitarray):
             return (self._high != other.high) or \
                     (self._low != other.low) or \
-                    (self._val != other.__index__())
+                    (self._val != other._val)
         else:
             return NotImplemented
 
@@ -673,3 +673,7 @@ class bitarray(object):
         result._resize(value)
         result._wrap()
         return result
+
+    @property
+    def internal(self):
+        return self._val

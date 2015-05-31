@@ -1023,7 +1023,7 @@ class sfixba(bitarray):
         return result
 
     def __index__(self):
-        return int(self._val)
+        return NotImplemented
 
     # comparisons
     def __eq__(self, other):
