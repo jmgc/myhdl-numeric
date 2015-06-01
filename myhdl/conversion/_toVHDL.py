@@ -556,14 +556,14 @@ def _convertGens(genlist, siglist, memlist, vfile):
             else:
                 pre, suf = "to_unsigned(", ", %s)" % w
         elif s._type is bitarray and isinstance(s._val, sintba):
-            c = s.__index__()
+            c = s.internal
             w = s.high
             if s.min < 0:
                 pre, suf = "to_signed(", ", %s)" % w
             else:
                 pre, suf = "to_unsigned(", ", %s)" % w
         elif s._type is bitarray and isinstance(s._val, sfixba):
-            c = s.__index__()
+            c = s.internal
             h = s.high
             l = s.low
             pre, suf = "to_sfixed(", ", %s, %s)" % (h - 1, l)
