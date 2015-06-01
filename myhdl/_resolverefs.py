@@ -65,7 +65,7 @@ class _AttrRefTransformer(ast.NodeTransformer):
 
         attrobj = getattr(obj, node.attr)
 
-        new_name = node.value.id + '_Dot_' + node.attr
+        new_name = node.value.id + '_dot_' + node.attr
         if new_name not in self.data.symdict:
             self.data.symdict[new_name] = attrobj
             self.data.objlist.append(new_name)
