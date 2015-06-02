@@ -183,9 +183,11 @@ class bitarray(object):
             if type(self) == type(value):
                 self._resize(value)
             else:
-                result = type(value)(0, self)
-                result._resize(value)
-                self._val = result._val
+                origin_resize = type(value)(0, self)
+                origin_resize._resize(value)
+                destination_resize = type(self)(0, self)
+                destination_resize._resize(origin_resize)
+                self._val = destination_resize._val
         else:
             self._val = value._val
         self._wrap()
