@@ -590,7 +590,7 @@ class Test(unittest.TestCase):
                   'multi': True,
                   'unary': True,
                   }
-    sim = True
+    sim = False
 
     def vectors(self):
         self.lefts = (uintba(0, 8),
@@ -753,7 +753,7 @@ class Test(unittest.TestCase):
                 self.vectors()
                 for m in self.lefts:
                     self.assertEqual(conversion.verify(unaryBench, m), 0,
-                                     "Format: {0}, {1}".format(repr(m)))
+                                     "Format: {0}".format(repr(m)))
 
 if __name__ == "__main__":
     unittest.main()

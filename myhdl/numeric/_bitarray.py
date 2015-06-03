@@ -183,7 +183,13 @@ class bitarray(object):
             if type(self) == type(value):
                 self._resize(value)
             else:
-                origin_resize = type(value)(0, self)
+                if value.is_signed and not self.is_signed:
+                    high = self.high + 1
+                    low = value.low
+                else:
+                    high = self.high
+                    low = value.low
+                origin_resize = type(value)(0, high, low)
                 origin_resize._resize(value)
                 destination_resize = type(self)(0, self)
                 destination_resize._resize(origin_resize)
