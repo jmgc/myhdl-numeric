@@ -102,10 +102,8 @@ def resize(value, format):
     
     if isinstance(value, integer_types):
         return long(val)
-    elif isinstance(value, float):
-        return val
     else:
-        return result
+        return val
 
 def wrap(val, format):
     length = format._high - format._low
