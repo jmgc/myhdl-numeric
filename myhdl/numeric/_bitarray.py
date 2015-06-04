@@ -187,8 +187,11 @@ class bitarray(object):
                     high = self._high + 1
                 else:
                     high = self._high
-                if self._low < value._low:
-                    low = value._low
+                if value._low <= 0:
+                    if self._low < value._low:
+                        low = value._low
+                    else:
+                        low = self._low
                 else:
                     low = self._low
                 origin_resize = type(value)(0, high, low)
