@@ -1208,12 +1208,12 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
             self.write("%s" % bool(n))
         elif isinstance(node.vhd, vhd_unsigned):
             if abs(n) < 2**31:
-                self.write("to_unsigned(%s, %s)" % (n, node.vhd.size))
+                self.write("to_unsigned(%d, %s)" % (n, node.vhd.size))
             else:
                 self.write('unsigned\'("%s")' % bin(n, node.vhd.size))
         elif isinstance(node.vhd, vhd_signed):
             if abs(n) < 2**31:
-                self.write("to_signed(%s, %s)" % (n, node.vhd.size))
+                self.write("to_signed(%d, %s)" % (n, node.vhd.size))
             else:
                 self.write('signed\'("%s")' % bin(n, node.vhd.size))
         elif isinstance(node.vhd, vhd_sfixed):
@@ -1534,12 +1534,12 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
                         s = "'%s'" % int(obj)
                     elif isinstance(node.vhd, vhd_unsigned):
                         if abs(obj) < 2** 31:
-                            s = "to_unsigned(%s, %s)" % (n, node.vhd.size)
+                            s = "to_unsigned(%d, %s)" % (n, node.vhd.size)
                         else:
                             s = 'unsigned\'("%s")' % bin(obj, node.vhd.size)
                     elif isinstance(node.vhd, vhd_signed):
                         if abs(obj) < 2** 31:
-                            s = "to_signed(%s, %s)" % (n, node.vhd.size)
+                            s = "to_signed(%d, %s)" % (n, node.vhd.size)
                         else:
                             s = 'signed\'("%s")' % bin(obj, node.vhd.size)
                     elif isinstance(node.vhd, vhd_sfixed):
@@ -1963,13 +1963,13 @@ def _convertInitVal(reg, init):
     elif isinstance(tipe, vhd_unsigned):
         vhd_tipe = tipe.toStr(False)
         if abs(init) < 2**31:
-            v = '%sto_%s(%s, %s)%s' % (pre, vhd_tipe, init, tipe.size, suf)
+            v = '%sto_%s(%d, %s)%s' % (pre, vhd_tipe, init, tipe.size, suf)
         else:
             v = '%s%s\'("%s")%s' % (pre, vhd_tipe, bin(init, tipe.size), suf)
     elif isinstance(tipe, vhd_signed):
         vhd_tipe = tipe.toStr(False)
         if abs(init) < 2**31:
-            v = '%sto_%s(%s, %s)%s' % (pre, vhd_tipe, init, tipe.size, suf)
+            v = '%sto_%s(%d, %s)%s' % (pre, vhd_tipe, init, tipe.size, suf)
         else:
             v = '%s%s\'("%s")%s' % (pre, vhd_tipe, bin(init, tipe.size), suf)
     elif isinstance(tipe, vhd_sfixed):
