@@ -1201,6 +1201,9 @@ class sfixba(bitarray):
                                      rounding=fixmath.roundings.truncate))
         return result;
 
+    def abs(self):
+        return self.__abs__()
+
     def unsigned(self):
         return self.__abs__()
     

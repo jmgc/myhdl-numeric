@@ -29,6 +29,7 @@ numeric_types = (bitarray, sintba, uintba, sfixba)
 numeric_functions_dict = {'resize': bitarray.resize,
                           'scalb': sfixba.scalb,
                           'floor': sfixba.floor,
+                          'abs': sfixba.abs,
                           }
 
 numeric_attributes_dict = {'max': int,
