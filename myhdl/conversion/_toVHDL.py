@@ -411,10 +411,10 @@ def _writeConstants(f):
                 sign = '-'
             for i in range(4, 31):
                 if abs(v) == 2**i:
-                    s = "%s2**%s" % (sign, i)
+                    s = "%s(2**%s)" % (sign, i)
                     break
                 if abs(v) == 2**i-1:
-                    s = "%s2**%s-1" % (sign, i)
+                    s = "%s((2**%s)-1)" % (sign, i)
                     break
             f.write("constant %s: integer := %s;\n" % (c, s))
         elif isinstance(v, float):
@@ -2532,7 +2532,7 @@ class vhd_unsigned(vhd_vector):
         return copy(self)
     
     def __neg__(self):
-        return NotImplemented
+        return vhd_signed(self.size+1)
     
 
 class vhd_signed(vhd_vector):
@@ -3233,10 +3233,10 @@ class _AnnotateTypesVisitor(ast.NodeVisitor, _ConversionMixin):
 #                node.vhd = node.operand.vhd = vhd_boolean()
             node.vhd = node.operand.vhd = vhd_boolean()
         elif isinstance(node.op, ast.USub):
-            if isinstance(node.vhd, vhd_unsigned):
-                node.vhd = vhd_signed(node.vhd.size+1)
-            elif isinstance(node.vhd, vhd_nat):
-                node.vhd = vhd_int()
+            node.vhd = -node.vhd
+            if node.vhd is NotImplemented:
+                print(node.vhd)
+                print(ast.dump(node))
         elif isinstance(node.op, ast.Invert):
             if isinstance(node.vhd, (vhd_int, vhd_real)):
                 raise ToVHDLError(_error.NotSupported,
