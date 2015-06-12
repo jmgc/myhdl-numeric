@@ -1457,7 +1457,7 @@ def _analyzeTopFunc(top_inst, func, *args, **kwargs):
     for name, obj in objs:
         if not hasattr(obj, '__dict__'):
             continue
-        for attr, attrobj in vars(obj).items():
+        for attr, attrobj in sorted(vars(obj).items()):
             if isinstance(attrobj, _Signal):
                 signame = attrobj._name
                 if not signame:
