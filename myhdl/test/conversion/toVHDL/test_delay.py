@@ -4,13 +4,13 @@ from myhdl import *
 def bench_delay():
     clock = Signal(False)
 
-    HALF_PERIOD = 10
+    PERIOD = 10
 
     @instance
     def clockgen():
         clock.next = False
         while True:
-            yield delay(HALF_PERIOD)
+            yield delay(PERIOD // 2)
             clock.next = not clock
 
     @instance
