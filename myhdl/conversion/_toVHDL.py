@@ -1147,9 +1147,8 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
             opening, closing = ' ', ''
             self.write(f.__name__)
         elif f is delay:
-            self.write('(')
             self.visit(node.args[0])
-            self.write(") * 1.0 ns")
+            self.write(" * 1.0 ns")
             return
         elif f is concat:
             pre, suf = self.inferCast(node.vhd, node.vhdOri)

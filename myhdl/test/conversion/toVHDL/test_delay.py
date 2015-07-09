@@ -10,7 +10,7 @@ def bench_delay():
     def clockgen():
         clock.next = False
         while True:
-            yield delay(PERIOD // 2)
+            yield delay(PERIOD // 2 + 1)
             clock.next = not clock
 
     @instance
