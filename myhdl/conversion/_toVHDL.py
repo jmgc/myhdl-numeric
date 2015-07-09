@@ -1147,8 +1147,9 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
             opening, closing = ' ', ''
             self.write(f.__name__)
         elif f is delay:
+            self.write('(')
             self.visit(node.args[0])
-            self.write(" ns")
+            self.write(") * 1.0 ns")
             return
         elif f is concat:
             pre, suf = self.inferCast(node.vhd, node.vhdOri)
@@ -2248,6 +2249,44 @@ class vhd_real(vhd_type):
     def maybeNegative(self):
         return True
 
+class vhd_physical(vhd_type):
+    def _direct(self, other):
+        if isinstance(other, type(self)):
+            return copy(self)
+        else:
+            return NotImplemented
+
+    def _physical(self, other):
+        if isinstance(other, (type(self), vhd_int, vhd_real)):
+            return copy(self)
+        else:
+            return NotImplemented
+
+    __add__ = __sub__ = __radd__ = __rsub__ = _physical
+    __mul__ = __rmul__ = __floordiv__ = __truediv__ = __mod__ = _physical
+    __pow__ = __rpow__ = vhd_type._not_implemented
+    __rfloordiv__ = __rtruediv = __rmod__ = vhd_type._not_implemented
+    __and__ = __rand__ = __or__ = __ror__ = vhd_type._not_implemented
+    __xor__ = __rxor__ = vhd_type._not_implemented
+    
+    def __abs__(self):
+        return copy(self)
+
+    def __pos__(self):
+        return copy(self)
+    
+    def __neg__(self):
+        return copy(self)
+    
+    def __inv__(self):
+        return NotImplemented
+
+    def maybeNegative(self):
+        return True
+
+class vhd_time(vhd_physical):
+    def toStr(self, constr=True):
+        return "time"
 
 class vhd_string(vhd_type):
     pass
