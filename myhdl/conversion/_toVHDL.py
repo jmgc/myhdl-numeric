@@ -698,6 +698,8 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
                     pre, suf = "c_f2u(", ", %s)" % vhd.size
             elif isinstance(ori, vhd_std_logic):
                 pre, suf = "c_l2u(", ", %s)" % vhd.size
+            elif ori is None:
+                pre, suf = "(others => ", ")"
             else:
                 pre, suf = "c_i2u(", ", %s)" % vhd.size
         elif isinstance(vhd, vhd_signed):
@@ -716,6 +718,8 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
                     pre, suf = "c_f2s(", ", %s)" % vhd.size
             elif isinstance(ori, vhd_std_logic):
                 pre, suf = "c_l2s(", ", %s)" % vhd.size
+            elif ori is None:
+                pre, suf = "(others => ", ")"
             else:
                 pre, suf = "c_i2s(", ", %s)" % vhd.size
         elif isinstance(vhd, vhd_sfixed):
@@ -754,6 +758,8 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
             if not isinstance(ori, vhd_std_logic):
                 if isinstance(ori, vhd_unsigned) :
                     pre, suf = "", "(0)"
+                elif ori is None:
+                    pass
                 else:
                     pre, suf = "stdl(", ")"
         elif isinstance(vhd, vhd_string):
@@ -1008,6 +1014,21 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
             self.writeline()
             self.write("end case;")
             return
+        elif isinstance(node.value, ast.IfExp):
+            # Ternary operator in a not concurrent environment
+            if not isinstance(self, _ConvertSimpleAlwaysCombVisitor):
+                newnode = ast.If()
+                newnode.test = node.value.test
+                newnode.body = [copy(node)]
+                newnode.body[0].value = node.value.body
+                newnode.orelse = [copy(node)]
+                newnode.orelse[0].value = node.value.orelse
+                newnode.ignore = False
+                newnode.isFullCase = False
+                newnode.tests = [(newnode.test, newnode.body)]
+                newnode.else_ = newnode.orelse
+                self.visit(newnode)
+                return
         elif isinstance(node.value, ast.ListComp):
             # skip list comprehension assigns for now
             return
@@ -1148,7 +1169,7 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
             self.write(f.__name__)
         elif f is delay:
             self.visit(node.args[0])
-            self.write(" * 1.0 ns")
+            self.write(" * 1 ns")
             return
         elif f is concat:
             pre, suf = self.inferCast(node.vhd, node.vhdOri)
@@ -1281,17 +1302,12 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
             self.write(';')
 
     def visit_IfExp(self, node):
-        pre, suf = self.inferCast(node.vhd, node.body.vhdOri)
-        self.write(pre)
+        node.body.vhd = node.orelse.vhd = node.vhd
         self.visit(node.body)
-        self.write(suf)
         self.write(' when ')
         self.visit(node.test)
         self.write(' else ')
-        pre, suf = self.inferCast(node.vhd, node.orelse.vhdOri)
-        self.write(pre)
         self.visit(node.orelse)
-        self.write(suf)
 
     def visit_For(self, node):
         self.labelStack.append(node.breakLabel)
@@ -1469,17 +1485,21 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
         else:
             n = node.id
         if n == 'False':
-            if isinstance(node.vhd, vhd_std_logic):
+            if isinstance(node.vhd, vhd_boolean):
+                s = "False"
+            elif isinstance(node.vhd, vhd_std_logic):
                 s = "'0'"
             else:
-                s = "False"
+                s = '"0"'
         elif n == 'True':
-            if isinstance(node.vhd, vhd_std_logic):
+            if isinstance(node.vhd, vhd_boolean):
+                s = "True"
+            elif isinstance(node.vhd, vhd_std_logic):
                 s = "'1'"
             else:
-                s = "True"
+                s = '"1"'
         elif n == 'None':
-            if not isinstance(node.vhd.size, tuple) and (node.vhd.size == 1):
+            if isinstance(node.vhd, vhd_std_logic):
                 s = "'Z'"
             else:
                 s = "(others => 'Z')"
@@ -1489,7 +1509,6 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
             ori = inferVhdlObj(obj)
             pre, suf = self.inferCast(node.vhd, ori)
             s = "%s%s%s" % (pre, s, suf)
-
         elif n in self.tree.argnames:
             assert n in self.tree.symdict
             obj = self.tree.symdict[n]
