@@ -552,7 +552,9 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
                     node.obj = node.obj._init
             else:
                 raise AssertionError("Unknown binary operator: %s" % node.op)
-            if isinstance(node.obj, (integer_types, intbv)):
+            if isinstance(node.obj, bool):
+                pass
+            elif isinstance(node.obj, (integer_types, intbv)):
                 node.obj = long(node.obj)
         else:
             node.obj = long(-1)
