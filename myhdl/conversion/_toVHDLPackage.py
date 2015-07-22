@@ -70,6 +70,13 @@ package pck_myhdl_%(version)s is
     function bool (arg: integer) return boolean;
 
     function "-" (arg: unsigned) return signed;
+
+    function tern_op(cond: boolean; if_true: std_logic; if_false: std_logic) return std_logic;
+
+    function tern_op(cond: boolean; if_true: unsigned; if_false: unsigned) return unsigned;
+
+    function tern_op(cond: boolean; if_true: signed; if_false: signed) return signed;
+
 """
     result += """
     function c_l2u (arg: std_logic; size: integer) return unsigned;
@@ -126,6 +133,8 @@ package pck_myhdl_%(version)s is
             return sfixed;
 
     function c_str2f (value: std_logic_vector) return sfixed;
+
+    function tern_op(cond: boolean; if_true: sfixed; if_false: sfixed) return sfixed;
 """
     result += """
 end pck_myhdl_%(version)s;
@@ -226,6 +235,33 @@ package body pck_myhdl_%(version)s is
     begin
         return - signed(resize(arg, arg'length+1));
     end function "-";
+
+    function tern_op(cond: boolean; if_true: std_logic; if_false: std_logic) return std_logic is
+    begin
+        if cond then
+            return if_true;
+        else
+            return if_false;
+        end if;
+    end function tern_op;
+
+    function tern_op(cond: boolean; if_true: unsigned; if_false: unsigned) return unsigned is
+    begin
+        if cond then
+            return if_true;
+        else
+            return if_false;
+        end if;
+    end function tern_op;
+
+    function tern_op(cond: boolean; if_true: signed; if_false: signed) return signed is
+    begin
+        if cond then
+            return if_true;
+        else
+            return if_false;
+        end if;
+    end function tern_op;
 
 """
     result += """
@@ -389,6 +425,16 @@ package body pck_myhdl_%(version)s is
         result := sfixed(value);
         return result;
     end function c_str2f;
+
+    function tern_op(cond: boolean; if_true: sfixed; if_false: sfixed) return sfixed is
+    begin
+        if cond then
+            return if_true;
+        else
+            return if_false;
+        end if;
+    end function tern_op;
+
 """
     result += """
 end pck_myhdl_%(version)s;

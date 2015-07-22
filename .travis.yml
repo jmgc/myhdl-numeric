@@ -21,7 +21,7 @@ install:
 
 env:
   - CI_TARGET=core
-  - CI_TARGET=icarus
+  - CI_TARGET=iverilog
   - CI_TARGET=ghdl
   - CI_TARGET=numeric
 

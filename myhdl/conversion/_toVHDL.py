@@ -61,7 +61,7 @@ from ..numeric._sfixba import sfixba, fixmath
 from ..numeric._conversion import (numeric_types,
                                    numeric_functions_dict,
                                    numeric_attributes_dict)
-
+from .._ShadowSignal import _TristateSignal, _TristateDriver
 from collections import Callable
 
 _version = myhdl.__version__.replace('.','')
@@ -366,10 +366,11 @@ def _writeModuleHeader(f, intf, needPck, lib, arch, useClauses, doc,
             if convertPort:
                 pt = "std_logic_vector"
             if s._driven:
-                if s._read:
-                    warnings.warn("%s: %s" % (_error.OutputPortRead, portname),
-                                  category=ToVHDLWarning
-                                  )
+                if s._read :
+                    if not isinstance(s, _TristateSignal):
+                        warnings.warn("%s: %s" % (_error.OutputPortRead, portname),
+                                      category=ToVHDLWarning
+                                      )
                     f.write("\n        %s: inout %s%s" % (portname, pt, r))
                 else:
                     f.write("\n        %s: out %s%s" % (portname, pt, r))
@@ -442,7 +443,7 @@ def _writeSigDecls(f, intf, siglist, memlist):
         r = _getRangeString(s)
         p = _getTypeString(s)
         if s._driven:
-            if not s._read:
+            if not s._read and not isinstance(s, _TristateDriver):
                 warnings.warn("%s: %s" % (_error.UnreadSignal, s._name),
                               category=ToVHDLWarning
                               )
@@ -758,8 +759,6 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
             if not isinstance(ori, vhd_std_logic):
                 if isinstance(ori, vhd_unsigned) :
                     pre, suf = "", "(0)"
-                elif ori is None:
-                    pass
                 else:
                     pre, suf = "stdl(", ")"
         elif isinstance(vhd, vhd_string):
@@ -1014,21 +1013,6 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
             self.writeline()
             self.write("end case;")
             return
-        elif isinstance(node.value, ast.IfExp):
-            # Ternary operator in a not concurrent environment
-            if not isinstance(self, _ConvertSimpleAlwaysCombVisitor):
-                newnode = ast.If()
-                newnode.test = node.value.test
-                newnode.body = [copy(node)]
-                newnode.body[0].value = node.value.body
-                newnode.orelse = [copy(node)]
-                newnode.orelse[0].value = node.value.orelse
-                newnode.ignore = False
-                newnode.isFullCase = False
-                newnode.tests = [(newnode.test, newnode.body)]
-                newnode.else_ = newnode.orelse
-                self.visit(newnode)
-                return
         elif isinstance(node.value, ast.ListComp):
             # skip list comprehension assigns for now
             return
@@ -1302,12 +1286,16 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
             self.write(';')
 
     def visit_IfExp(self, node):
+        # propagate the node's vhd attribute  
         node.body.vhd = node.orelse.vhd = node.vhd
-        self.visit(node.body)
-        self.write(' when ')
+        self.write('tern_op(')
+        self.write('cond => ')
         self.visit(node.test)
-        self.write(' else ')
+        self.write(', if_true => ')
+        self.visit(node.body)
+        self.write(', if_false => ')
         self.visit(node.orelse)
+        self.write(')')
 
     def visit_For(self, node):
         self.labelStack.append(node.breakLabel)
@@ -1485,30 +1473,27 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
         else:
             n = node.id
         if n == 'False':
-            if isinstance(node.vhd, vhd_boolean):
-                s = "False"
-            elif isinstance(node.vhd, vhd_std_logic):
+            if isinstance(node.vhd, vhd_std_logic):
                 s = "'0'"
             else:
-                s = '"0"'
+                s = "False"
         elif n == 'True':
-            if isinstance(node.vhd, vhd_boolean):
-                s = "True"
-            elif isinstance(node.vhd, vhd_std_logic):
+            if isinstance(node.vhd, vhd_std_logic):
                 s = "'1'"
             else:
-                s = '"1"'
+                s = "True"
         elif n == 'None':
             if isinstance(node.vhd, vhd_std_logic):
                 s = "'Z'"
             else:
-                s = "(others => 'Z')"
+                s = '"%s"' % ('Z' * node.vhd.size)
         elif n in self.tree.vardict:
             s = n
             obj = self.tree.vardict[n]
             ori = inferVhdlObj(obj)
             pre, suf = self.inferCast(node.vhd, ori)
             s = "%s%s%s" % (pre, s, suf)
+
         elif n in self.tree.argnames:
             assert n in self.tree.symdict
             obj = self.tree.symdict[n]
