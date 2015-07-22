@@ -1,7 +1,7 @@
-all:  GHDL
+all:  ghdl
 
-GHDL:
-	py.test GHDL.py test_ops.py
+ghdl:
+	py.test ghdl.py test_ops.py
 
 vlog:
 	py.test vlog.py test_ops.py
