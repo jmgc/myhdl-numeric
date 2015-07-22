@@ -51,8 +51,8 @@ elif [ "$CI_TARGET" == "numeric" ]; then
   sudo -E ghdl -a --ieee=none --std=93 -P../std --work=ieee ../../../src/ieee/fixed_pkg_c.vhdl
   sudo -E ghdl -a --ieee=none --std=93 -P../std --work=ieee ../../../src/ieee/numeric_std_additions.vhdl
   cd $MYHDL_WORK_DIR
-  run_test make -C myhdl/test/numeric
-  run_test make -C myhdl/test/conversion/numeric
+  run_test make -C myhdl/test/numeric ghdl
+  run_test make -C myhdl/test/conversion/numeric ghdl
 fi
 
 exit $foundError

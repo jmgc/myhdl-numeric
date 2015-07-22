@@ -1,5 +1,19 @@
-all:
-	py.test test_bitarray.py test_sintba.py test_uintba.py test_sfixba.py
+all:  vlog vcom 
+
+ghdl:
+	py.test --sim ghdl
+
+vlog:
+	py.test --sim vlog
+
+vcom:
+	py.test --sim vcom
+
+iverilog:
+	py.test --sim iverilog
+
+cver:
+	py.test --sim cver
 
 clean:
-	- rm *.pyc *~
+	- rm *.o *.out *.v *.vhd *.pyc *~ *.vcd* *.log *_ghdl
