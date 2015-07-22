@@ -37,11 +37,6 @@ else:
     to_bytes = _identity
     to_str = _identity
 
-<<<<<<< HEAD
-def ast_parse(s):
-    return compile(s, '<string>', 'exec', \
-                   print_function.compiler_flag|division.compiler_flag|PyCF_ONLY_AST)
-=======
     def set_inheritable(fd, inheritable):
         # This implementation of set_inheritable is based on a code sample in
         # [PEP 0446](https://www.python.org/dev/peps/pep-0446/) and on the
@@ -68,4 +63,7 @@ def ast_parse(s):
                 fd_flags |= fcntl.FD_CLOEXEC
 
             fcntl.fcntl(fd, fcntl.F_SETFD, fd_flags)
->>>>>>> 983a169b16a5fc2252c1a789cb89bcdb4c5c5f47
+
+def ast_parse(s):
+    return compile(s, '<string>', 'exec', \
+                   print_function.compiler_flag|division.compiler_flag|PyCF_ONLY_AST)
