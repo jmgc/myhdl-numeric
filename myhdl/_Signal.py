@@ -155,7 +155,7 @@ class _Signal(object):
             else:
                 self._printVcd = self._printVcdHex
         elif isinstance(val, bitarray):
-            self._type = bitarray
+            self._type = type(val)
             self._min = val.min
             self._max = val.max
             self._nrbits = val._nrbits
@@ -317,7 +317,7 @@ class _Signal(object):
 
     def _setNextBitArray(self, val):
         try:
-            self._next = type(self._init)(val, self._init)
+            self._next = self._type(val, self._init)
         except:
             raise TypeError("Not valid type for %s: %s" %
                             (type(self._init), type(val)))

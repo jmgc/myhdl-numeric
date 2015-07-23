@@ -28,6 +28,7 @@ from ._uintba import uintba
 from .._compat import long, integer_types, string_types, bit_length
 from .._enum import enum
 from .._misc import downrange
+from .._intbv import intbv
 
 from math import frexp, modf, ldexp
 from copy import copy
@@ -201,6 +202,8 @@ class sfixba(bitarray):
                 self._from_string(value, high, low)
             else:
                 self._zero(value, high, low)
+        elif isinstance(value, intbv):
+            self._from_int(int(value), len(value), 0)
         elif isinstance(value, bitarray):
             if value._val == 0:
                 self._zero(value, high, low)

@@ -228,7 +228,11 @@ class _ToVHDLConvertor(object):
             for sig in siglist:
                 if not sig._used:
                     continue
-                tipe = inferVhdlClass(sig._init)
+                if isinstance(sig, _TristateDriver):
+                    init = sig._sig._orival
+                else:
+                    init = sig._init
+                tipe = inferVhdlClass(init)
                 if tipe is not None and issubclass(tipe, vhd_sfixed):
                     fixed_point = True
                     break
@@ -489,7 +493,7 @@ def _getRangeString(s):
         return ''
     elif s._type is bool:
         return ''
-    elif s._type is bitarray:
+    elif issubclass(s._type, bitarray):
         return "(%s downto %s)" % (s.high - 1, s.low)
     elif s._nrbits is not None:
         ls = getattr(s, 'lenStr', False)
@@ -506,8 +510,8 @@ def _getTypeString(s):
         return s._val._type._name
     elif s._type is bool:
         return "std_logic"
-    elif s._type is bitarray:
-        obj = inferVhdlObj(s._init)
+    elif issubclass(s._type, bitarray):
+        obj = inferVhdlObj(s)
         if obj is not None:
             return obj.toStr(False)
     if not s._numeric:
@@ -556,14 +560,14 @@ def _convertGens(genlist, siglist, memlist, vfile):
                 pre, suf = "to_signed(", ", %s)" % w
             else:
                 pre, suf = "to_unsigned(", ", %s)" % w
-        elif s._type is bitarray and isinstance(s._val, sintba):
+        elif s._type is sintba:
             c = s.internal
             w = s.high
             if s.min < 0:
                 pre, suf = "to_signed(", ", %s)" % w
             else:
                 pre, suf = "to_unsigned(", ", %s)" % w
-        elif s._type is bitarray and isinstance(s._val, sfixba):
+        elif s._type is sfixba:
             c = s.internal
             h = s.high
             l = s.low
@@ -699,8 +703,6 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
                     pre, suf = "c_f2u(", ", %s)" % vhd.size
             elif isinstance(ori, vhd_std_logic):
                 pre, suf = "c_l2u(", ", %s)" % vhd.size
-            elif ori is None:
-                pre, suf = "(others => ", ")"
             else:
                 pre, suf = "c_i2u(", ", %s)" % vhd.size
         elif isinstance(vhd, vhd_signed):
@@ -719,8 +721,6 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
                     pre, suf = "c_f2s(", ", %s)" % vhd.size
             elif isinstance(ori, vhd_std_logic):
                 pre, suf = "c_l2s(", ", %s)" % vhd.size
-            elif ori is None:
-                pre, suf = "(others => ", ")"
             else:
                 pre, suf = "c_i2s(", ", %s)" % vhd.size
         elif isinstance(vhd, vhd_sfixed):
@@ -1486,7 +1486,11 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
             if isinstance(node.vhd, vhd_std_logic):
                 s = "'Z'"
             else:
-                s = '"%s"' % ('Z' * node.vhd.size)
+                if type(node.vhd.size) is tuple:
+                    length = node.vhd.size[0] - node.vhd.size[1] + 1
+                else:
+                    length = node.vhd.size
+                s = '"%s"' % ('Z' * length)
         elif n in self.tree.vardict:
             s = n
             obj = self.tree.vardict[n]
@@ -2906,18 +2910,21 @@ def inferVhdlClass(obj):
             vhd = vhd_signed
         else:
             vhd = vhd_unsigned
-    elif (isinstance(obj, _Signal) and obj._type is bitarray) or \
+    elif (isinstance(obj, _Signal) and issubclass(obj._type, bitarray)) or \
             isinstance(obj, bitarray):
         if isinstance(obj, _Signal):
-            obj = obj._init
+            if isinstance(obj, _TristateDriver):
+                obj = obj._sig._orival
+            else:
+                obj = obj._init
         if isinstance(obj, uintba):
             vhd = vhd_unsigned
         elif isinstance(obj, sintba):
             vhd = vhd_signed
         elif isinstance(obj, sfixba):
             vhd = vhd_sfixed
-        else:
-            raise ToVHDLError(_error.NotSupported, "Not valid bitarray child.")
+        #else:
+        #    raise ToVHDLError(_error.NotSupported, "Not valid bitarray child.")
     elif (isinstance(obj, _Signal) and obj._type is bool) or \
             isinstance(obj, bool):
         vhd = vhd_std_logic

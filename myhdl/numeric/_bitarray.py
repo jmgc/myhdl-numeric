@@ -20,6 +20,7 @@
 """ Module with the bitarray class """
 
 from myhdl._compat import integer_types, string_types, long, bit_length
+from myhdl._intbv import intbv
 
 from copy import copy
 import warnings
@@ -43,6 +44,8 @@ class bitarray(object):
                 self._from_string(value, high, low)
             else:
                 self._zero(value, high, low)
+        elif isinstance(value, intbv):
+            self._from_int(int(value), len(value), 0)
         elif isinstance(value, bitarray):
             if value._val == 0:
                 self._zero(value, high, low)

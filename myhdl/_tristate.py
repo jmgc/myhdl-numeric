@@ -17,13 +17,13 @@ def Tristate(val, delay=None):
         return _DelayedTristate(val, delay)
     else:
         return _Tristate(val)
- 
+
     
 class _Tristate(_Signal):
             
     def __init__(self, val):
         self._drivers = []
-        super(Tristate, self).__init__(val)
+        super(_Tristate, self).__init__(val)
         self._val = None
 
     def driver(self):

@@ -3,7 +3,7 @@ from myhdl import *
 
 def bench_SliceSignal():
 
-    s = Signal(intbv(0)[8:])
+    s = Signal(uintba(0, 8))
     a, b, c = s(7), s(5), s(0)
     d, e, f, g = s(8,5), s(6,3), s(8,0), s(4,3)
     N = len(s)
@@ -30,10 +30,10 @@ def test_SliceSignal():
 
 def bench_ConcatSignal():
 
-    a = Signal(intbv(0)[5:])
+    a = Signal(uintba(0, 5))
     b = Signal(bool(0))
-    c = Signal(intbv(0)[3:])
-    d = Signal(intbv(0)[4:])
+    c = Signal(uintba(0, 3))
+    d = Signal(uintba(0, 4))
 
     s = ConcatSignal(a, b, c, d)
 
@@ -61,17 +61,17 @@ def test_ConcatSignal():
 
 def bench_ConcatSignalWithConsts():
 
-    a = Signal(intbv(0)[5:])
+    a = Signal(uintba(0, 5))
     b = Signal(bool(0))
-    c = Signal(intbv(0)[3:])
-    d = Signal(intbv(0)[4:])
-    e = Signal(intbv(0)[1:])
+    c = Signal(uintba(0, 3))
+    d = Signal(uintba(0, 4))
+    e = Signal(uintba(0, 1))
 
     c1 = "10"
-    c2 = intbv(3)[3:]
+    c2 = uintba(3, 3)
     c3 = '0'
     c4 = bool(1)
-    c5 = intbv(42)[8:]  # with leading zeroes
+    c5 = uintba(42, 8)  # with leading zeroes
 
     s = ConcatSignal(c1, a, c2, b, c3, c, c4, d, c5, e)
 
@@ -102,8 +102,8 @@ def test_ConcatSignalWithConsts():
 
 
 def bench_TristateSignal():
-    s = TristateSignal(intbv(0)[8:])
-    t = TristateSignal(intbv(0)[1:])
+    s = TristateSignal(uintba(0, 8))
+    t = TristateSignal(sfixba(0, 1, 0))
     a = s.driver()
     b = s.driver()
     c = s.driver()
@@ -159,8 +159,8 @@ def permute(x, a, mapping):
 
 def bench_permute(conv=False):
 
-    x = Signal(intbv(0)[3:])
-    a = Signal(intbv(0)[3:])
+    x = Signal(uintba(0, 3))
+    a = Signal(sfixba(0, 3, -2))
     mapping = (0, 2, 1)
 
     if conv:

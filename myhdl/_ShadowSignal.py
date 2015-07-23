@@ -32,6 +32,8 @@ from myhdl._Waiter import _SignalWaiter, _SignalTupleWaiter
 from myhdl._intbv import intbv
 from myhdl._simulator import _simulator
 from myhdl._bin import bin
+from myhdl.numeric._bitarray import bitarray
+from myhdl.numeric._uintba import uintba
 
 # shadow signals
 
@@ -121,7 +123,7 @@ class _SliceSignal(_ShadowSignal):
 
 class ConcatSignal(_ShadowSignal):
 
-    __slots__ = ('_args', '_sigargs', '_initval')
+    __slots__ = ('_args', '_sigargs', '_initval', '_is_bitarray')
 
     def __init__(self, *args):
         assert len(args) >= 2
@@ -130,15 +132,18 @@ class ConcatSignal(_ShadowSignal):
 
         nrbits = 0
         val = 0
+        is_bitarray = False
         for a in args:
-            if isinstance(a, intbv):
+            if isinstance(a, (intbv, bitarray)):
                 w = a._nrbits
                 v = a._val
+                is_bitarray = True
             elif isinstance(a, _Signal):
                 sigargs.append(a)
                 w = a._nrbits
-                if isinstance(a._val, intbv):
+                if isinstance(a._val, (intbv, bitarray)):
                     v = a._val._val
+                    is_bitarray = True
                 else:
                     v = a._val
             elif isinstance(a, bool):
@@ -153,7 +158,11 @@ class ConcatSignal(_ShadowSignal):
             nrbits += w
             val = val << w | v & (long(1) << w)-1
         self._initval = val
-        ini = intbv(val)[nrbits:]
+        self._is_bitarray = is_bitarray
+        if is_bitarray:
+            ini = uintba(val, nrbits)
+        else:
+            ini = intbv(val)[nrbits:]
         _ShadowSignal.__init__(self, ini)
         gen = self.genfunc()
         self._waiter = _SignalTupleWaiter(gen)
@@ -163,7 +172,10 @@ class ConcatSignal(_ShadowSignal):
         args = self._args
         sigargs = self._sigargs
         nrbits = self._nrbits
-        newval = intbv(self._initval)[nrbits:]
+        if self._is_bitarray:
+            newval = uintba(self._initval, nrbits)
+        else:
+            newval = intbv(self._initval)[nrbits:]
         while 1:
             hi = nrbits
             for a in args:
@@ -190,7 +202,10 @@ class ConcatSignal(_ShadowSignal):
 
     def toVHDL(self):
         lines = []
-        ini = intbv(self._initval)[self._nrbits:]
+        if self._is_bitarray:
+            ini = uintba(self._initval, self._nrbits)
+        else:
+            ini = intbv(self._initval)[self._nrbits:]
         hi = self._nrbits
         for a in self._args:
             if isinstance(a, bool):
