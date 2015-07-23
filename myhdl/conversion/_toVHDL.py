@@ -228,11 +228,7 @@ class _ToVHDLConvertor(object):
             for sig in siglist:
                 if not sig._used:
                     continue
-                if isinstance(sig, _TristateDriver):
-                    init = sig._sig._orival
-                else:
-                    init = sig._init
-                tipe = inferVhdlClass(init)
+                tipe = inferVhdlClass(sig)
                 if tipe is not None and issubclass(tipe, vhd_sfixed):
                     fixed_point = True
                     break
