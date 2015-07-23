@@ -601,8 +601,6 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
                     pre, suf = "resize(unsigned(", "), %s)" % vhd.size
                 else:
                     pre, suf = "unsigned(", ")"
-            elif ori is None:
-                pre, suf = "(others => ", ")"
             else:
                 pre, suf = "to_unsigned(", ", %s)" % vhd.size
         elif isinstance(vhd, vhd_signed):
@@ -615,8 +613,6 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
                     pre, suf = "signed(resize(", ", %s))" % vhd.size
                 else:
                     pre, suf = "signed(", ")"
-            elif ori is None:
-                pre, suf = "(others => ", ")"
             else:
                 pre, suf = "to_signed(", ", %s)" % vhd.size
         elif isinstance(vhd, vhd_boolean):
@@ -626,8 +622,6 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
             if not isinstance(ori, vhd_std_logic):
                 if isinstance(ori, vhd_unsigned) :
                     pre, suf = "", "(0)"
-                elif ori is None:
-                    pass
                 else:
                     pre, suf = "stdl(", ")"
         elif isinstance(vhd, vhd_string):
