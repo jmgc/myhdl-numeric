@@ -548,7 +548,7 @@ def _convertGens(genlist, siglist, memlist, vfile):
         if s._type is bool:
             c = int(s._val)
             pre, suf = "'", "'"
-        elif s._type is intbv:
+        elif issubclass(s._type, intbv):
             c = int(s._val)
             w = len(s)
             assert w != 0
@@ -556,14 +556,15 @@ def _convertGens(genlist, siglist, memlist, vfile):
                 pre, suf = "to_signed(", ", %s)" % w
             else:
                 pre, suf = "to_unsigned(", ", %s)" % w
-        elif s._type is sintba:
+        elif issubclass(s._type, uintba):
             c = s.internal
             w = s.high
-            if s.min < 0:
-                pre, suf = "to_signed(", ", %s)" % w
-            else:
-                pre, suf = "to_unsigned(", ", %s)" % w
-        elif s._type is sfixba:
+            pre, suf = "to_unsigned(", ", %s)" % w
+        elif issubclass(s._type, sintba):
+            c = s.internal
+            w = s.high
+            pre, suf = "to_signed(", ", %s)" % w
+        elif issubclass(s._type, sfixba):
             c = s.internal
             h = s.high
             l = s.low
