@@ -4,10 +4,10 @@ import itertools
 from types import FunctionType
 from copy import copy
 
-from ._util import _flatten, _makeAST, _genfunc
-from ._enum import EnumType
-from ._Signal import SignalType
-from .numeric._conversion import (numeric_functions_dict,
+from myhdl._util import _flatten
+from myhdl._enum import EnumType
+from myhdl._Signal import SignalType
+from myhdl.numeric._conversion import (numeric_functions_dict,
                                   numeric_attributes_dict)
 
 class Data():
@@ -20,9 +20,7 @@ def _resolveRefs(symdict, arg):
     data.symdict = symdict
     v = _AttrRefTransformer(data)
     for gen in gens:
-        func = _genfunc(gen)
-        tree = _makeAST(func)
-        v.visit(tree)
+        v.visit(gen.ast)
     return data.objlist
 
 #TODO: Refactor this into two separate nodetransformers, since _resolveRefs

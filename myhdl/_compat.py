@@ -73,5 +73,5 @@ else:
             fcntl.fcntl(fd, fcntl.F_SETFD, fd_flags)
 
 def ast_parse(s):
-     return compile(s, '<string>', 'exec', \
-                    print_function.compiler_flag|division.compiler_flag|PyCF_ONLY_AST)
+    return compile(s, '<string>', 'exec', \
+                   print_function.compiler_flag|division.compiler_flag|PyCF_ONLY_AST)

@@ -50,6 +50,7 @@ from myhdl.conversion._misc import (_error, _kind, _context,
 from myhdl.conversion._analyze import (_analyzeSigs, _analyzeGens, _analyzeTopFunc,
                                        _Ram, _Rom)
 from myhdl._Signal import _Signal
+
 from collections import Callable
 from myhdl._ShadowSignal import _TristateSignal, _TristateDriver
 
@@ -259,7 +260,10 @@ def _writeModuleHeader(f, intf, doc):
                     warnings.warn("%s: %s" % (_error.OutputPortRead, portname),
                                   category=ToVerilogWarning
                                   )
-            print("output %s%s%s;" % (p, r, portname), file=f)
+            if isinstance(s, _TristateSignal):
+                print("inout %s%s%s;" % (p, r, portname), file=f)
+            else:
+                print("output %s%s%s;" % (p, r, portname), file=f)
             if s._driven == 'reg':
                 print("reg %s%s%s;" % (p, r, portname), file=f)
             else:
@@ -1031,7 +1035,7 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
         elif n in self.tree.symdict:
             obj = self.tree.symdict[n]
             if isinstance(obj, bool):
-                s = "%s" % int(obj)
+                s = "1'b%s" % int(obj)
             elif isinstance(obj, integer_types):
                 s = self.IntRepr(obj)
             elif isinstance(obj, _Signal):

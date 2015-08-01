@@ -50,6 +50,7 @@ class TestNotSupported(unittest.TestCase):
             return logic
         self.check(g, z, a)
 
+<<<<<<< HEAD
     def testBackquote(self):
         a = Signal(bool())
         z = Signal(bool())
@@ -62,6 +63,21 @@ class TestNotSupported(unittest.TestCase):
                     repr(a)
             return logic
         self.check(g, z, a)
+=======
+# Backquote not available in py3
+#     def testBackquote(self):
+#         a = Signal(bool())
+#         z = Signal(bool())
+#         def g(z, a):
+#             @instance
+#             def logic():
+#                 while 1:
+#                     yield a
+#                     z.next = 1
+#                     `a`
+#             return logic
+#         self.check(g, z, a)
+>>>>>>> e5ef9dec9933456a62e46a7b223a32fbc011cbe1
 
 
     def testClass(self):
@@ -92,7 +108,24 @@ class TestNotSupported(unittest.TestCase):
             return logic
         self.check(g, z, a)
 
+<<<<<<< HEAD
 #     def testDiv(self):
+=======
+    def testDiv(self):
+        a = Signal(bool())
+        z = Signal(bool())
+        def g(z, a):
+            @instance
+            def logic():
+                while 1:
+                    yield a
+                    z.next = z / a
+            return logic
+        self.check(g, z, a)
+
+# In PY3 a file with a exec without parenthesis is not read.
+#     def testExec(self):
+>>>>>>> e5ef9dec9933456a62e46a7b223a32fbc011cbe1
 #         a = Signal(bool())
 #         z = Signal(bool())
 #         def g(z, a):
@@ -100,6 +133,7 @@ class TestNotSupported(unittest.TestCase):
 #             def logic():
 #                 while 1:
 #                     yield a
+<<<<<<< HEAD
 #                     z.next = z / a
 #             return logic
 #         self.check(g, z, a)
@@ -116,6 +150,12 @@ class TestNotSupported(unittest.TestCase):
 # #                     exec("1 + 2", globals() , locals())
 # #             return logic
 # #         self.check(g, z, a)
+=======
+#                     z.next = 1
+#                     exec "1 + 2" in globals , locals
+#             return logic
+#         self.check(g, z, a)
+>>>>>>> e5ef9dec9933456a62e46a7b223a32fbc011cbe1
 
     def testFrom(self):
         a = Signal(bool())

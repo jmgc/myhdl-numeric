@@ -42,26 +42,26 @@ import string
 import myhdl
 from myhdl import *
 from myhdl import ToVHDLError, ToVHDLWarning
-from .._extractHierarchy import (_HierExtr, _isMem, _getMemInfo,
-                                 _UserVhdlCode, _userCodeMap)
+from myhdl._extractHierarchy import (_HierExtr, _isMem, _getMemInfo,
+                                     _UserVhdlCode, _userCodeMap)
 
-from .._instance import _Instantiator
-from ..conversion._misc import (_error,_kind,_context,
-                                _ConversionMixin, _Label, _genUniqueSuffix, _isConstant)
-from ..conversion._analyze import (_analyzeSigs, _analyzeGens, _analyzeTopFunc,
-                                   _Ram, _Rom, _enumTypeSet, _constDict, _extConstDict)
-from .._Signal import _Signal,_WaiterList
-from ..conversion._toVHDLPackage import _package
-from .._util import  _flatten
-from .._compat import integer_types, class_types, StringIO, PY2
-from ..numeric._bitarray import bitarray
-from ..numeric._uintba import uintba
-from ..numeric._sintba import sintba
-from ..numeric._sfixba import sfixba, fixmath
-from ..numeric._conversion import (numeric_types,
+from myhdl._instance import _Instantiator
+from myhdl.conversion._misc import (_error,_kind,_context,
+                                    _ConversionMixin, _Label, _genUniqueSuffix, _isConstant)
+from myhdl.conversion._analyze import (_analyzeSigs, _analyzeGens, _analyzeTopFunc,
+                                       _Ram, _Rom, _enumTypeSet, _constDict, _extConstDict)
+from myhdl._Signal import _Signal,_WaiterList
+from myhdl.conversion._toVHDLPackage import _package
+from myhdl._util import  _flatten
+from myhdl._compat import integer_types, class_types, StringIO, PY2
+from myhdl._ShadowSignal import _TristateSignal, _TristateDriver
+from myhdl.numeric._bitarray import bitarray
+from myhdl.numeric._uintba import uintba
+from myhdl.numeric._sintba import sintba
+from myhdl.numeric._sfixba import sfixba, fixmath
+from myhdl.numeric._conversion import (numeric_types,
                                    numeric_functions_dict,
                                    numeric_attributes_dict)
-from .._ShadowSignal import _TristateSignal, _TristateDriver
 from collections import Callable
 
 _version = myhdl.__version__.replace('.','')

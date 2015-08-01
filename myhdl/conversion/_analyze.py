@@ -146,7 +146,7 @@ def _analyzeGens(top, absnames):
             tree = g
         elif isinstance(g, (_AlwaysComb, _AlwaysSeq, _Always)):
             f = g.func
-            tree = _makeAST(f)
+            tree = g.ast
             tree.symdict = f.__globals__.copy()
             tree.callstack = []
             # handle free variables
@@ -172,7 +172,7 @@ def _analyzeGens(top, absnames):
             v.visit(tree)
         else: # @instance
             f = g.gen.gi_frame
-            tree = _makeAST(f)
+            tree = g.ast
             tree.symdict = f.f_globals.copy()
             tree.symdict.update(f.f_locals)
             tree.nonlocaldict = {}
@@ -712,7 +712,6 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
         self.visit(node.func)
         f = self.getObj(node.func)
         node.obj = None
-
         self.access = _access.UNKNOWN
         for arg in node.args:
             self.visit(arg)

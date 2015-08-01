@@ -28,13 +28,14 @@ import inspect
 import re
 
 
-from ._util import _dedent
-from ._delay import delay
-from ._join import join
-from ._Signal import _Signal, _WaiterList, posedge, negedge
-from ._simulator import _simulator
-from ._enum import enum
-from ._compat import ast_parse
+from myhdl._util import _dedent
+from myhdl._delay import delay
+from myhdl._join import join
+from myhdl._Signal import _Signal, _WaiterList, posedge, negedge
+from myhdl import _simulator
+from myhdl._simulator import _siglist, _futureEvents
+from myhdl._enum import enum
+from myhdl._compat import ast_parse
 
 
 schedule = _simulator._futureEvents.append
