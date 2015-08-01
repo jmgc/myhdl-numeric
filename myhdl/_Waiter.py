@@ -33,7 +33,7 @@ from myhdl._delay import delay
 from myhdl._join import join
 from myhdl._Signal import _Signal, _WaiterList, posedge, negedge
 from myhdl import _simulator
-from myhdl._simulator import _siglist, _futureEvents
+from myhdl._simulator import _simulator
 from myhdl._enum import enum
 from myhdl._compat import ast_parse
 
