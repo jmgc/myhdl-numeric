@@ -5,7 +5,7 @@ MyHDL 1.0dev
 
 [![Documentation Status](https://readthedocs.org/projects/myhdl/badge/?version=stable)](http://docs.myhdl.org/en/stable/manual)
 [![Documentation Status](https://readthedocs.org/projects/myhdl/badge/?version=master)](http://docs.myhdl.org/en/latest/manual)
-[![Build Status](https://travis-ci.org/jmgc/myhdl.svg?branch=numeric)](https://travis-ci.org/jmgc/myhdl)
+[![Build Status](https://travis-ci.org/jmgc/myhdl-numeric.svg?branch=numeric)](https://travis-ci.org/jmgc/myhdl-numeric)
 
 What is MyHDL?
 --------------
