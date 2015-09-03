@@ -34,3 +34,5 @@ myhdl/**/*.vhd
 *.html
 
 *.js
+
+example/ipython/.ipynb_checkpoints/Cordic-checkpoint.ipynb
