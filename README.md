@@ -7,38 +7,30 @@ MyHDL 1.0dev
 [![Documentation Status](https://readthedocs.org/projects/myhdl/badge/?version=master)](http://docs.myhdl.org/en/latest/manual)
 [![Build Status](https://travis-ci.org/jmgc/myhdl-numeric.svg?branch=numeric)](https://travis-ci.org/jmgc/myhdl-numeric)
 
-What is MyHDL?
---------------
-MyHDL is a free, open-source package for using Python as a hardware
-description and verification language.
+What is MyHDL-numeric?
+----------------------
 
-To find out whether MyHDL can be useful to you, please read:
+MyHDL-numeric is an enhancement of the [MyHDL](http://www.myhdl.org)
+package which provides support for **fixed-point numbers**.
+This is based on the bit-array class, that
+provides support for three new types: ``sintba`` (signed integer), ``uintba``
+(unsigned integer) and ``sfixba`` (signed fixed point).
 
-   - http://www.myhdl.org/start/why.html
+Presently it only supports these new types on VHDL, and makes use of the
+IEEE fixed_pkg available on VHDL-2008. If not, it can also make use of the
+proposed implementation available for VHDL-93, you can find the sources
+under the ``vhdl`` directory
+
+An example of the numeric enhancement can be found under the directory
+``example/cordic``.
 
 License
 -------
 MyHDL is available under the LGPL license.  See ``LICENSE.txt``.
 
-Website
--------
-The project website is located at http://www.myhdl.org
-
-Documentation
--------------
-The manual is available on-line:
-
-   - http://docs.myhdl.org/en/stable/manual
-
-What's new
-----------
-To find out what's new in this release, please read:
-
-   - http://docs.myhdl.org/en/stable/whatsnew/0.9.html
-
 Installation
 ------------
-If you have superuser power, you can install MyHDL as follows:
+If you have superuser power, you can install MyHDL-numeric as follows:
 
 ```
 python setup.py install
