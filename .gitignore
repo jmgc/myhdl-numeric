@@ -35,4 +35,3 @@ myhdl/**/*.vhd
 
 *.js
 
-example/ipython/.ipynb_checkpoints
