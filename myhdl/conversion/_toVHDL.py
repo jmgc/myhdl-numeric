@@ -2837,7 +2837,7 @@ class vhd_sfixed(vhd_type):
             elif isinstance(right.vhd, (vhd_int, vhd_real)):
                 if isinstance(op, (ast.Add, ast.Sub)):
                     left.vhd.size = (ns_high - 1, ns_low)
-                elif isinstancd(op, (ast.Mod, ast.FloorDiv, ast.Div)):
+                elif isinstance(op, (ast.Mod, ast.FloorDiv, ast.Div)):
                     left.vhd.size = (ns_high, ns_low)
                 elif isinstance(op, ast.Mult):
                     left.vhd.size = (left.vhd.size[0] + ds_high,
