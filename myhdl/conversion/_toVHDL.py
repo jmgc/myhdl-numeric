@@ -2828,9 +2828,9 @@ def inferVhdlClass(obj):
     if (isinstance(obj, _Signal) and obj._type is intbv) or \
             isinstance(obj, intbv):
         if obj.min is None or obj.min < 0:
-            vhd = vhd_signed(size=len(obj))
+            vhd = vhd_signed
         else:
-            vhd = vhd_unsigned(size=len(obj))
+            vhd = vhd_unsigned
     elif (isinstance(obj, _Signal) and issubclass(obj._type, bitarray)) or \
             isinstance(obj, bitarray):
         if isinstance(obj, _Signal):
@@ -2839,11 +2839,11 @@ def inferVhdlClass(obj):
             else:
                 obj = obj._init
         if isinstance(obj, uintba):
-            vhd = vhd_unsigned(size=len(obj))
+            vhd = vhd_unsigned
         elif isinstance(obj, sintba):
-            vhd = vhd_signed(size=len(obj))
+            vhd = vhd_signed
         elif isinstance(obj, sfixba):
-            vhd = vhd_sfixed(size=(obj.high, obj.low))
+            vhd = vhd_sfixed
     elif (isinstance(obj, _Signal) and obj._type is bool) or \
             isinstance(obj, bool):
         vhd = vhd_std_logic
@@ -2864,15 +2864,14 @@ def inferVhdlObj(obj):
     if vhd is None:
         return vhd
     elif issubclass(vhd, (vhd_unsigned, vhd_signed)):
-        ls = getattr(obj, 'lenStr', False)
-        vhd = vhd(size=len(obj), lenStr=ls)
+        vhd = vhd(size=len(obj))
     elif issubclass(vhd, vhd_sfixed):
         ls = getattr(obj, 'lenStr', False)
         high = getattr(obj, 'high', False)
         low = getattr(obj, 'low', False)
         # vhd_sfixed represents the vhdl element, so the sizes are
         # represented in the same format.
-        vhd = vhd_sfixed(size=(high - 1, low), lenStr=ls)
+        vhd = vhd_sfixed(size=(high - 1, low))
     elif issubclass(vhd, vhd_std_logic):
         vhd = vhd()
     elif issubclass(vhd, vhd_enum):
