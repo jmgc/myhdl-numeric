@@ -50,7 +50,7 @@ class TestNotSupported(unittest.TestCase):
             return logic
         self.check(g, z, a)
 
-    def testBackquote(self):
+    def testClass(self):
         a = Signal(bool())
         z = Signal(bool())
         def g(z, a):
@@ -90,31 +90,6 @@ class TestNotSupported(unittest.TestCase):
                     d = {}
             return logic
         self.check(g, z, a)
-
-#     def testDiv(self):
-#         a = Signal(bool())
-#         z = Signal(bool())
-#         def g(z, a):
-#             @instance
-#             def logic():
-#                 while 1:
-#                     yield a
-#                     z.next = z / a
-#             return logic
-#         self.check(g, z, a)
-
-# #     def testExec(self):
-# #         a = Signal(bool())
-# #         z = Signal(bool())
-# #         def g(z, a):
-# #             @instance
-# #             def logic():
-# #                 while 1:
-# #                     yield a
-# #                     z.next = 1
-# #                     exec("1 + 2", globals() , locals())
-# #             return logic
-# #         self.check(g, z, a)
 
     def testFrom(self):
         a = Signal(bool())

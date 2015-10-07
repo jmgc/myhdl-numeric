@@ -492,7 +492,7 @@ def expressionsBench():
             yield delay(1)
             print(int(a))
             print(int(b))
-  
+
     @instance
     def clkgen():
         while True:
