@@ -54,10 +54,8 @@ myhdlObjects = myhdl.__dict__.values()
 builtinObjects = builtins.__dict__.values()
 
 _enumTypeSet = set()
-_constDict = {}
-_extConstDict = {}
 
-def _makeName(n, prefixes, namedict):
+def _makeName(n, prefixes, case='lower'):
     # trim empty prefixes
     prefixes = [p for p in prefixes if p]
     if len(prefixes) > 1:
@@ -69,7 +67,10 @@ def _makeName(n, prefixes, namedict):
         name = "\\" + name + ' '
 ##     print prefixes
 ##     print name
-    return name
+    if case == 'lower':
+        return name.lower()
+    else:
+        return name.upper()
 
 def _analyzeSigs(hierarchy, hdl='Verilog'):
     curlevel = 0
@@ -86,7 +87,6 @@ def _analyzeSigs(hierarchy, hdl='Verilog'):
         name = inst.name
         sigdict = inst.sigdict
         memdict = inst.memdict
-        namedict = dict(chain(sigdict.items(),  memdict.items()))
         delta = curlevel - level
         curlevel = level
         assert(delta >= -1)
@@ -102,7 +102,7 @@ def _analyzeSigs(hierarchy, hdl='Verilog'):
                 continue
             if isinstance(s, _SliceSignal):
                 continue
-            s._name = _makeName(n, prefixes, namedict)
+            s._name = _makeName(n, prefixes)
             if not s._nrbits:
                 raise ConversionError(_error.UndefinedBitWidth, s._name)
             # slice signals
@@ -113,7 +113,7 @@ def _analyzeSigs(hierarchy, hdl='Verilog'):
         for n, m in memdict.items():
             if m.name is not None:
                 continue
-            m.name = _makeName(n, prefixes, namedict)
+            m.name = _makeName(n, prefixes)
             memlist.append(m)
 
     # handle the case where a named signal appears in a list also by giving
@@ -136,7 +136,38 @@ def _analyzeSigs(hierarchy, hdl='Verilog'):
 
     return siglist, memlist
 
+def _analyzeConsts(hierarchy, hdl='Verilog'):
+    curlevel = 0
+    constdict = {}
+    prefixes = []
 
+    open, close = '[', ']'
+    if hdl == 'VHDL':
+        open, close = '(', ')'
+
+    for inst in hierarchy:
+        level = inst.level
+        name = inst.name
+        _constdict = inst.constdict
+        delta = curlevel - level
+        curlevel = level
+        assert(delta >= -1)
+        if delta > -1: # same or higher level
+            prefixes = prefixes[:curlevel-1]
+        # skip processing and prefixing in context without constants
+        if not (_constdict):
+            prefixes.append("")
+            continue
+        prefixes.append(name)
+        for n, s in _constdict.items():
+            if s.name is not None:
+                continue
+            s.name = _makeName(n, prefixes, case='upper')
+            s.instance = inst
+            if not s.name in constdict:
+                constdict[s.name] = s                
+
+    return constdict
 
 def _analyzeGens(top, absnames):
     genlist = []
@@ -1227,7 +1258,6 @@ class _AnalyzeBlockVisitor(_AnalyzeVisitor):
         for n, v in self.tree.symdict.items():
             if isinstance(v, _Signal):
                 self.tree.sigdict[n] = v
-
 
     def visit_FunctionDef(self, node):
         self.refStack.push()

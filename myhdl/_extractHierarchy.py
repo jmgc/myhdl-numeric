@@ -37,6 +37,7 @@ from myhdl._util import _isGenFunc, _flatten, _genfunc
 from myhdl._misc import _isGenSeq
 from myhdl._resolverefs import _resolveRefs
 from myhdl._getcellvars import _getCellVars
+from myhdl._compat import integer_types
 
 
 _profileFunc = None
@@ -47,15 +48,26 @@ _error.NoInstances = "No instances found"
 _error.InconsistentHierarchy = "Inconsistent hierarchy - are all instances returned ?"
 _error.InconsistentToplevel = "Inconsistent top level %s for %s - should be 1"
 
+class _Constant(object):
+    def __init__(self, orig_name, value):
+        self.name = None
+        self.orig_name = orig_name
+        self.instance = None
+        self.value = value
+        self.used = False
 
 class _Instance(object):
-    __slots__ = ['level', 'obj', 'subs', 'sigdict', 'memdict', 'name', 'func', 'argdict', 'objdict']
-    def __init__(self, level, obj, subs, sigdict, memdict, func, argdict, objdict=None):
+    __slots__ = ['level', 'obj', 'subs', 'constdict', 'sigdict', 'memdict',
+                 'name', 'basename', 'func', 'argdict', 'objdict']
+    def __init__(self, level, obj, subs, constdict, sigdict, memdict,
+                 basename, func, argdict, objdict=None):
         self.level = level
         self.obj = obj
         self.subs = subs
+        self.constdict = constdict
         self.sigdict = sigdict
         self.memdict = memdict
+        self.basename = basename
         self.func = func
         self.argdict = argdict
         if objdict:
@@ -292,6 +304,10 @@ class _HierExtr(object):
             if not self.skip:
                 isGenSeq = _isGenSeq(arg)
                 if isGenSeq:
+                    if self.level != 1:
+                        basename = frame.f_back.f_code.co_name
+                    else:
+                        basename = None
                     specs = {}
                     for hdl in _userCodeMap:
                         spec = "__%s__" % hdl
@@ -307,6 +323,7 @@ class _HierExtr(object):
                         _addUserCode(specs, arg, funcname, func, frame)
                 # building hierarchy only makes sense if there are generators
                 if isGenSeq and arg:
+                    constdict = {}
                     sigdict = {}
                     memdict = {}
                     argdict = {}
@@ -342,13 +359,16 @@ class _HierExtr(object):
                             sigdict[n] = v
                             if n in cellvars:
                                 v._markUsed()
+                        elif isinstance(v, (integer_types, float)):
+                            constdict[n] = _Constant(n, v)
                         if _isListOfSigs(v):
                             m = _makeMemInfo(v)
                             memdict[n] = m
                             if n in cellvars:
                                 m._used = True
                         # save any other variable in argdict
-                        if (n in arglist) and (n not in sigdict) and (n not in memdict):
+                        if (n in arglist) and (n not in sigdict) and \
+                                (n not in memdict):
                             argdict[n] = v
 
                     subs = []
@@ -358,7 +378,8 @@ class _HierExtr(object):
                                 subs.append((n, sub))
 
 
-                    inst = _Instance(self.level, arg, subs, sigdict, memdict, func, argdict)
+                    inst = _Instance(self.level, arg, subs, constdict,
+                                     sigdict, memdict, basename, func, argdict)
                     self.hierarchy.append(inst)
 
                 self.level -= 1
