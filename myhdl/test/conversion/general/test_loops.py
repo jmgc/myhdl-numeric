@@ -1,16 +1,16 @@
 from __future__ import absolute_import, print_function
 
-import os
-path = os.path
 from random import randrange
-
-
-from myhdl import *
+from myhdl import instance, downrange, intbv, Signal, delay
 from myhdl.conversion import verify, analyze
 from myhdl import ConversionError
 from myhdl.conversion._misc import _error
 
-def ForLoopError1(a, out):
+import os
+path = os.path
+
+
+def ForLoopError1(a, result):
     @instance
     def logic():
         while 1:
@@ -19,10 +19,11 @@ def ForLoopError1(a, out):
             for i in (1, 2, 3):
                 if a[i] == 1:
                     var += 1
-            out.next = var
+            result.next = var
     return logic
-        
-def ForLoopError2(a, out):
+
+
+def ForLoopError2(a, result):
     @instance
     def logic():
         while 1:
@@ -31,11 +32,11 @@ def ForLoopError2(a, out):
             for i in list((1, 2, 3)):
                 if a[i] == 1:
                     var += 1
-            out.next = var
+            result.next = var
     return logic
 
 
-def ForLoop1(a, out):
+def ForLoop1(a, result):
     @instance
     def logic():
         while 1:
@@ -44,10 +45,11 @@ def ForLoop1(a, out):
             for i in downrange(len(a)):
                 if a[i] == 1:
                     var += 1
-            out.next = var
+            result.next = var
     return logic
 
-def ForLoop2(a, out):
+
+def ForLoop2(a, result):
     @instance
     def logic():
         while 1:
@@ -56,10 +58,11 @@ def ForLoop2(a, out):
             for i in downrange(len(a), 5):
                 if a[i] == 1:
                     var += 1
-            out.next = var
+            result.next = var
     return logic
 
-def ForLoop3(a, out):
+
+def ForLoop3(a, result):
     @instance
     def logic():
         while 1:
@@ -68,10 +71,11 @@ def ForLoop3(a, out):
             for i in downrange(len(a), 3, 2):
                 if a[i] == 1:
                     var += 1
-            out.next = var
+            result.next = var
     return logic
-        
-def ForLoop4(a, out):
+
+
+def ForLoop4(a, result):
     @instance
     def logic():
         while 1:
@@ -80,10 +84,11 @@ def ForLoop4(a, out):
             for i in range(len(a)):
                 if a[i] == 1:
                     var += 1
-            out.next = var
+            result.next = var
     return logic
 
-def ForLoop5(a, out):
+
+def ForLoop5(a, result):
     @instance
     def logic():
         while 1:
@@ -92,10 +97,11 @@ def ForLoop5(a, out):
             for i in range(6, len(a)):
                 if a[i] == 1:
                     var += 1
-            out.next = var
+            result.next = var
     return logic
 
-def ForLoop6(a, out):
+
+def ForLoop6(a, result):
     @instance
     def logic():
         while 1:
@@ -104,10 +110,11 @@ def ForLoop6(a, out):
             for i in range(5, len(a), 3):
                 if a[i] == 1:
                     var += 1
-            out.next = var
+            result.next = var
     return logic
 
-def ForContinueLoop(a, out):
+
+def ForContinueLoop(a, result):
     @instance
     def logic():
         while 1:
@@ -117,35 +124,38 @@ def ForContinueLoop(a, out):
                 if a[i] == 0:
                     continue
                 var += 1
-            out.next = var
+            result.next = var
     return logic
 
-def ForBreakLoop(a, out):
+
+def ForBreakLoop(a, result):
     @instance
     def logic():
         while 1:
             yield a
-            out.next = 0
+            result.next = 0
             for i in downrange(len(a)):
                 if a[i] == 1:
-                    out.next = i
+                    result.next = i
                     break
     return logic
 
-def ForBreakContinueLoop(a, out):
+
+def ForBreakContinueLoop(a, result):
     @instance
     def logic():
         while 1:
             yield a
-            out.next = 0
+            result.next = 0
             for i in downrange(len(a)):
                 if a[i] == 0:
                     continue
-                out.next = i
+                result.next = i
                 break
     return logic
 
-def NestedForLoop1(a, out):
+
+def NestedForLoop1(a, result):
     @instance
     def logic():
         while 1:
@@ -157,18 +167,19 @@ def NestedForLoop1(a, out):
                 else:
                     for j in downrange(i):
                         if a[j] == 0:
-                            var +=1
+                            var += 1
                     break
-            out.next = var
+            result.next = var
     return logic
 
-def NestedForLoop2(a, out):
+
+def NestedForLoop2(a, result):
     @instance
     def logic():
         while 1:
             yield a
             var = 0
-            out.next = 0
+            result.next = 0
             for i in downrange(len(a)):
                 if a[i] == 0:
                     continue
@@ -177,10 +188,11 @@ def NestedForLoop2(a, out):
                         if a[j] == 0:
                             pass
                         else:
-                            out.next = j
+                            result.next = j
                             break
                     break
     return logic
+
 
 def ReturnFromFunction(a):
     for i in downrange(len(a)):
@@ -188,35 +200,39 @@ def ReturnFromFunction(a):
             return i
     return 0
 
-def FunctionCall(a, out):
+
+def FunctionCall(a, result):
     @instance
     def logic():
         while 1:
             yield a
-            out.next = ReturnFromFunction(a)
+            result.next = ReturnFromFunction(a)
     return logic
+
 
 # During the following check, I noticed that non-blocking assignments
 # are not scheduled when a task is disabled in Icarus. Apparently
 # this is one of the many vague areas in the Verilog standard.
-def ReturnFromTask(a, out):
+def ReturnFromTask(a, result):
     for i in downrange(len(a)):
         if a[i] == 1:
-            out[:] = i
+            result[:] = i
             return
-    out[:] = 23 # to notice it
+    result[:] = 23  # to notice it
 
-def TaskCall(a, out):
+
+def TaskCall(a, result):
     @instance
     def logic():
         var = intbv(0)[8:]
         while 1:
             yield a
             ReturnFromTask(a, var)
-            out.next = var
+            result.next = var
     return logic
 
-def WhileLoop(a, out):
+
+def WhileLoop(a, result):
     @instance
     def logic():
         while 1:
@@ -227,10 +243,11 @@ def WhileLoop(a, out):
                 if a[i] == 1:
                     var += 1
                 i -= 1
-            out.next = var
+            result.next = var
     return logic
 
-def WhileContinueLoop(a, out):
+
+def WhileContinueLoop(a, result):
     @instance
     def logic():
         while 1:
@@ -243,40 +260,41 @@ def WhileContinueLoop(a, out):
                     continue
                 var += 1
                 i -= 1
-            out.next = var
+            result.next = var
     return logic
-        
-def WhileBreakLoop(a, out):
+
+
+def WhileBreakLoop(a, result):
     @instance
     def logic():
         while 1:
             yield a
             var = 0
             i = len(a)-1
-            out.next = 0
+            result.next = 0
             while i >= 0:
                 if a[i] == 1:
-                    out.next = i
+                    result.next = i
                     break
                 i -= 1
     return logic
-    
-def WhileBreakContinueLoop(a, out):
+
+
+def WhileBreakContinueLoop(a, result):
     @instance
     def logic():
         while 1:
             yield a
             var = 0
             i = len(a)-1
-            out.next = 0
+            result.next = 0
             while i >= 0:
                 if a[i] == 0:
-                     i -= 1
-                     continue
-                out.next = i
+                    i -= 1
+                    continue
+                result.next = i
                 break
     return logic
-    
 
 
 def LoopBench(LoopTest):
@@ -297,51 +315,66 @@ def LoopBench(LoopTest):
     return stimulus, looptest_inst
 
 
-
 def testForLoop1():
     assert verify(LoopBench, ForLoop1) == 0
+
+
 def testForLoop2():
     assert verify(LoopBench, ForLoop2) == 0
+
+
 def testForLoop4():
     assert verify(LoopBench, ForLoop4) == 0
+
+
 def testForLoop5():
     assert verify(LoopBench, ForLoop5) == 0
 
-# for loop 3 and 6 can't work in vhdl
 
+# for loop 3 and 6 can't work in vhdl
 def testForContinueLoop():
-  assert verify(LoopBench, ForContinueLoop) == 0
+    assert verify(LoopBench, ForContinueLoop) == 0
+
 
 def testForBreakLoop():
-   assert verify(LoopBench, ForBreakLoop) == 0
+    assert verify(LoopBench, ForBreakLoop) == 0
+
 
 def testForBreakContinueLoop():
-   assert verify(LoopBench, ForBreakContinueLoop) == 0
+    assert verify(LoopBench, ForBreakContinueLoop) == 0
+
 
 def testNestedForLoop1():
-   assert verify(LoopBench, NestedForLoop1) == 0
+    assert verify(LoopBench, NestedForLoop1) == 0
+
 
 def testNestedForLoop2():
-   assert verify(LoopBench, NestedForLoop2) == 0
+    assert verify(LoopBench, NestedForLoop2) == 0
 
-def testWhileLoop():
+
+def testFunctionCall():
     assert verify(LoopBench, FunctionCall) == 0
 
 ## def testTaskCall(self):
 ##     sim = self.bench(TaskCall)
 ##     Simulation(sim).run()
 
+
 def testWhileLoop():
     assert verify(LoopBench, WhileLoop) == 0
+
 
 def testWhileContinueLoop():
     assert verify(LoopBench, WhileContinueLoop) == 0
 
+
 def testWhileBreakLoop():
     assert verify(LoopBench, WhileBreakLoop) == 0
 
+
 def testWhileBreakContinueLoop():
     assert verify(LoopBench, WhileBreakContinueLoop) == 0
+
 
 def testForLoopError1():
     try:
@@ -350,7 +383,8 @@ def testForLoopError1():
         assert e.kind == _error.Requirement
     else:
         assert False
-    
+
+
 def testForLoopError2():
     try:
         analyze(LoopBench, ForLoopError2)
@@ -358,6 +392,3 @@ def testForLoopError2():
         assert e.kind == _error.Requirement
     else:
         assert False
-    
-    
-

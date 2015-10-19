@@ -2,13 +2,13 @@ from __future__ import absolute_import
 import ast
 import itertools
 from types import FunctionType
-from copy import copy
 
 from myhdl._util import _flatten
 from myhdl._enum import EnumType
 from myhdl._Signal import SignalType
 from myhdl.numeric._conversion import (numeric_functions_dict,
-                                  numeric_attributes_dict)
+                                       numeric_attributes_dict)
+
 
 class Data():
     pass
@@ -23,8 +23,10 @@ def _resolveRefs(symdict, arg):
         v.visit(gen.ast)
     return data.objlist
 
-#TODO: Refactor this into two separate nodetransformers, since _resolveRefs
-#needs only the names, not the objects
+
+# TODO: Refactor this into two separate nodetransformers, since _resolveRefs
+# needs only the names, not the objects
+
 
 def _suffixer(name, used_names):
     suffixed_names = (name+'_renamed{0}'.format(i) for i in itertools.count())
@@ -51,12 +53,13 @@ class _AttrRefTransformer(ast.NodeTransformer):
         elif node.attr in numeric_functions_dict:
             return node
 
-        #Don't handle subscripts for now.
+        # Don't handle subscripts for now.
         if not isinstance(node.value, ast.Name):
             return node
 
         obj = self.data.symdict[node.value.id]
-        #Don't handle enums and functions, handle signals as long as it is a new attribute
+        # Don't handle enums and functions, handle signals as long as it
+        # is a new attribute
         if isinstance(obj, (EnumType, FunctionType)):
             return node
         elif isinstance(obj, SignalType):
@@ -67,7 +70,7 @@ class _AttrRefTransformer(ast.NodeTransformer):
 
         orig_name = node.value.id + '.' + node.attr
         if orig_name not in self.name_map:
-            base_name = node.value.id + '_dot_' + node.attr
+            base_name = node.value.id + '_' + node.attr
             self.name_map[orig_name] = _suffixer(base_name, self.data.symdict)
         new_name = self.name_map[orig_name]
         self.data.symdict[new_name] = attrobj

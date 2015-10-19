@@ -55,7 +55,7 @@ builtinObjects = builtins.__dict__.values()
 
 _enumTypeSet = set()
 
-def _makeName(n, prefixes, case='lower'):
+def _makeName(n, prefixes, case=None):
     # trim empty prefixes
     prefixes = [p for p in prefixes if p]
     if len(prefixes) > 1:
@@ -69,11 +69,13 @@ def _makeName(n, prefixes, case='lower'):
 ##     print name
     if case == 'lower':
         return name.lower()
-    else:
+    elif case == 'upper':
         return name.upper()
+    else:
+        return name
 
-def _analyzeSigs(hierarchy, hdl='Verilog'):
-    curlevel = 0
+def _analyzeSigs(hierarchy, hdl='Verilog', initlevel = 0):
+    curlevel = initlevel
     siglist = []
     memlist = []
     prefixes = []
@@ -124,9 +126,9 @@ def _analyzeSigs(hierarchy, hdl='Verilog'):
         for i, s in enumerate(m.mem):
             s._name = "%s%s%s%s" % (m.name, open, i, close)
             s._used = False
-            if s._inList:
+            if s._inList is not None:
                 raise ConversionError(_error.SignalInMultipleLists, s._name)
-            s._inList = True
+            s._inList = m
             if not s._nrbits:
                 raise ConversionError(_error.UndefinedBitWidth, s._name)
             if type(s.val) != type(m.elObj.val):
@@ -136,8 +138,8 @@ def _analyzeSigs(hierarchy, hdl='Verilog'):
 
     return siglist, memlist
 
-def _analyzeConsts(hierarchy, hdl='Verilog'):
-    curlevel = 0
+def _analyzeConsts(hierarchy, hdl='Verilog', initlevel = 0):
+    curlevel = initlevel
     constdict = {}
     prefixes = []
 
@@ -165,7 +167,7 @@ def _analyzeConsts(hierarchy, hdl='Verilog'):
             s.name = _makeName(n, prefixes, case='upper')
             s.instance = inst
             if not s.name in constdict:
-                constdict[s.name] = s                
+                constdict[s.name] = s
 
     return constdict
 
@@ -1451,7 +1453,9 @@ class _AnalyzeFuncVisitor(_AnalyzeVisitor):
 ismethod = inspect.ismethod
 # inspect doc is wrong: ismethod checks both bound and unbound methods
 def isboundmethod(m):
-    return ismethod(m) and m.__self__ is not None
+    method = ismethod(m)
+    method_self = hasattr(m, '__self__') and m.__self__ is not None
+    return method and method_self
 
 
 def _analyzeTopFunc(top_inst, func, *args, **kwargs):
@@ -1468,16 +1472,20 @@ def _analyzeTopFunc(top_inst, func, *args, **kwargs):
     #object passed as in argument
     #TODO: This will not work for nested objects in the top level
     for name, obj in objs:
-        if not hasattr(obj, '__dict__'):
-            continue
-        for attr, attrobj in sorted(vars(obj).items()):
-            if isinstance(attrobj, _Signal):
-                signame = attrobj._name
-                if not signame:
-                    signame = name + '_' + attr
-                    attrobj._name = signame
-                v.argdict[signame] = attrobj
-                v.argnames.append(signame)
+        if _isMem(obj):
+            m = _getMemInfo(obj)
+            m.name = name
+            v.argdict[name] = m
+            v.argnames.append(name)
+        elif hasattr(obj, '__dict__'):
+            for attr, attrobj in vars(obj).items():
+                if isinstance(attrobj, _Signal):
+                    signame = attrobj._name
+                    if not signame:
+                        signame = name + '_' + attr
+                        attrobj._name = signame
+                    v.argdict[signame] = attrobj
+                    v.argnames.append(signame)
 
     return v
 
@@ -1494,7 +1502,6 @@ class _AnalyzeTopFuncVisitor(_AnalyzeVisitor):
         self.argnames = []
 
     def visit_FunctionDef(self, node):
-
         self.name = node.name
         self.argnames = _get_argnames(node)
         if isboundmethod(self.func):
@@ -1503,20 +1510,23 @@ class _AnalyzeTopFuncVisitor(_AnalyzeVisitor):
                                 "first method argument name other than 'self'")
             # skip self
             self.argnames = self.argnames[1:]
+            self.args = self.args[1:]
         i=-1
         for i, arg in enumerate(self.args):
             n = self.argnames[i]
             self.fullargdict[n] = arg
             if isinstance(arg, _Signal):
                 self.argdict[n] = arg
-            if _isMem(arg):
-                self.raiseError(node, _error.ListAsPort, n)
+            elif _isMem(arg):
+                pass
+                # self.raiseError(node, _error.ListAsPort, n)
         for n in self.argnames[i+1:]:
             if n in self.kwargs:
                 arg = self.kwargs[n]
                 self.fullargdict[n] = arg
                 if isinstance(arg, _Signal):
                     self.argdict[n] = arg
-                if _isMem(arg):
-                    self.raiseError(node, _error.ListAsPort, n)
+                elif _isMem(arg):
+                    pass
+                    #self.raiseError(node, _error.ListAsPort, n)
         self.argnames = [n for n in self.argnames if n in self.argdict]

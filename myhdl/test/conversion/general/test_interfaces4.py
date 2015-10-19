@@ -32,9 +32,10 @@ class Intf2(object):
 
 
 def mod1(clock, reset, intf1, intf2):
-    
+
     sig1 = Signal(bool(0))
     sig2 = Signal(bool(0))
+
     @always_seq(clock.posedge, reset)
     def proc():
         if intf1.sig1:

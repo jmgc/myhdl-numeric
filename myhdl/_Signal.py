@@ -96,7 +96,7 @@ def Signal(val=None, delay=None):
         return _DelayedSignal(val, delay)
     else:
         return _Signal(val)
-    
+
 class _Signal(object):
 
     """ _Signal class.
@@ -129,7 +129,7 @@ class _Signal(object):
         self._min = self._max = None
         self._name = self._read = self._driven = None
         self._used = False
-        self._inList = False
+        self._inList = None
         self._nrbits = 0
         self._high = 0
         self._low = 0
