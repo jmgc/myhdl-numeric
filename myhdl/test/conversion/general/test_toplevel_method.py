@@ -30,7 +30,7 @@ class HdlObj(object):
         return _hdl
 
 
-def _func(x,y):
+def _func(x, y):
     @always_comb
     def _hdl():
         y.next = x + 1

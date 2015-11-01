@@ -75,7 +75,6 @@ def name_conflict_after_replace(clock, reset, a, a_x):
     return logic
 
 
-@bug('1', 'vhdl')
 def test_name_conflict_after_replace():
     clock = Signal(False)
     reset = ResetSignal(0, active=0, async=False)
@@ -125,6 +124,7 @@ def test_name_conflicts_analyze():
 
 def test_name_conflicts_verify():
     assert verify(c_testbench) == 0
+
 
 if __name__ == '__main__':
     verify.simulator = analyze.simulator = sys.argv[1]

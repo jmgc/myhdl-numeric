@@ -1,12 +1,12 @@
 from __future__ import absolute_import, print_function
-from myhdl import *
+from myhdl import Signal, intbv, instance, conversion, delay
+
 
 def bench_AssignSignal():
     a = Signal(bool(0))
     p = Signal(bool(0))
     b = Signal(intbv(0)[8:])
     q = Signal(intbv(0)[8:])
-
 
     p.assign(a)
     q.assign(b)
@@ -25,8 +25,10 @@ def bench_AssignSignal():
 
     return stimulus
 
+
 def test_AssignSignal():
     assert conversion.verify(bench_AssignSignal) == 0
+
 
 if __name__ == '__main__':
     test_AssignSignal()

@@ -27,7 +27,8 @@ import string
 import sys
 import ast
 
-from myhdl import ExtractHierarchyError, ToVerilogError, ToVHDLError
+from myhdl import ExtractHierarchyError, ToVerilogError, ToVHDLError, \
+    EnumItemType
 from myhdl._Signal import _Signal, _isListOfSigs
 from myhdl._compat import integer_types
 from myhdl._getcellvars import _getCellVars
@@ -59,22 +60,19 @@ class _Constant(object):
 
 class _Instance(object):
     __slots__ = ['level', 'obj', 'subs', 'constdict', 'sigdict', 'memdict',
-                 'name', 'basename', 'func', 'frame', 'argdict', 'objdict',
-                 'intfdict', 'top', 'index']
+                 'name', 'func', 'frame', 'argdict', 'objdict']
 
     def __init__(self, level, obj, subs, constdict, sigdict, memdict,
-                 basename, func, frame, argdict, intfdict, objdict=None):
+                 func, frame, argdict, objdict=None):
         self.level = level
         self.obj = obj
         self.subs = subs
         self.constdict = constdict
         self.sigdict = sigdict
         self.memdict = memdict
-        self.basename = basename
         self.func = func
         self.frame = frame
         self.argdict = argdict
-        self.intfdict = intfdict
         if objdict:
             self.objdict = objdict
 
@@ -95,6 +93,16 @@ class _MemInfo(object):
         self._used = False
         self._driven = None
         self._read = None
+
+    @property
+    def used(self):
+        return self._used
+
+    @used.setter
+    def used(self, val):
+        self._used = bool(val)
+        for s in self.mem:
+            s._used = bool(val)
 
 
 def _getMemInfo(mem):
@@ -332,10 +340,6 @@ class _HierExtr(object):
             if not self.skip:
                 isGenSeq = _isGenSeq(arg)
                 if isGenSeq:
-                    if self.level != 1:
-                        basename = frame.f_back.f_code.co_name
-                    else:
-                        basename = ""
                     specs = {}
                     for hdl in _userCodeMap:
                         spec = "__%s__" % hdl
@@ -357,7 +361,6 @@ class _HierExtr(object):
                     sigdict = {}
                     memdict = {}
                     argdict = {}
-                    intfdict = {}
                     if func:
                         arglist = inspect.getargspec(func).args
                     else:
@@ -388,7 +391,8 @@ class _HierExtr(object):
                             sigdict[n] = v
                             if n in cellvars:
                                 v._markUsed()
-                        elif isinstance(v, (integer_types, float)):
+                        elif isinstance(v, (integer_types, float,
+                                            EnumItemType)):
                             constdict[n] = _Constant(n, v)
                         if _isListOfSigs(v):
                             m = _makeMemInfo(v)
@@ -399,21 +403,14 @@ class _HierExtr(object):
                         if (n in arglist) and (n not in sigdict) and \
                                 (n not in memdict):
                             argdict[n] = v
-                        if hasattr(v, "__dict__") and \
-                                (v.__dict__ is not None) and \
-                                (n not in arglist) and \
-                                (n not in sigdict) and (n not in memdict):
-                            intfdict[n] = v
 
                     subs = []
                     for n, sub in frame.f_locals.items():
                         for elt in _inferArgs(arg):
                             if elt is sub:
                                 subs.append((n, sub))
-
                     inst = _Instance(self.level, arg, subs, constdict,
-                                     sigdict, memdict, basename, func, frame,
-                                     argdict, intfdict)
+                                     sigdict, memdict, func, frame, argdict)
                     self.hierarchy.append(inst)
 
                 self.level -= 1

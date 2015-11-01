@@ -27,6 +27,7 @@ from myhdl import InstanceError
 from myhdl._util import _isGenFunc, _makeAST
 from myhdl._Waiter import _inferWaiter
 
+
 class _error:
     pass
 _error.NrOfArgs = "decorated generator function should not have arguments"
@@ -42,8 +43,9 @@ def instance(genFunc):
         raise InstanceError(_error.NrOfArgs)
     return _Instantiator(genFunc)
 
+
 class _Instantiator(object):
-    
+
     def __init__(self, genfunc):
         self.genfunc = genfunc
         self.gen = genfunc()
@@ -54,7 +56,7 @@ class _Instantiator(object):
 
     def _waiter(self):
         return _inferWaiter
-    
+
     @property
     def ast(self):
         return _makeAST(self.gen.gi_frame)

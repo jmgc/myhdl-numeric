@@ -1,11 +1,12 @@
 from __future__ import absolute_import
-from myhdl import *
+from myhdl import Signal, intbv, instance, conversion, ConcatSignal, \
+    delay, TristateSignal, always_comb, toVHDL, toVerilog, StopSimulation
+
 
 def bench_SliceSignal():
-
     s = Signal(intbv(0)[8:])
     a, b, c = s(7), s(5), s(0)
-    d, e, f, g = s(8,5), s(6,3), s(8,0), s(4,3)
+    d, e, f, g = s(8, 5), s(6, 3), s(8, 0), s(4, 3)
     N = len(s)
 
     @instance
@@ -41,6 +42,7 @@ def bench_ConcatSignal():
     J_max = 2**len(b)
     K_max = 2**len(c)
     M_max = 2**len(d)
+
     @instance
     def check():
         for i in range(I_max):
@@ -56,8 +58,10 @@ def bench_ConcatSignal():
 
     return check
 
+
 def test_ConcatSignal():
     assert conversion.verify(bench_ConcatSignal) == 0
+
 
 def bench_ConcatSignalWithConsts():
 
@@ -79,6 +83,7 @@ def bench_ConcatSignalWithConsts():
     J_max = 2**len(b)
     K_max = 2**len(c)
     M_max = 2**len(d)
+
     @instance
     def check():
         for i in range(I_max):
@@ -142,7 +147,6 @@ def test_TristateSignal():
     assert conversion.verify(bench_TristateSignal) == 0
 
 
-
 def permute(x, a, mapping):
 
     p = [a(m) for m in mapping]
@@ -154,7 +158,6 @@ def permute(x, a, mapping):
         x.next = q
 
     return assign
-
 
 
 def bench_permute(conv=False):
@@ -181,8 +184,10 @@ def bench_permute(conv=False):
 
     return dut, stimulus
 
+
 def test_permute():
     assert conversion.verify(bench_permute) == 0
+
 
 bench_permute(toVHDL)
 bench_permute(toVerilog)

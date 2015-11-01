@@ -2,12 +2,10 @@ from __future__ import absolute_import
 
 import sys
 
-from myhdl import *
-from myhdl import ConversionError
-from myhdl.conversion._misc import _error
+from myhdl import Signal, modbv, always_seq, concat, ResetSignal, \
+    instance, delay, StopSimulation, Simulation, toVHDL, toVerilog
 from myhdl.conversion import analyze, verify
 
-from myhdl import *
 
 """
 This set of tests exercies a peculiar scenario where an
@@ -15,6 +13,7 @@ expanded interface Signal is flagged as having multiple
 drivers.  This appears to be a name collision in the name
 expansion and was introduced in 08519b4.  
 """
+
 
 class Intf1(object):
     def __init__(self):
@@ -69,7 +68,6 @@ def mod2(clock, reset, intf1, intf2):
 
 
 def m_top(clock, reset, sdi, sdo):
-    
     intf1 = Intf1()
     intf2 = Intf2()
     intf3 = Intf1()
@@ -99,20 +97,21 @@ def c_testbench_one():
     sdo = Signal(bool(0))
     tbdut = m_top(clock, reset, sdi, sdo)
 
-    @instance    
+    @instance
     def tbclk():
         clock.next = False
         while True:
             yield delay(3)
             clock.next = not clock
-     
+
     # there is an issue when using bools with varialbes and
     # VHDL conversion, this might be an expected limitation?
-    #expected = (False, False, False, True, True, True,
-    #            False, True, False, True)
+    # expected = (False, False, False, True, True, True,
+    #             False, True, False, True)
     expected = (0, 0, 0, 1, 1, 1, 0, 1, 0, 1)
 
-    ra = reset.active    
+    ra = reset.active
+
     @instance
     def tbstim():
         sdi.next = False
@@ -168,4 +167,3 @@ if __name__ == '__main__':
     test_conversion()
     print("*** verify testbench conversion and execution")
     test_one_verify()
-    

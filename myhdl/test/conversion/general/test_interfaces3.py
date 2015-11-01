@@ -1,9 +1,9 @@
 from __future__ import absolute_import, print_function
-
+from myhdl.test.conftest import bug
 import sys
 
 from myhdl import Signal, intbv, instance, always_comb, always_seq, delay, \
-    ResetSignal, StopSimulation
+    ResetSignal, StopSimulation, Simulation
 from myhdl.conversion import analyze, verify
 
 
@@ -171,23 +171,24 @@ def c_testbench_three():
 
     return tbdut, tbclk, tbstim
 
-'''
+
 def test_one_analyze():
     x, y, z = [Signal(intbv(0, min=-8, max=8))
                for _ in range(3)]
     analyze(m_top_assign, x, y, z)
-'''
+
 
 def test_one_verify():
     assert verify(c_testbench_one) == 0
 
-'''
+
 def test_two_analyze():
     x, y, z = [Signal(intbv(0, min=-8, max=8))
                for _ in range(3)]
     analyze(m_top_multi_comb, x, y, z)
 
 
+@bug('pending assign', 'vhdl')
 def test_two_verify():
     assert verify(c_testbench_two) == 0
 
@@ -200,25 +201,24 @@ def test_three_analyze():
     intf = IntfWithConstant2()
     analyze(m_top_const, clock, reset, x, y, intf)
 
-#revert pull #64
-#@bug('33', 'vhdl')
+
 def test_three_verify():
     assert verify(c_testbench_three) == 0
-'''
+
 
 if __name__ == '__main__':
     print((sys.argv[1]))
     verify.simulator = analyze.simulator = sys.argv[1]
-    print("*** verify myhdl simulation")    
+    print("*** verify myhdl simulation")
     Simulation(c_testbench_one()).run()
     Simulation(c_testbench_two()).run()
     Simulation(c_testbench_three()).run()
-    print("*** myhdl simulation ok")    
+    print("*** myhdl simulation ok")
     print("")
 
-    print("*** myhdl verify conversion")    
+    print("*** myhdl verify conversion")
     print(verify(c_testbench_one))
-    print(verify(c_testbench_two))  
-    print(verify(c_testbench_three))  
-    print("*** myhdl conversion ok")      
+    print(verify(c_testbench_two))
+    print(verify(c_testbench_three))
+    print("*** myhdl conversion ok")
     print("")

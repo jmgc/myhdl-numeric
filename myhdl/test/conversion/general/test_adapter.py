@@ -1,6 +1,8 @@
 from __future__ import absolute_import, print_function
 
-from myhdl import *
+from myhdl import Signal, ConcatSignal, always_comb, intbv, instance, \
+    delay, conversion, toVerilog, toVHDL
+
 
 def adapter(o_err, i_err, o_spec, i_spec):
 
@@ -37,17 +39,18 @@ def adapter(o_err, i_err, o_spec, i_spec):
 
 def bench_adapter(conv=False):
     o_spec = ('c', 'a', 'other', 'nomatch')
-    i_spec = { 'a' : 1, 'b' : 2, 'c' : 0, 'd' : 3, 'e' : 4, 'f' : 5, }
+    i_spec = {'a': 1, 'b': 2, 'c': 0, 'd': 3, 'e': 4, 'f': 5}
 
     o_err = Signal(intbv(0)[4:])
     i_err = Signal(intbv(0)[6:])
-    
+
     if conv:
         dut = conv(adapter, o_err, i_err, o_spec, i_spec)
     else:
         dut = adapter(o_err, i_err, o_spec, i_spec)
 
     N = 2**len(i_err)
+
     @instance
     def stimulus():
         for i in range(N):
@@ -60,6 +63,7 @@ def bench_adapter(conv=False):
             print(int(o_err))
 
     return dut, stimulus
+
 
 def test_adapter():
     assert conversion.verify(bench_adapter) == 0

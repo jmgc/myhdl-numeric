@@ -298,27 +298,30 @@ def portInList(z, a, b):
 
 
 def test_portInList():
+    simulator = conversion.analyze.simulator
+    hdl = _simulators[simulator].hdl
+
     z, a, b = [Signal(intbv(0)[8:]) for _ in range(3)]
 
     try:
         conversion.analyze(portInList, z, a, b)
     except ConversionError as e:
-        assert e.kind == _error.PortInList
+        assert (e.kind == _error.PortInList) and (hdl == "Verilog")
     else:
-        assert False
+        assert hdl == "VHDL"
 
 
 # signal in multiple lists
 def sigInMultipleLists():
 
-    z, a, b = [Signal(intbv(0)[8:]) for _ in range(3)]
+    z, a, b, c = [Signal(intbv(0)[8:]) for _ in range(4)]
 
     m1 = [a, b]
-    m2 = [a, b]
+    m2 = [a, c]
 
     @always_comb
     def logic():
-        z.next = m1[0] + m2[1]
+        z.next = m1[0] + m2[0]
 
     return logic
 

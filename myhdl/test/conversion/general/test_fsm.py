@@ -1,10 +1,11 @@
 from __future__ import absolute_import, print_function
 
+from myhdl import Signal, intbv, enum, always, instance, delay, \
+    StopSimulation
+from myhdl.conversion import verify
+
 import os
 path = os.path
-
-from myhdl import *
-from myhdl.conversion import verify
 
 # SEARCH, CONFIRM, SYNC = range(3)
 ACTIVE_LOW = bool(0)
@@ -13,8 +14,8 @@ t_State_b = enum('SEARCH', 'CONFIRM', 'SYNC')
 t_State_oh = enum('SEARCH', 'CONFIRM', 'SYNC', encoding="one_hot")
 t_State_oc = enum('SEARCH', 'CONFIRM', 'SYNC', encoding="one_cold")
 
+
 def FramerCtrl(SOF, state, syncFlag, clk, reset_n, t_State):
-    
     """ Framing control FSM.
 
     SOF -- start-of-frame output bit
@@ -22,10 +23,10 @@ def FramerCtrl(SOF, state, syncFlag, clk, reset_n, t_State):
     syncFlag -- sync pattern found indication input
     clk -- clock input
     reset_n -- active low reset
-    
+
     """
-    
-    index = Signal(intbv(0)[8:]) # position in frame
+
+    index = Signal(intbv(0)[8:])  # position in frame
 
     @always(clk.posedge, reset_n.negedge)
     def FSM():
@@ -53,13 +54,11 @@ def FramerCtrl(SOF, state, syncFlag, clk, reset_n, t_State):
                 SOF.next = (index == FRAME_SIZE-1)
             else:
                 raise ValueError("Undefined state")
-            
+
     return FSM
 
 
-  
 def FSMBench(FramerCtrl, t_State):
-
     SOF = Signal(bool(0))
     SOF_v = Signal(bool(0))
     syncFlag = Signal(bool(0))

@@ -43,7 +43,7 @@ from .numeric._bitarray import bitarray
 
 _schedule = _simulator._futureEvents.append
 
-   
+
 def _isListOfSigs(obj):
     """ Check if obj is a non-empty list of signals. """
     if isinstance(obj, list) and len(obj) > 0:
@@ -53,8 +53,8 @@ def _isListOfSigs(obj):
         return True
     else:
         return False
-     
-       
+
+
 class _WaiterList(list):
 
     def purge(self):
@@ -65,16 +65,21 @@ class _WaiterList(list):
 class _PosedgeWaiterList(_WaiterList):
     def __init__(self, sig):
         self.sig = sig
+
     def _toVerilog(self):
         return "posedge %s" % self.sig._name
+
     def _toVHDL(self):
         return "rising_edge(%s)" % self.sig._name
-    
+
+
 class _NegedgeWaiterList(_WaiterList):
     def __init__(self, sig):
         self.sig = sig
+
     def _toVerilog(self):
         return "negedge %s" % self.sig._name
+
     def _toVHDL(self):
         return "falling_edge(%s)" % self.sig._name
 
@@ -83,9 +88,11 @@ def posedge(sig):
     """ Return a posedge trigger object """
     return sig.posedge
 
+
 def negedge(sig):
     """ Return a negedge trigger object """
     return sig.negedge
+
 
 # signal factory function
 def Signal(val=None, delay=None):
@@ -96,6 +103,7 @@ def Signal(val=None, delay=None):
         return _DelayedSignal(val, delay)
     else:
         return _Signal(val)
+
 
 class _Signal(object):
 
@@ -109,19 +117,18 @@ class _Signal(object):
 
     __slots__ = ('_next', '_val', '_min', '_max', '_type', '_init',
                  '_eventWaiters', '_posedgeWaiters', '_negedgeWaiters',
-                 '_code', '_tracing', '_nrbits', '_high', '_low', '_checkVal', 
-                 '_setNextVal', '_copyVal2Next', '_printVcd', 
-                 '_driven' ,'_read', '_name', '_used', '_inList',
+                 '_code', '_tracing', '_nrbits', '_high', '_low', '_checkVal',
+                 '_setNextVal', '_copyVal2Next', '_printVcd',
+                 '_driven', '_read', '_name', '_used', '_inList',
                  '_waiter', 'toVHDL', 'toVerilog', '_slicesigs',
                  '_numeric'
-                )
-
+                 )
 
     def __init__(self, val=None):
         """ Construct a signal.
 
         val -- initial value
-        
+
         """
         self._init = deepcopy(val)
         self._val = deepcopy(val)
@@ -192,7 +199,7 @@ class _Signal(object):
         self._numeric = True
         for s in self._slicesigs:
             s._clear()
-        
+
     def _update(self):
         val, next = self._val, self._next
         if val != next:
@@ -239,12 +246,12 @@ class _Signal(object):
     @property
     def posedge(self):
         return self._posedgeWaiters
-                       
+
     # support for the 'negedge' attribute
     @property
     def negedge(self):
         return self._negedgeWaiters
-    
+
     # support for the 'min' and 'max' attribute
     @property
     def max(self):
@@ -270,10 +277,11 @@ class _Signal(object):
 
     @driven.setter
     def driven(self, val):
-        if not val  in ("reg", "wire", True):
-            raise ValueError('Expected value "reg", "wire", or True, got "%s"' % val)
+        if val not in ("reg", "wire", True):
+            raise ValueError('Expected value "reg",'
+                             ' "wire", or True, got "%s"' % val)
         self._driven = val
-    
+
     # support for the 'read' attribute
     @property
     def read(self):
@@ -281,7 +289,7 @@ class _Signal(object):
 
     @read.setter
     def read(self, val):
-        if not val in (True, ):
+        if val is not True:
             raise ValueError('Expected value True, got "%s"' % val)
         self._markRead()
 
@@ -292,12 +300,24 @@ class _Signal(object):
     def _markUsed(self):
         self._used = True
 
+    # support for the 'next' attribute
+    @property
+    def used(self):
+        return self._used
+
+    @used.setter
+    def used(self, val):
+        self._used = bool(val)
+        if self._inList is not None:
+            self._inList.used = val
+
     # set next methods
     def _setNextBool(self, val):
         if isinstance(val, intbv):
             val = val._val
-        if not val in (0, 1):
-            raise ValueError("Expected boolean value, got %s (%s)" % (repr(val), type(val)))
+        if val not in (0, 1):
+            raise ValueError("Expected boolean value, got %s (%s)" %
+                             (repr(val), type(val)))
         self._next = val
 
     def _setNextInt(self, val):
@@ -325,17 +345,17 @@ class _Signal(object):
     def _setNextNonmutable(self, val):
         if not isinstance(val, self._type):
             raise TypeError("Expected %s, got %s" % (self._type, type(val)))
-        self._next = val    
-        
+        self._next = val
+
     def _setNextMutable(self, val):
         if not isinstance(val, self._type):
             raise TypeError("Expected %s, got %s" % (self._type, type(val)))
-        self._next = deepcopy(val)         
+        self._next = deepcopy(val)
 
     # vcd print methods
     def _printVcdStr(self):
         print("s%s %s" % (str(self._val), self._code), file=_simulator._tf)
-        
+
     def _printVcdHex(self):
         if self._val is None:
             print("sz %s" % self._code, file=_simulator._tf)
@@ -357,17 +377,17 @@ class _Signal(object):
             print("b%s %s" % (bin(self._val, self._nrbits), self._code),
                   file=_simulator._tf)
 
-    ### use call interface for shadow signals ###
+    # use call interface for shadow signals #
     def __call__(self, left, right=None):
         s = _SliceSignal(self, left, right)
         self._slicesigs.append(s)
         return s
 
-    ### operators for which delegation to current value is appropriate ###
-        
+    # operators for which delegation to current value is appropriate #
+
     def __hash__(self):
         raise TypeError("Signals are unhashable")
-    
+
     def __bool__(self):
         return bool(self._val)
 
@@ -381,7 +401,7 @@ class _Signal(object):
 
     def __getitem__(self, key):
         return self._val[key]
-        
+
     # integer-like methods
 
     def __add__(self, other):
@@ -392,7 +412,7 @@ class _Signal(object):
 
     def __radd__(self, other):
         return other + self._val
-    
+
     def __sub__(self, other):
         if isinstance(other, _Signal):
             return self._val - other._val
@@ -419,7 +439,7 @@ class _Signal(object):
 
     def __rtruediv__(self, other):
         return other / self._val
-    
+
     def __floordiv__(self, other):
         if isinstance(other, _Signal):
             return self._val // other._val
@@ -427,8 +447,8 @@ class _Signal(object):
             return self._val // other
 
     def __rfloordiv__(self, other):
-        return other //  self._val
-    
+        return other // self._val
+
     def __mod__(self, other):
         if isinstance(other, _Signal):
             return self._val % other._val
@@ -439,7 +459,6 @@ class _Signal(object):
         return other % self._val
 
     # XXX divmod
-    
     def __pow__(self, other):
         if isinstance(other, _Signal):
             return self._val ** other._val
@@ -457,7 +476,7 @@ class _Signal(object):
 
     def __rlshift__(self, other):
         return other << self._val
-            
+
     def __rshift__(self, other):
         if isinstance(other, _Signal):
             return self._val >> other._val
@@ -466,7 +485,7 @@ class _Signal(object):
 
     def __rrshift__(self, other):
         return other >> self._val
-           
+
     def __and__(self, other):
         if isinstance(other, _Signal):
             return self._val & other._val
@@ -484,7 +503,7 @@ class _Signal(object):
 
     def __ror__(self, other):
         return other | self._val
-    
+
     def __xor__(self, other):
         if isinstance(other, _Signal):
             return self._val ^ other._val
@@ -493,7 +512,7 @@ class _Signal(object):
 
     def __rxor__(self, other):
         return other ^ self._val
-    
+
     def __neg__(self):
         return -self._val
 
@@ -505,48 +524,51 @@ class _Signal(object):
 
     def __invert__(self):
         return ~self._val
-        
+
     # conversions
-    
+
     def __int__(self):
         return int(self._val)
-        
+
     def __long__(self):
         return long(self._val)
 
     def __float__(self):
         return float(self._val)
-    
+
     def __oct__(self):
         return oct(self._val)
-    
+
     def __hex__(self):
         return hex(self._val)
-    
+
     def __index__(self):
         return self._val.__index__()
 
-
     # comparisons
     def __eq__(self, other):
-        return self.val == other 
+        return self.val == other
+
     def __ne__(self, other):
-        return self.val != other 
+        return self.val != other
+
     def __lt__(self, other):
         return self.val < other
+
     def __le__(self, other):
         return self.val <= other
+
     def __gt__(self, other):
         return self.val > other
+
     def __ge__(self, other):
         return self.val >= other
-
 
     # method lookup delegation
     def __getattr__(self, attr):
         return getattr(self._val, attr)
 
-    # representation 
+    # representation
     def __str__(self):
         if self._name:
             return self._name
@@ -571,7 +593,6 @@ class _Signal(object):
     def __setitem__(self, key, val):
         raise TypeError("Signal object doesn't support item/slice assignment")
 
-
     # continues assignment support
     def assign(self, sig):
 
@@ -595,9 +616,9 @@ class _Signal(object):
 
 
 class _DelayedSignal(_Signal):
-    
+
     __slots__ = ('_nextZ', '_delay', '_timeStamp',
-                )
+                 )
 
     def __init__(self, val=None, delay=1):
         """ Construct a new DelayedSignal.
@@ -633,7 +654,7 @@ class _DelayedSignal(_Signal):
             self._val = copy(next)
             if self._tracing:
                 self._printVcd()
-            return waiters            
+            return waiters
         else:
             return []
 
@@ -646,12 +667,13 @@ class _DelayedSignal(_Signal):
     def delay(self, delay):
         self._delay = delay
 
-        
+
 class _SignalWrap(object):
     def __init__(self, sig, next, timeStamp):
         self.sig = sig
         self.next = next
         self.timeStamp = timeStamp
+
     def apply(self):
         return self.sig._apply(self.next, self.timeStamp)
 
