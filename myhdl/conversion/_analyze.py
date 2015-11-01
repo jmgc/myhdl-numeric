@@ -141,36 +141,6 @@ def _analyzeSigs(hierarchy, hdl='Verilog', initlevel=0):
     return siglist, memlist
 
 
-def _analyzeConsts(hierarchy, hdl='Verilog', initlevel=0):
-    curlevel = initlevel
-    constdict = {}
-    prefixes = []
-
-    for inst in hierarchy:
-        level = inst.level
-        name = inst.name
-        _constdict = inst.constdict
-        delta = curlevel - level
-        curlevel = level
-        assert(delta >= -1)
-        if delta > -1:  # same or higher level
-            prefixes = prefixes[:curlevel-1]
-        # skip processing and prefixing in context without constants
-        if not (_constdict):
-            prefixes.append("")
-            continue
-        prefixes.append(name)
-        for n, s in _constdict.items():
-            if s.name is not None:
-                continue
-            s.name = _makeName(n, prefixes, case='upper')
-            s.instance = inst
-            if s.name not in constdict:
-                constdict[s.name] = s
-
-    return constdict
-
-
 def _analyzeGens(top, absnames):
     genlist = []
     for g in top:

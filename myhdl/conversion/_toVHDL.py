@@ -53,7 +53,7 @@ from myhdl._instance import _Instantiator
 from myhdl.conversion._misc import (_error, _kind, _context,
                                     _ConversionMixin, _Label, _genUniqueSuffix,
                                     _isConstant)
-from myhdl.conversion._analyze import (_analyzeSigs, _analyzeConsts,
+from myhdl.conversion._analyze import (_analyzeSigs,
                                        _analyzeGens, _analyzeTopFunc,
                                        _Ram, _Rom, _enumTypeSet)
 from myhdl._Signal import _Signal, _WaiterList, _SliceSignal
@@ -410,10 +410,6 @@ class vhd_signal(object):
     @property
     def used(self):
         return self.signal._used or self.signal._read or self.signal._driven
-
-    #@used.setter
-    #def used(self, val):
-    #    self.signal.used = bool(val)
 
     def _read_base(self):
         if isinstance(self.signal, _MemInfo):
@@ -819,8 +815,6 @@ class _ToVHDLConvertor(object):
             # entity.architecture._clean_signal_names()
             siglist, memlist = _analyzeSigs([entity.instance], hdl='VHDL',
                                             initlevel=initlevel)
-            constdict = _analyzeConsts([entity.instance], hdl='VHDL',
-                                       initlevel=initlevel)
             _annotateTypes(genlist)
 
             # Infer interface
@@ -878,7 +872,7 @@ class _ToVHDLConvertor(object):
             pfile.close()
 
         for sig in sigs_list:
-            sig._name = None
+            sig._clear()
 
         return h.top
 
