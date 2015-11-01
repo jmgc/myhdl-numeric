@@ -413,6 +413,10 @@ class vhd_signal(object):
 
     def _read_base(self):
         if isinstance(self.signal, _MemInfo):
+            if self.signal._driven:
+                self.driven = "reg"
+            if self.signal._read:
+                self.read = True
             for s in self.signal.mem:
                 if s._driven:
                     self.driven = "reg"
@@ -425,6 +429,10 @@ class vhd_signal(object):
     def _update(self):
         if isinstance(self.signal, _MemInfo):
             self.signal.name = self.name
+            if self.driven:
+                self.signal._driven = self.driven
+            if self.used:
+                self.signal._used = self.used
             for idx, s in enumerate(self.signal.mem):
                 s._name = "%s(%d)" % (self.name, idx)
                 s._used = False
@@ -442,6 +450,10 @@ class vhd_signal(object):
                     raise ConversionError(_error.InconsistentBitWidth, s._name)
         else:
             self.signal._name = self.name
+            if self.driven:
+                self.signal._driven = self.driven
+            if self.used:
+                self.signal._used = self.used
             if self.signal._slicesigs:
                 for s in self.signal._slicesigs:
                     s._setName("VHDL")
@@ -835,6 +847,8 @@ class _ToVHDLConvertor(object):
 
             gfile = StringIO()
 
+            entity.architecture._read_base()
+
             _writeModuleHeader(sfile, cpname, lib, useClauses,
                                fixed_point=fixed_point)
             _writeEntityHeader(sfile, entity, doc)
@@ -1112,7 +1126,7 @@ def _writePort(f, port, entity=True):
             portConversions.append("%s <= %s(%s);" %
                                    (port.signal._name,
                                     port_type, port.portname))
-            port.signal._driven = True
+            port.signal._driven = "reg"
 
 
 def _writeFuncDecls(f):
@@ -1184,7 +1198,7 @@ def _writeSigDecls(f, architecture):
                                       signal.vhd_type.toStr(True)),
                   file=f)
 
-        if s._driven:
+        if signal.driven:
             if not s._read and \
                     not isinstance(s, _TristateDriver):
                 warnings.warn("%s: %s(%s).%s" % (_error.UnreadSignal,
