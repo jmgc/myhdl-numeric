@@ -650,13 +650,19 @@ class vhd_component(object):
                 s._used = True
 
             if hasattr(s, '_inList') and s._inList:
-                s._inList._read = s._read
-                s._inList._driven = s._driven
-                s._inList._used = s._used
+                if s._read:
+                    s._inList._read = s._read
+                if s._driven:
+                    s._inList._driven = s._driven
+                if s._used:
+                    s._inList._used = s._used
                 for ds in s._inList.mem:
-                    ds._read = s._read
-                    ds._driven = s._driven
-                    ds._used = s._used
+                    if s._read:
+                        ds._read = s._read
+                    if s._driven:
+                        ds._driven = s._driven
+                    if s._used:
+                        ds._used = s._used
 
     def _get_signals(self):
         self._update()
@@ -1252,11 +1258,16 @@ def _checkPort(port):
         name = port.signal._name
     else:
         name = port.signal.name
+    read = port.signal._read
+    mem = getattr(port.signal, '_inList', False)
+    if mem:
+        if mem._read:
+            read = mem._read
     if port.direction == "out":
-        if not name:
+        if not read:
             name = "open"
     elif port.direction == "in":
-        if not name:
+        if (not name) and (not port.signal._driven):
             const_data = _getConstantValues(port.signal)
             name = "%s%s%s" % const_data[1:]
     return port.name, name
