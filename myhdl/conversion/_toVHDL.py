@@ -847,8 +847,6 @@ class _ToVHDLConvertor(object):
 
             gfile = StringIO()
 
-            entity.architecture._read_base()
-
             _writeModuleHeader(sfile, cpname, lib, useClauses,
                                fixed_point=fixed_point)
             _writeEntityHeader(sfile, entity, doc)
@@ -1199,7 +1197,7 @@ def _writeSigDecls(f, architecture):
                   file=f)
 
         if signal.driven:
-            if not s._read and \
+            if not signal.read and \
                     not isinstance(s, _TristateDriver):
                 warnings.warn("%s: %s(%s).%s" % (_error.UnreadSignal,
                                                  architecture.entity.name,
@@ -1255,10 +1253,10 @@ def _checkPort(port):
     else:
         name = port.signal.name
     if port.direction == "out":
-        if port.signal._name is None:
+        if not name:
             name = "open"
     elif port.direction == "in":
-        if port.signal._name is None:
+        if not name:
             const_data = _getConstantValues(port.signal)
             name = "%s%s%s" % const_data[1:]
     return port.name, name
