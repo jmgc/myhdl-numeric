@@ -10,6 +10,7 @@ M = 2**N
 def temp(enable, clk, a, b, c):
     @always_comb
     def test():
+        c.next = enable
         if enable:
             if clk:
                 a.next = b
@@ -24,9 +25,10 @@ def generator():
     inp_s = Signal(intbv(0)[N:])
     out_array = [Signal(intbv(0)[N:]) for _ in range(N)]
     out_s = Signal(intbv(0)[N:])
-    unused = Signal(True)
+    unused = [Signal(True) for _ in range(N)]
 
-    gen = [temp(enable, clk[i], out_array[i], inp_s, unused) for i in range(N)]
+    gen = [temp(enable, clk[i], out_array[i], inp_s, unused[i])
+           for i in range(N)]
 
     #@always_comb
     #def test():
