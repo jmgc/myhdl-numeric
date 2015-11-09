@@ -49,7 +49,7 @@ from myhdl import ToVHDLError, ToVHDLWarning, ConversionError
 from myhdl._extractHierarchy import (_HierExtr, _isMem, _isRom, _getMemInfo,
                                      _UserVhdlCode, _userCodeMap, _MemInfo,
                                      _RomInfo, _Constant, _getRomInfo,
-    _makeMemInfo, _makeRomInfo)
+                                     _makeMemInfo, _makeRomInfo)
 from myhdl._instance import _Instantiator
 from myhdl.conversion._misc import (_error, _kind, _context,
                                     _ConversionMixin, _Label, _genUniqueSuffix,
@@ -180,7 +180,7 @@ class _GenerateHierarchy(object):
             names_list = []
             sigs_dict, mems_dict, _, _ = \
                 self._flattenNames(values.locals.keys(), values.locals,
-                                   names_list)
+                                   names_list, sigs_list + mems_list)
             revert_sigs_list = []
             revert_mems_list = []
             for n, s in sigs_dict.items():
@@ -199,6 +199,7 @@ class _GenerateHierarchy(object):
                     for s in sig._slicesigs:
                         s._setName("VHDL")
 
+            # Naming the signals members of a memory
             for n, m in mems_dict.items():
                 if m.name is None:
                     m.name = n
@@ -208,7 +209,7 @@ class _GenerateHierarchy(object):
                             revert_sigs_list.append(s)
                     revert_mems_list.append(m)
 
-            # Adding the local mems
+            # Adding the local mems. It must be done after naming the contents
             mems_dict.update([(m.name, m) for m in mems_list])
             for n in intf.argnames:
                 if n in mems_dict:
@@ -353,7 +354,8 @@ class _GenerateHierarchy(object):
 
         return self
 
-    def _flattenNames(self, args_list, args_dict, names_list, base_name=''):
+    def _flattenNames(self, args_list, args_dict, names_list, existing_signals,
+                      base_name=''):
         sigs_dict = {}
         mems_dict = {}
         const_dict = {}
@@ -370,8 +372,12 @@ class _GenerateHierarchy(object):
                     arg_name = _suffixer(old_name, names_list)
                 else:
                     arg_name = old_name
-                sigs_dict[arg_name] = obj
-                names_list.append(arg_name)
+                for s in existing_signals:
+                    if s == obj:
+                        break
+                else:
+                    sigs_dict[arg_name] = obj
+                    names_list.append(arg_name)
             elif isinstance(obj, _Constant):
                 if old_name in names_list:
                     arg_name = _suffixer(old_name, names_list)
@@ -391,8 +397,12 @@ class _GenerateHierarchy(object):
                     arg_name = _suffixer(old_name, names_list)
                 else:
                     arg_name = old_name
-                mems_dict[arg_name] = _makeMemInfo(obj)
-                names_list.append(arg_name)
+                for m in existing_signals:
+                    if m == obj:
+                        break
+                else:
+                    mems_dict[arg_name] = _makeMemInfo(obj)
+                    names_list.append(arg_name)
             elif _isTupleOfInts(obj) or _isTupleOfFloats(obj):
                 if old_name in names_list:
                     arg_name = _suffixer(old_name, names_list)
@@ -406,7 +416,8 @@ class _GenerateHierarchy(object):
                 attr_list.sort()
                 new_sigs, new_mems, new_const, new_roms = \
                     self._flattenNames(attr_list, obj.__dict__,
-                                       names_list, old_name + '_')
+                                       names_list, existing_signals,
+                                       old_name + '_')
                 sigs_dict.update(new_sigs)
                 mems_dict.update(new_mems)
                 const_dict.update(new_const)
