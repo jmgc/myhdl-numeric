@@ -372,8 +372,9 @@ class _GenerateHierarchy(object):
                     arg_name = _suffixer(old_name, names_list)
                 else:
                     arg_name = old_name
+                id_obj = id(obj)
                 for s in existing_signals:
-                    if s == obj:
+                    if id(s) == id_obj:
                         break
                 else:
                     sigs_dict[arg_name] = obj
@@ -397,8 +398,9 @@ class _GenerateHierarchy(object):
                     arg_name = _suffixer(old_name, names_list)
                 else:
                     arg_name = old_name
+                id_obj = id(obj)
                 for m in existing_signals:
-                    if m == obj:
+                    if id(getattr(m, "mem", None)) == id_obj:
                         break
                 else:
                     mems_dict[arg_name] = _makeMemInfo(obj)

@@ -36,3 +36,4 @@ myhdl/**/*.vhd
 *.js
 
 example/cordic/.ipynb_checkpoints
+.cache
