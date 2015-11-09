@@ -1,9 +1,10 @@
 from __future__ import absolute_import
+from myhdl.test.conftest import bug
 from myhdl import Signal, uintba, instance, delay, conversion, \
     ConcatSignal, TristateSignal, sfixba, always_comb, StopSimulation, \
     toVHDL, toVerilog
 
-'''
+
 def bench_SliceSignal():
     s = Signal(uintba(0, 8))
     a, b, c = s(7), s(5), s(0)
@@ -105,7 +106,7 @@ def bench_ConcatSignalWithConsts():
 
 def test_ConcatSignalWithConsts():
     assert conversion.verify(bench_ConcatSignalWithConsts) == 0
-'''
+
 
 def bench_TristateSignal():
     s = TristateSignal(uintba(0, 8))
@@ -142,10 +143,11 @@ def bench_TristateSignal():
     return check
 
 
+@bug("Tristate pending", "vhdl")
 def test_TristateSignal():
     assert conversion.verify(bench_TristateSignal) == 0
 
-'''
+
 def permute(x, a, mapping):
 
     p = [a(m) for m in mapping]
@@ -189,4 +191,3 @@ def test_permute():
 
 bench_permute(toVHDL)
 bench_permute(toVerilog)
-'''
