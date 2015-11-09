@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 from myhdl import Signal, intbv, instance, conversion, ConcatSignal, \
     delay, TristateSignal, always_comb, toVHDL, toVerilog, StopSimulation
+from myhdl.test.conftest import bug
 
 
 def bench_SliceSignal():

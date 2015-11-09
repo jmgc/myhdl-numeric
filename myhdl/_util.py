@@ -64,6 +64,15 @@ def _isTupleOfInts(obj):
     return True
 
 
+def _isTupleOfFloats(obj):
+    if not isinstance(obj, tuple):
+        return False
+    for e in obj:
+        if not isinstance(e, float):
+            return False
+    return True
+
+
 def _dedent(s):
     """Dedent python code string."""
 

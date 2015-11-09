@@ -121,7 +121,7 @@ class _Signal(object):
                  '_setNextVal', '_copyVal2Next', '_printVcd',
                  '_driven', '_read', '_name', '_used', '_inList',
                  '_waiter', 'toVHDL', 'toVerilog', '_slicesigs',
-                 '_numeric'
+                 '_numeric', '_assign'
                  )
 
     def __init__(self, val=None):
@@ -187,6 +187,7 @@ class _Signal(object):
         self._code = ""
         self._slicesigs = []
         self._tracing = 0
+        self._assign = None
         _simulator._signals.append(self)
 
     def _clear(self):
@@ -289,8 +290,8 @@ class _Signal(object):
 
     @read.setter
     def read(self, val):
-        if val is not True:
-            raise ValueError('Expected value True, got "%s"' % val)
+        if val not in (True, False):
+            raise ValueError('Expected value True of False, got "%s"' % val)
         self._markRead()
 
     def _markRead(self):
@@ -604,6 +605,7 @@ class _Signal(object):
                 yield sig
 
         self._waiter = _SignalWaiter(genFunc())
+        self._assign = sig
 
         def toVHDL():
             return "%s <= %s;" % (self._name, sig._name)

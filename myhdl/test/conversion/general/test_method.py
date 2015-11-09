@@ -154,16 +154,19 @@ def ObjBench(hObj):
 def test_hdlobj():
     toVHDL.name = toVerilog.name = "test_hdlobj"
     assert verify(ObjBench, HdlObj) == 0
+    toVHDL.name = toVerilog.name = None
 
 
 def test_hdlobjobj():
     toVHDL.name = toVerilog.name = "test_hdlobjobj"
     assert verify(ObjBench, HdlObjObj) == 0
+    toVHDL.name = toVerilog.name = None
 
 
 def test_hdlobjattrsimple():
     toVHDL.name = toVerilog.name = "test_hdlobjattrsimple"
     assert verify(ObjBench, HdlObjAttrSimple) == 0
+    toVHDL.name = toVerilog.name = None
 
 
 # def test_hdlobjattr():

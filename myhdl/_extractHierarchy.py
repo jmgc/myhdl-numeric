@@ -34,7 +34,7 @@ from myhdl._compat import integer_types
 from myhdl._getcellvars import _getCellVars
 from myhdl._misc import _isGenSeq
 from myhdl._resolverefs import _resolveRefs
-from myhdl._util import _flatten, _genfunc
+from myhdl._util import _flatten, _genfunc, _isTupleOfInts, _isTupleOfFloats
 
 
 _profileFunc = None
@@ -60,16 +60,18 @@ class _Constant(object):
 
 class _Instance(object):
     __slots__ = ['level', 'obj', 'subs', 'constdict', 'sigdict', 'memdict',
-                 'name', 'func', 'frame', 'argdict', 'objdict']
+                 'romdict', 'name', 'func', 'frame', 'argdict',
+                 'objdict']
 
     def __init__(self, level, obj, subs, constdict, sigdict, memdict,
-                 func, frame, argdict, objdict=None):
+                 romdict, func, frame, argdict, objdict=None):
         self.level = level
         self.obj = obj
         self.subs = subs
         self.constdict = constdict
         self.sigdict = sigdict
         self.memdict = memdict
+        self.romdict = romdict
         self.func = func
         self.frame = frame
         self.argdict = argdict
@@ -92,7 +94,7 @@ class _MemInfo(object):
         self.type = None
         self._used = False
         self._driven = None
-        self._read = None
+        self._read = False
 
     @property
     def used(self):
@@ -103,6 +105,12 @@ class _MemInfo(object):
         self._used = bool(val)
         for s in self.mem:
             s._used = bool(val)
+
+    def _clear(self):
+        self._driven = None
+        self._read = False
+        for el in self.mem:
+            el._clear()
 
 
 def _getMemInfo(mem):
@@ -118,6 +126,54 @@ def _makeMemInfo(mem):
 
 def _isMem(mem):
     return id(mem) in _memInfoMap
+
+
+_romInfoMap = {}
+
+
+class _RomInfo(object):
+    __slots__ = ['mem', 'orig_name', 'name', 'elObj', 'depth', 'type', '_used']
+
+    def __init__(self, orig_name, mem):
+        self.mem = mem
+        self.orig_name = orig_name
+        self.name = None
+        self.depth = len(mem)
+        if (self.depth > 0):
+            if isinstance(mem[0], integer_types):
+                for elObj in mem:
+                    if elObj < 0:
+                        break
+            else:
+                elObj = mem[0]
+            self.elObj = elObj
+        else:
+            self.elObj = None
+        self.type = None
+        self._used = False
+
+    @property
+    def used(self):
+        return self._used
+
+    @used.setter
+    def used(self, val):
+        self._used = bool(val)
+
+
+def _getRomInfo(mem):
+    return _romInfoMap[id(mem)]
+
+
+def _makeRomInfo(n, mem):
+    key = id(mem)
+    if key not in _romInfoMap:
+        _romInfoMap[key] = _RomInfo(n, mem)
+    return _romInfoMap[key]
+
+
+def _isRom(mem):
+    return id(mem) in _romInfoMap
 
 
 _userCodeMap = {'verilog': {},
@@ -360,6 +416,7 @@ class _HierExtr(object):
                     constdict = {}
                     sigdict = {}
                     memdict = {}
+                    romdict = {}
                     argdict = {}
                     if func:
                         arglist = inspect.getargspec(func).args
@@ -368,7 +425,6 @@ class _HierExtr(object):
                     symdict = frame.f_globals.copy()
                     symdict.update(frame.f_locals)
                     cellvars = []
-
                     # All nested functions will be in co_consts
                     if func:
                         local_gens = []
@@ -377,11 +433,13 @@ class _HierExtr(object):
                             genfunc = _genfunc(item)
                             if genfunc.__code__ in consts:
                                 local_gens.append(item)
+                        print(funcname, local_gens)
                         if local_gens:
                             cellvarlist = _getCellVars(symdict, local_gens)
                             cellvars.extend(cellvarlist)
                             objlist = _resolveRefs(symdict, local_gens)
                             cellvars.extend(objlist)
+
                     for n, v in symdict.items():
                         # extract signals and memories
                         # also keep track of whether they are used in
@@ -394,14 +452,24 @@ class _HierExtr(object):
                         elif isinstance(v, (integer_types, float,
                                             EnumItemType)):
                             constdict[n] = _Constant(n, v)
-                        if _isListOfSigs(v):
+                        elif _isListOfSigs(v):
                             m = _makeMemInfo(v)
                             memdict[n] = m
                             if n in cellvars:
                                 m._used = True
+                        elif _isTupleOfInts(v):
+                            m = _makeRomInfo(n, v)
+                            romdict[n] = m
+                            if n in cellvars:
+                                m._used = True
+                        elif _isTupleOfFloats(v):
+                            m = _makeRomInfo(n, v)
+                            romdict[n] = m
+                            if n in cellvars:
+                                m._used = True
                         # save any other variable in argdict
                         if (n in arglist) and (n not in sigdict) and \
-                                (n not in memdict):
+                                (n not in memdict) and (n not in romdict):
                             argdict[n] = v
 
                     subs = []
@@ -410,7 +478,8 @@ class _HierExtr(object):
                             if elt is sub:
                                 subs.append((n, sub))
                     inst = _Instance(self.level, arg, subs, constdict,
-                                     sigdict, memdict, func, frame, argdict)
+                                     sigdict, memdict, romdict, func, frame,
+                                     argdict)
                     self.hierarchy.append(inst)
 
                 self.level -= 1

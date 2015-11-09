@@ -17,6 +17,7 @@ def temp(enable, clk, a, b, c):
 
     return test
 
+
 def generator():
     """Conversion between intbv and list of boolean signals."""
 
@@ -29,11 +30,6 @@ def generator():
 
     gen = [temp(enable, clk[i], out_array[i], inp_s, unused[i])
            for i in range(N)]
-
-    #@always_comb
-    #def test():
-    #    if clk[0]:
-    #        out.next = inp
 
     @instance
     def stimulus():

@@ -858,6 +858,11 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
                 val = int(val)  # cast bool to int first
             if isinstance(val, (EnumItemType, integer_types)):
                 node.case = (node.left, val)
+                if isinstance(arg, ast.Name):
+                    name = arg.id
+                    if (name in self.tree.objlist) and \
+                            (self.tree.symdict[name] == val):
+                        node.case = (node.left, name)
             # check whether it can be part of an edge check
             n = node.left.id
             if n in self.tree.sigdict:
@@ -918,10 +923,13 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
         raise AssertionError("subclass must implement this")
 
     def visit_If(self, node):
+        const_names = False
         if node.ignore:
             return
         for test, suite in node.tests:
             self.visit(test)
+            if hasattr(test, "case") and isinstance(test.case[1], str):
+                const_names = True
             self.refStack.push()
             self.visitList(suite)
             self.refStack.pop()
@@ -953,7 +961,8 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
         node.isCase = True
         node.caseVar = var1
         node.caseItem = item1
-        if node.else_ or (len(choices) == _getNritems(var1.obj)):
+        if (node.else_ or (len(choices) == _getNritems(var1.obj))) and \
+                (not const_names):
             node.isFullCase = True
 
     def visit_ListComp(self, node):

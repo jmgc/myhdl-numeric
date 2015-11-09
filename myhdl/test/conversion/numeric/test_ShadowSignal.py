@@ -3,7 +3,7 @@ from myhdl import Signal, uintba, instance, delay, conversion, \
     ConcatSignal, TristateSignal, sfixba, always_comb, StopSimulation, \
     toVHDL, toVerilog
 
-
+'''
 def bench_SliceSignal():
     s = Signal(uintba(0, 8))
     a, b, c = s(7), s(5), s(0)
@@ -105,7 +105,7 @@ def bench_ConcatSignalWithConsts():
 
 def test_ConcatSignalWithConsts():
     assert conversion.verify(bench_ConcatSignalWithConsts) == 0
-
+'''
 
 def bench_TristateSignal():
     s = TristateSignal(uintba(0, 8))
@@ -124,7 +124,6 @@ def bench_TristateSignal():
         d.next = None
         e.next = None
         yield delay(10)
-        #print s
         a.next = 1
         d.next = 0
         yield delay(10)
@@ -139,7 +138,6 @@ def bench_TristateSignal():
         print(int(s))
         c.next = None
         yield delay(10)
-        #print s
 
     return check
 
@@ -147,7 +145,7 @@ def bench_TristateSignal():
 def test_TristateSignal():
     assert conversion.verify(bench_TristateSignal) == 0
 
-
+'''
 def permute(x, a, mapping):
 
     p = [a(m) for m in mapping]
@@ -191,3 +189,4 @@ def test_permute():
 
 bench_permute(toVHDL)
 bench_permute(toVerilog)
+'''

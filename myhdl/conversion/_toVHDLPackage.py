@@ -407,7 +407,7 @@ package body pck_myhdl_%(version)s is
     begin
         return to_real(to_ufixed(arg));
     end function c_u2r;
-    
+
     function c_s2r (arg: signed) return real is
     begin
         return to_real(to_sfixed(arg));

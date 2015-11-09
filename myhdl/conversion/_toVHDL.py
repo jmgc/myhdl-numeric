@@ -46,9 +46,10 @@ import myhdl
 from myhdl import EnumItemType, EnumType, intbv, modbv, concat, now, \
     posedge, negedge, delay, downrange, bin
 from myhdl import ToVHDLError, ToVHDLWarning, ConversionError
-from myhdl._extractHierarchy import (_HierExtr, _isMem, _getMemInfo,
+from myhdl._extractHierarchy import (_HierExtr, _isMem, _isRom, _getMemInfo,
                                      _UserVhdlCode, _userCodeMap, _MemInfo,
-                                     _Constant)
+                                     _RomInfo, _Constant, _getRomInfo,
+    _makeMemInfo, _makeRomInfo)
 from myhdl._instance import _Instantiator
 from myhdl.conversion._misc import (_error, _kind, _context,
                                     _ConversionMixin, _Label, _genUniqueSuffix,
@@ -56,9 +57,10 @@ from myhdl.conversion._misc import (_error, _kind, _context,
 from myhdl.conversion._analyze import (_analyzeSigs,
                                        _analyzeGens, _analyzeTopFunc,
                                        _Ram, _Rom, _enumTypeSet)
-from myhdl._Signal import _Signal, _WaiterList, _SliceSignal
+from myhdl._Signal import _Signal, _WaiterList, _SliceSignal, _isListOfSigs
+from myhdl._ShadowSignal import ConcatSignal
 from myhdl.conversion._toVHDLPackage import _package
-from myhdl._util import _flatten
+from myhdl._util import _flatten, _isTupleOfInts, _isTupleOfFloats
 from myhdl._compat import integer_types, class_types, StringIO
 from myhdl._ShadowSignal import _TristateSignal, _TristateDriver
 from myhdl._resolverefs import _suffixer
@@ -79,25 +81,17 @@ _profileFunc = None
 
 class _GenerateHierarchy(object):
     def __init__(self):
-        self.args_list = []
-        self.args_dict = {}
-        self.const_list = []
-        self.const_dict = {}
-        self.sigs_list = []
-        self.sigs_dict = {}
-        self.names_list = []
-        self.symdict = {}
-        self.p_parents_dict = {}
         self.entities_list = []
         self.mem_types = {}
         self.enum_types = {}
+        self.rom_types = {}
         self.sfixed = False
 
     def __call__(self, h, stdLogicPorts):
-        p_entity_dict = self.p_parents_dict
+        p_entity_dict = {}
+        p_offsprings_dict = {}
         p_v_entity_dict = {}
         entity_list = _flatten(h.hierarchy[:])
-        subobj_list = []
         absnames = h.absnames
 
         # Search the associated entities (components)
@@ -108,102 +102,153 @@ class _GenerateHierarchy(object):
             for p_subentity in entity_list[idx:]:
                 if id(p_subentity.frame.f_back) == id(frame):
                     p_subentitylist.append(p_subentity)
+                    if p_subentity not in p_offsprings_dict:
+                        p_offsprings_dict[p_subentity] = p_entity
+                    else:
+                        raise ToVHDLError("Offspring has two parents:"
+                                          " %s-> %s, %s" %
+                                          (p_subentity.name,
+                                           p_entity.name,
+                                           p_offsprings_dict[p_subentity].name)
+                                          )
 
             p_entity_dict[p_entity] = p_subentitylist
 
         entity_list.reverse()
 
+        objects_set = set()
+
         for p_entity in entity_list:
-            args_list = []
             sigs_list = []
-            sigs_dict = {}
-            names_list = []
-            symdict = {}
-            p_subentities = p_entity_dict[p_entity]
             basename = p_entity.name
 
-            result_obj = _flatten(p_entity.obj)
-
             components_list = []
+
+            p_subentities = p_entity_dict[p_entity]
+
+            if (not p_entity.argdict) and \
+                    getattr(p_entity, 'func', False) is None:
+                if p_entity not in p_offsprings_dict:
+                    raise ToVHDLError(_error.NotSupported, "Top func: %s" %
+                                      p_entity.name)
+
+                p_parent_entity = p_offsprings_dict[p_entity]
+                p_parent_subentities = p_entity_dict[p_parent_entity]
+                p_parent_subentities.remove(p_entity)
+                p_parent_subentities.extend(p_subentities)
+                continue
+
             for p_subentity in p_subentities:
                 p_subentity.name = basename + "_" + p_subentity.name
                 subentity = p_v_entity_dict[p_subentity]
                 subentity.basename = basename
                 subentity.name = p_subentity.name
-                if (not p_subentity.argdict) and \
-                        getattr(p_subentity, 'func', False) is None:
-                    sub_components_list = subentity.architecture.components_list
-                    components_list.extend(sub_components_list)
-                    for component in sub_components_list:
-                        component._clean_signals()
-                    p_v_entity_dict.pop(p_subentity)
-                    self.entities_list.remove(subentity)
-                else:
-                    component = vhd_component(subentity.name, subentity)
-                    components_list.append(component)
-                    component._clean_signals()
+                component = vhd_component(subentity.name, subentity)
+                components_list.append(component)
+                component._clean_signals(1)
 
+            p_entity_obj = _flatten(p_entity.obj)
+            # After having determine the signals and other elements, the
+            # duplicated generators are deleted. It has to be done between
+            # generating the signals and analyzing the top function to avoid
+            # problems with interfaces.
+            p_entity_obj_set = set(p_entity_obj)
+            p_entity_obj = list(p_entity_obj_set - objects_set)
+            objects_set.update(p_entity_obj)
+            p_entity.obj = p_entity_obj
+
+            self._check_generators(p_entity_obj)
+            gen_list = _analyzeGens(p_entity_obj, absnames)
+            sigs_list, mems_list = _analyzeSigs([p_entity], hdl='VHDL',
+                                                initlevel=p_entity.level - 1)
+            _annotateTypes(gen_list)
+
+            elargs = self._instance_args(p_entity)
+
+            # Infer interface
+            intf = _analyzeTopFunc(p_entity, p_entity.func, *elargs, **{})
+            intf.name = p_entity.name
+
+            self._sanity_checks(intf)
+
+            # Updating the components ports
+            for component in components_list:
+                component._update()
+
+            # Giving names to port to port signals
             values = inspect.getargvalues(p_entity.frame)
-            args_sig_dict, args_mem_dict, args_const_dict = \
-                self._flattenIntf(values.args, values.locals, args_list,
-                                  names_list)
-            symdict.update(args_sig_dict)
-            symdict.update(args_mem_dict)
-            symdict.update(args_const_dict)
+            names_list = []
+            sigs_dict, mems_dict, _, _ = \
+                self._flattenNames(values.locals.keys(), values.locals,
+                                   names_list)
+            revert_sigs_list = []
+            revert_mems_list = []
+            for n, s in sigs_dict.items():
+                if s._name is None:
+                    s._name = n
+                    revert_sigs_list.append(s)
 
-            for name in args_const_dict:
-                if name in args_list:
-                    args_list.remove(name)
-            vhd_ports_dict = {}
-            for name, signal in args_sig_dict.items():
-                vhd_obj = inferVhdlObj(signal)
-                vhd_ports_dict[name] = vhd_port(name, signal, vhd_obj)
-                if isinstance(vhd_obj, vhd_sfixed):
-                    self.sfixed = True
-            for name, mem in args_mem_dict.items():
-                vhd_obj = inferVhdlObj(mem)
-                vhd_ports_dict[name] = vhd_port(name, mem, vhd_obj)
-                if isinstance(vhd_obj, vhd_sfixed):
-                    self.sfixed = True
+            # Adding the local signals
+            sigs_dict.update([(s._name, s) for s in sigs_list])
+            for n in intf.argnames:
+                if n in sigs_dict:
+                    sigs_dict.pop(n)
+            # Updating the slice signals
+            for sig in sigs_dict.values():
+                if sig._slicesigs:
+                    for s in sig._slicesigs:
+                        s._setName("VHDL")
 
-            sigs = [name for name in values.locals.keys()
-                    if name not in values.args]
-            sigs_dict, mems_dict, const_dict = \
-                self._flattenIntf(sigs, values.locals, sigs_list, names_list)
-            symdict.update(sigs_dict)
-            symdict.update(mems_dict)
-            symdict.update(const_dict)
-            const_dict.update(args_const_dict)
+            for n, m in mems_dict.items():
+                if m.name is None:
+                    m.name = n
+                    for idx, s in enumerate(m.mem):
+                        if s._name is None:
+                            s._name = "%s(%d)" % (n, idx)
+                            revert_sigs_list.append(s)
+                    revert_mems_list.append(m)
 
-            vhd_signals_dict = {}
-            for name, signal in sigs_dict.items():
-                vhd_obj = inferVhdlObj(signal)
-                vhd_signals_dict[name] = vhd_signal(name, signal,
-                                                    vhd_obj,
-                                                    signal._used)
+            # Adding the local mems
+            mems_dict.update([(m.name, m) for m in mems_list])
+            for n in intf.argnames:
+                if n in mems_dict:
+                    mems_dict.pop(n)
+
+            vhd_ports_dict, vhd_ports_convert = \
+                self._revisePorts(intf, stdLogicPorts)
+
+            vhd_signals_dict = dict((s.name, s) for s in vhd_ports_convert)
+
+            for s in sigs_dict.values():
+                vhd_obj = inferVhdlObj(s)
+                v_s = vhd_signal(s._name, s, vhd_obj, s._used)
+                v_s._read_base()
+                vhd_signals_dict[s._name] = v_s
                 if isinstance(vhd_obj, vhd_enum):
                     self.enum_types[vhd_obj._type] = vhd_obj
                 elif isinstance(vhd_obj, vhd_sfixed):
                     self.sfixed = True
 
-            for name, mem in mems_dict.items():
-                for signal in mem.mem:
-                    if signal._used:
-                        mem._used = True
-                        break
+            for mem in mems_dict.values():
                 vhd_obj = inferVhdlObj(mem)
-                vhd_signals_dict[name] = vhd_signal(name, mem,
-                                                    vhd_obj,
-                                                    mem._used)
+                v_s = vhd_signal(mem.name, mem, vhd_obj, mem._used)
+                v_s._read_base()
+                vhd_signals_dict[mem.name] = v_s
                 self.mem_types[vhd_obj.toStr(False)] = vhd_obj
                 if isinstance(vhd_obj, vhd_array):
-                    if isinstance(vhd_obj.type, vhd_sfixed):
+                    if isinstance(vhd_obj.type, vhd_enum):
+                        self.enum_types[vhd_obj.type._type] = vhd_obj
+                    elif isinstance(vhd_obj.type, vhd_sfixed):
                         self.sfixed = True
 
             vhd_consts_dict = {}
-            for name, const in const_dict.items():
+            for name, const in p_entity.constdict.items():
+                if isinstance(const, _Constant):
+                    value = const
+                    const = value.value
+                else:
+                    value = _Constant(name, const)
                 vhd_obj = inferVhdlObj(const)
-                value = _Constant(name, const)
                 name = name.upper()
                 value.name = name
                 vhd_consts_dict[name] = vhd_constant(name,
@@ -215,17 +260,29 @@ class _GenerateHierarchy(object):
                     vhd_obj._type._setName(const._name + suf)
                     self.enum_types[vhd_obj._type] = vhd_obj
 
-            architecture = vhd_architecture(sigs_list, vhd_signals_dict,
+            for name, rom in p_entity.romdict.items():
+                vhd_obj = inferVhdlObj(rom)
+                name = name.upper()
+                rom.name = name
+                vhd_consts_dict[name] = vhd_constant(name,
+                                                     rom,
+                                                     vhd_obj,
+                                                     False)
+                self.rom_types[vhd_obj.toStr(False)] = vhd_obj
+                if isinstance(vhd_obj, vhd_array):
+                    if isinstance(vhd_obj.type, vhd_enum):
+                        suf = _genUniqueSuffix.next()
+                        vhd_obj.type._type._setName(rom.name + suf)
+                        self.enum_types[vhd_obj.type._type] = vhd_obj
+
+            architecture = vhd_architecture(list(sigs_dict.keys()) +
+                                            list(mems_dict.keys()),
+                                            vhd_signals_dict,
                                             vhd_consts_dict,
                                             components_list=components_list)
-            p_entity.argdict = dict(args_sig_dict).update(args_mem_dict)
-            p_entity.memdict = dict(mems_dict)
-            p_entity.sigdict = dict(sigs_dict)
-            p_entity.constdict = dict([(const.value.orig_name, const.value)
-                                       for const in vhd_consts_dict.values()])
-            entity = vhd_entity(p_entity.name, args_list, vhd_ports_dict,
-                                names_list, p_entity, p_entity.level,
-                                architecture)
+
+            entity = vhd_entity(p_entity.name, intf.argnames, vhd_ports_dict,
+                                p_entity, p_entity.level, architecture)
             architecture.entity = entity
 
             for port in entity.ports_dict.values():
@@ -235,106 +292,144 @@ class _GenerateHierarchy(object):
                 signal.entity = entity
                 signal.architecture = architecture
 
-            genlist = _analyzeGens(result_obj, absnames)
-
-            architecture._read_base()
-            architecture._update()
-
-            self._revisePorts(entity, stdLogicPorts)
             process_list = []
 
-            assert len(genlist) == len(result_obj)
-
-            obj_dict = dict(zip(result_obj, genlist))
-
-            for obj in subobj_list:
-                if obj in obj_dict:
-                    obj_dict.pop(obj)
-
-            for obj, generator in obj_dict.items():
-                varlist = list(generator.vardict.keys())
-                varlist.sort()
-                vhd_vars_dict = {}
-                for name, var in generator.vardict.items():
-                    vhd_obj = inferVhdlObj(var)
-                    if isinstance(vhd_obj, vhd_enum):
-                        self.enum_types[vhd_obj._type] = vhd_obj
-                    vhd_vars_dict[name] = \
-                        vhd_variable(name, var, vhd_obj, entity=entity,
-                                     used=True, architecture=architecture)
-                process = vhd_process(varlist, vhd_vars_dict, generator,
-                                      obj, entity, architecture)
-                for var in vhd_vars_dict.values():
-                    var.process = process
+            for generator in gen_list:
+                if isinstance(generator, _UserVhdlCode):
+                    process = vhd_process([], {}, generator, entity,
+                                          architecture)
+                else:
+                    varlist = list(generator.vardict.keys())
+                    varlist.sort()
+                    vhd_vars_dict = {}
+                    for name, var in generator.vardict.items():
+                        vhd_obj = inferVhdlObj(var)
+                        if isinstance(vhd_obj, vhd_enum):
+                            self.enum_types[vhd_obj._type] = vhd_obj
+                        vhd_vars_dict[name] = \
+                            vhd_variable(name, var, vhd_obj, entity=entity,
+                                         used=True, architecture=architecture)
+                    process = vhd_process(varlist, vhd_vars_dict, generator,
+                                          entity, architecture)
+                    for var in vhd_vars_dict.values():
+                        var.process = process
 
                 process_list.append(process)
-            subobj_list.extend(obj_dict.keys())
 
             architecture.process_list = process_list
 
             for component in architecture.components_list:
+                for element in component.entity.ports_dict.values():
+                    element._read_base()
+                    sig = element.signal
+                    if isinstance(sig, _MemInfo):
+                        name = sig.name
+                    else:
+                        name = sig._name
+                    if (not element.read) and (element.direction == "out"):
+                        name = "open"
+                        warnings.warn("%s: %s.%s" % (_error.UnusedPort,
+                                                     component.name,
+                                                     element.name),
+                                      category=ToVHDLWarning
+                                      )
+                    elif (not element.driven) and (element.direction == "in"):
+                        name = element.vhd_type.literal(element.internal)
+
+                    component.ports_signals_dict[element.name] = name
+
                 component.parent = entity
                 component.architecture = architecture
+
+            for s in revert_sigs_list:
+                s._name = None
+            for m in revert_mems_list:
+                m.name = None
 
             p_v_entity_dict[p_entity] = entity
             self.entities_list.append(entity)
 
+            entity._clean_signals()
+
         return self
 
-    def _flattenIntf(self, args_list, args_dict, names_list, full_names_list,
-                     base_name=''):
+    def _flattenNames(self, args_list, args_dict, names_list, base_name=''):
         sigs_dict = {}
         mems_dict = {}
         const_dict = {}
+        roms_dict = {}
         for name in args_list:
+            if name not in args_dict:
+                continue
             obj = args_dict[name]
             old_name = base_name + name
             if isinstance(obj, _Signal):
                 if isinstance(obj, _SliceSignal):
                     continue
-                if old_name in full_names_list:
-                    arg_name = _suffixer(old_name, full_names_list)
+                if old_name in names_list:
+                    arg_name = _suffixer(old_name, names_list)
                 else:
                     arg_name = old_name
                 sigs_dict[arg_name] = obj
                 names_list.append(arg_name)
-                full_names_list.append(arg_name)
-                obj._name = arg_name
-            elif _isMem(obj):
-                if old_name in full_names_list:
-                    arg_name = _suffixer(old_name, full_names_list)
-                else:
-                    arg_name = old_name
-                mem = _getMemInfo(obj)
-                mem.name = arg_name
-                mems_dict[arg_name] = mem
-                names_list.append(arg_name)
-                full_names_list.append(arg_name)
-            elif isinstance(obj, (integer_types, float, EnumItemType)):
-                if old_name in full_names_list:
-                    arg_name = _suffixer(old_name, full_names_list)
+            elif isinstance(obj, _Constant):
+                if old_name in names_list:
+                    arg_name = _suffixer(old_name, names_list)
                 else:
                     arg_name = old_name
                 const_dict[arg_name] = obj
                 names_list.append(arg_name)
-                full_names_list.append(arg_name)
+            elif isinstance(obj, (integer_types, float, EnumItemType)):
+                if old_name in names_list:
+                    arg_name = _suffixer(old_name, names_list)
+                else:
+                    arg_name = old_name
+                const_dict[arg_name] = obj
+                names_list.append(arg_name)
+            elif _isListOfSigs(obj):
+                if old_name in names_list:
+                    arg_name = _suffixer(old_name, names_list)
+                else:
+                    arg_name = old_name
+                mems_dict[arg_name] = _makeMemInfo(obj)
+                names_list.append(arg_name)
+            elif _isTupleOfInts(obj) or _isTupleOfFloats(obj):
+                if old_name in names_list:
+                    arg_name = _suffixer(old_name, names_list)
+                else:
+                    arg_name = old_name
+                roms_dict[arg_name] = _makeRomInfo(arg_name, obj)
+                names_list.append(arg_name)
             elif (not isinstance(obj, _Instantiator)) and \
                     hasattr(obj, '__dict__') and obj.__dict__ is not None:
                 attr_list = list(obj.__dict__.keys())
                 attr_list.sort()
-                new_sigs, new_mems, new_const = \
-                    self._flattenIntf(attr_list, obj.__dict__, names_list,
-                                      full_names_list, old_name + '_')
+                new_sigs, new_mems, new_const, new_roms = \
+                    self._flattenNames(attr_list, obj.__dict__,
+                                       names_list, old_name + '_')
                 sigs_dict.update(new_sigs)
                 mems_dict.update(new_mems)
                 const_dict.update(new_const)
-        return sigs_dict, mems_dict, const_dict
+                roms_dict.update(new_roms)
 
-    def _revisePorts(self, entity, stdLogicPorts):
-        for port in entity.ports_dict.values():
+        return sigs_dict, mems_dict, const_dict, roms_dict
+
+    def _revisePorts(self, intf, stdLogicPorts):
+        vhd_ports_dict = {}
+        vhd_ports_convert = []
+
+        for name, s in intf.argdict.items():
+            vhd_obj = inferVhdlObj(s)
+            port = vhd_port(name, s, vhd_obj)
+            if isinstance(vhd_obj, vhd_enum):
+                self.enum_types[vhd_obj._type] = vhd_obj
+            elif isinstance(vhd_obj, vhd_sfixed):
+                self.sfixed = True
+            elif isinstance(vhd_obj, vhd_array):
+                if isinstance(vhd_obj.type, vhd_sfixed):
+                    self.sfixed = True
             # change name to convert to std_logic, or
             # make sure signal name is equal to its port name
-            s = port.signal
             port_direction = None
             convert_port = False
             final_name = None
@@ -344,7 +439,9 @@ class _GenerateHierarchy(object):
                 ds = s.elObj
             if stdLogicPorts and ds._type in (intbv, bitarray):
                 final_name = port.name + "_num"
-                convert_port = True
+                convert_port = port.name
+                vhd_ports_convert.append(vhd_signal(port.name, port.signal,
+                                                    port.vhd_type, True))
                 for sl in ds._slicesigs:
                     sl._setName('VHDL')
             else:
@@ -352,53 +449,143 @@ class _GenerateHierarchy(object):
             if s._driven:
                 if s._read:
                     if not isinstance(ds, _TristateSignal):
-                        warnings.warn("%s: %s" % (_error.OutputPortRead,
-                                                  port.name),
+                        warnings.warn("%s: %s.%s" % (_error.OutputPortRead,
+                                                     intf.name,
+                                                     port.name),
                                       category=ToVHDLWarning
                                       )
                     port_direction = "inout"
                 else:
                     port_direction = "out"
                 s._used = True
+                # Indicate to the components that the signal is read
+                s._read = True
             else:
                 if not s._read:
                     warnings.warn("%s: %s.%s" % (_error.UnusedPort,
-                                                 port.entity.name,
+                                                 intf.name,
                                                  port.name),
                                   category=ToVHDLWarning
                                   )
+                else:
+                    s._used = True
+                # Indicate to the components that the signal is driven by
+                # the port
+                s._driven = "reg"
                 port_direction = "in"
-                s._used = True
+
             port.direction = port_direction
             port.name = final_name
             port.convert = convert_port
+            vhd_ports_dict[name] = port
+            if isinstance(port.signal, _MemInfo):
+                self.mem_types[vhd_obj.toStr(False)] = vhd_obj
+
+        return vhd_ports_dict, vhd_ports_convert
+
+    def _check_generators(self, generator_list):
+        for generator in generator_list:
+            if not isinstance(generator, (GeneratorType, _Instantiator,
+                                          _UserVhdlCode)):
+                raise ToVHDLError(_error.ArgType, "%s" % generator)
+
+    def _instance_args(self, instance):
+        parent = instance.frame
+
+        argcount = parent.f_code.co_argcount
+        varnames = parent.f_code.co_varnames
+        argnames = varnames[:argcount]
+
+        topdict = instance.frame.f_locals
+
+        instargs = []
+        for argname in argnames:
+            instargs.append(topdict[argname])
+
+        return instargs
+
+    def _sanity_checks(self, intf):
+        # sanity checks on interface
+        for port_name in intf.argnames:
+            s = intf.argdict[port_name]
+            if isinstance(s, _Signal):
+                if s._name is None:
+                    raise ToVHDLError(_error.ShadowingSignal,
+                                      "%s.%s" % (intf.name, port_name))
+                if s._inList is not None:
+                    # raise ToVHDLError(_error.PortInList,
+                    #                   "%s.%s" % (self.name, port.name))
+                    pass
 
 
-class vhd_port(object):
-    def __init__(self, name, signal, vhd_type, direction=None, entity=None):
-        self.name = name
-        self.signal = signal
-        self.vhd_type = vhd_type
-        self.direction = None
-        self.entity = None
-        self.convert = False
+class vhd_slice(object):
+    def __init__(self, start, stop=None):
+        self.start = int(start)
+        self.stop = None
+        if stop is not None:
+            self.stop = int(stop)
 
-    def _update(self):
-        if isinstance(self.signal, _MemInfo):
-            self.signal.name = self.name
-            for idx, signal in enumerate(self.signal.mem):
-                signal._name = "%s(%d)" % (self.name, idx)
-                # signal._inList = self.signal
+            if self.stop >= self.start:
+                raise IndexError("The stop value must be always smaller than"
+                                 "the start one")
+
+    def toStr(self):
+        if self.stop is None:
+            return "(%d)" % self.start
+        elif (self.start - 1) == self.stop:
+            return "(%d)" % self.stop
         else:
-            self.signal._name = self.name
-            if self.signal._slicesigs:
-                for s in self.signal._slicesigs:
-                    s._setName("VHDL")
+            return "((%d - 1) downto %d)" % (self.start, self.stop)
+
+
+class vhd_assign(object):
+    def __init__(self, *args):
+        l = len(args)
+        if l == 2:
+            self.target = args[0]
+            self.source = args[1]
+            self.target_slice = self.source_slice = None
+        elif l == 3:
+            self.target = args[0]
+            self.target_slice = args[1]
+            self.source = args[2]
+            self.source_slice = None
+        elif l == 4:
+            self.target = args[0]
+            self.target_slice = args[1]
+            self.source = args[2]
+            self.source_slice = args[3]
+        else:
+            raise TypeError("Only two, three or four parameters are allowed.")
+
+    def toStr(self):
+        target = self.target
+        if self.target_slice is not None:
+            target = "%s%s" % (target, self.target_slice.toStr())
+        source = self.source
+        if isinstance(source, list):
+            if self.target_slice is not None or \
+                    self.source_slice is not None:
+                raise ToVHDLError("Slice not available in array assignment.")
+            lines = []
+            initial_string = "%s <= (" % target
+            indent_string = ' ' * len(initial_string)
+            offset_string = ",\n%s" % indent_string
+            for l in source:
+                lines.append("%s%s" % (initial_string, l))
+                initial_string = offset_string
+            lines.append("\n%s);\n" % indent_string)
+            return "".join(lines)
+        else:
+            if self.source_slice is not None:
+                source = "%s%s" % (source, self.source_slice.toStr())
+
+            return "%s <= %s;\n" % (target, source)
 
 
 class vhd_signal(object):
     def __init__(self, name, signal, vhd_type,
-                 used=False, entity=None, architecture=None):
+                 entity=None, architecture=None):
         self.name = name
         self.signal = signal
         self.vhd_type = vhd_type
@@ -406,25 +593,120 @@ class vhd_signal(object):
         self.read = False
         self.entity = entity
         self.architecture = architecture
+        self.assign = None
+        self.internal = None
+        self.signal_conversion = []
 
     @property
     def used(self):
         return self.signal._used or self.signal._read or self.signal._driven
 
+    def _read_concat(self):
+        sig = self.signal
+        if sig._is_bitarray:
+            ini = uintba(sig._initval, sig._nrbits)
+        else:
+            ini = intbv(sig._initval)[sig._nrbits:]
+        hi = sig._nrbits
+        for a in sig._args:
+            if isinstance(a, bool):
+                w = 1
+            else:
+                w = len(a)
+            lo = hi - w
+            target = sig._name
+            if w == 1:
+                if isinstance(a, _Signal):
+                    # isinstance(a._type , bool): <- doesn't work
+                    if a._type == bool:
+                        target_slice = vhd_slice(lo)
+                        source = a._name
+                        source_slice = None
+                    else:
+                        target_slice = vhd_slice(lo)
+                        source = a._name
+                        source_slice = vhd_slice(0)
+                else:
+                    target_slice = vhd_slice(lo)
+                    source = vhd_std_logic().literal(ini[lo])
+                    source_slice = None
+            else:
+                if isinstance(a, _Signal):
+                    target_slice = vhd_slice(hi, lo)
+                    source = a._name
+                    source_slice = None
+                else:
+                    target_slice = vhd_slice(hi, lo)
+                    source = vhd_unsigned(w).literal(ini[hi:lo])
+                    source_slice = None
+            hi = lo
+            self.signal_conversion.append(vhd_assign(target,
+                                                     target_slice,
+                                                     source,
+                                                     source_slice))
+
+    def _read_tristate(self):
+        sig = self.signal
+        for d in sig._drivers:
+            if d._driven:
+                self.signal_conversion.append(vhd_assign(sig._name, d._name))
+
     def _read_base(self):
-        if isinstance(self.signal, _MemInfo):
-            if self.signal._driven:
-                self.driven = "reg"
-            if self.signal._read:
-                self.read = True
+        sig = self.signal
+        if sig._driven:
+            self.driven = sig._driven
+        if sig._read:
+            self.read = sig._read
+
+        if isinstance(sig, _MemInfo):
             for s in self.signal.mem:
                 if s._driven:
-                    self.driven = "reg"
+                    if self.driven == "reg":
+                        self.driven = "reg"
+                    else:
+                        self.driven = "wire"
                 if s._read:
-                    self.read = True
+                    self.read = s._read
+
+            for s in self.signal.mem:
+                s._driven = self.driven
+                s._read = self.read
+
+            self.internal = [s._init for s in self.signal.mem]
         else:
-            self.driven = self.signal._driven
-            self.read = self.signal._read
+            self.internal = sig._init
+            if sig._assign is not None:
+                self.assign = sig._assign._name
+
+        if self.driven:
+            if not self.read and \
+                    not isinstance(sig, _TristateDriver):
+                warnings.warn("%s: %s" % (_error.UnreadSignal,
+                                          self.name),
+                              category=ToVHDLWarning
+                              )
+            if self.driven == "wire":
+                if isinstance(sig, ConcatSignal):
+                    self._read_concat()
+                elif isinstance(sig, _TristateSignal):
+                    self._read_tristate()
+                elif self.assign is not None:
+                    self.signal_conversion.append(vhd_assign(self.name,
+                                                             self.assign))
+            # the following line implements initial value assignments
+            # print >> f, "%s %s%s = %s;" % (s._driven, r, s._name,
+            # int(s._val))
+        elif self.read:
+            # the original exception
+            # raise ToVHDLError(_error.UndrivenSignal, s._name)
+            # changed to a warning and a continuous assignment to a wire
+            warnings.warn("%s: %s" % (_error.UndrivenSignal,
+                                      self.name),
+                          category=ToVHDLWarning
+                          )
+            const_data = self.vhd_type.literal(self.internal)
+            self.signal_conversion.append(vhd_assign(self.name, const_data))
+            sig._driven = "reg"
 
     def _update(self):
         if isinstance(self.signal, _MemInfo):
@@ -432,10 +714,17 @@ class vhd_signal(object):
             if self.driven:
                 self.signal._driven = self.driven
             if self.used:
-                self.signal._used = self.used
+                self.signal._used = True
+            if self.read:
+                self.signal._read = self.read
             for idx, s in enumerate(self.signal.mem):
                 s._name = "%s(%d)" % (self.name, idx)
-                s._used = False
+                if self.used:
+                    s._used = True
+                if self.driven:
+                    s._driven = self.driven
+                if self.read:
+                    s._read = self.read
                 if s._inList is not None and id(s._inList) != id(self.signal):
                     raise ConversionError(_error.SignalInMultipleLists,
                                           "%s != %s" %
@@ -453,7 +742,30 @@ class vhd_signal(object):
             if self.driven:
                 self.signal._driven = self.driven
             if self.used:
-                self.signal._used = self.used
+                self.signal._used = True
+            if self.signal._slicesigs:
+                for s in self.signal._slicesigs:
+                    s._setName("VHDL")
+
+
+class vhd_port(vhd_signal):
+    def __init__(self, name, signal, vhd_type, direction=None, entity=None):
+        vhd_signal.__init__(self, name, signal, vhd_type, entity=entity)
+        self.direction = direction
+        self.convert = False
+
+    def _update(self):
+        if self.convert:
+            name = self.convert
+        else:
+            name = self.name
+        if isinstance(self.signal, _MemInfo):
+            self.signal.name = name
+            for idx, signal in enumerate(self.signal.mem):
+                signal._name = "%s(%d)" % (name, idx)
+                # signal._inList = self.signal
+        else:
+            self.signal._name = name
             if self.signal._slicesigs:
                 for s in self.signal._slicesigs:
                     s._setName("VHDL")
@@ -490,13 +802,12 @@ class vhd_variable(object):
 
 
 class vhd_entity(object):
-    def __init__(self, name, ports_list, ports_dict, names_list, instance,
+    def __init__(self, name, ports_list, ports_dict, instance,
                  level=0, architecture=None):
         self.name = name
         self.basename = ''
         self.ports_list = ports_list
         self.ports_dict = ports_dict
-        self.names_list = names_list
         self.instance = instance
         self.level = level
         self.architecture = architecture
@@ -507,19 +818,6 @@ class vhd_entity(object):
         for port in self.ports_dict.values():
             port._update()
 
-    def _sanity_checks(self):
-        # sanity checks on interface
-        for port in self.ports_dict.values():
-            s = port.signal
-            if isinstance(s, _Signal):
-                if s._name is None:
-                    raise ToVHDLError(_error.ShadowingSignal,
-                                      "%s.%s" % (self.name, port.name))
-                if s._inList is not None:
-                    # raise ToVHDLError(_error.PortInList,
-                    #                   "%s.%s" % (self.name, port.name))
-                    pass
-
     def _memory_update(self):
         mems = [m for m in [comp.entity.ports_dict.values()
                             for comp in self.architecture.components_list]
@@ -527,13 +825,12 @@ class vhd_entity(object):
 
         return mems
 
-    def _clean_signals(self):
+    def _clean_signals(self, level=1):
         for port in self.ports_dict.values():
-            port.signal._driven = None
-            port.signal._read = False
-            port.signal._used = False
+            port.signal._clear()
 
-        self.architecture._clean_signals()
+        if level > 0:
+            self.architecture._clean_signals(level)
 
 
 class vhd_architecture(object):
@@ -547,6 +844,7 @@ class vhd_architecture(object):
         self.process_list = process_list
         self.components_list = components_list
         self.entity = entity
+        self.signal_conversions = []
 
     def _clean_signal_names(self):
         for signal in self.sigs_dict.values():
@@ -569,33 +867,23 @@ class vhd_architecture(object):
         for component in self.components_list:
             component._update()
 
-    def _check_processes(self):
-        for process in self.process_list:
-            if not isinstance(process.obj, (GeneratorType, _Instantiator,
-                                            _UserVhdlCode)):
-                raise ToVHDLError(_error.ArgType, "%s(%s).%s" %
-                                  (self.entity.name, self.arch,
-                                   process.generator))
-
     def _generators(self):
         return [process.generator for process in self.process_list]
 
-    def _clean_signals(self):
+    def _clean_signals(self, level):
         for signal in self.sigs_dict.values():
-            signal.signal._driven = None
-            signal.signal._read = False
+            signal.signal._clear()
 
         for component in self.components_list:
-            component._clean_signals()
+            component._clean_signals(level)
 
 
 class vhd_process(object):
     def __init__(self, vars_list, vars_dict,
-                 generator=None, obj=None, entity=None, architecture=None):
+                 generator=None, entity=None, architecture=None):
         self.vars_list = vars_list
         self.vars_dict = vars_dict
         self.generator = generator
-        self.obj = obj
         self.entity = entity
         self.architecture = architecture
 
@@ -623,6 +911,7 @@ class vhd_component(object):
         self.parent = parent
         self.entity = entity
         self.architecture = architecture
+        self.ports_signals_dict = {}
 
     @property
     def ports_list(self):
@@ -642,11 +931,11 @@ class vhd_component(object):
                 s._read = True
                 s._used = True
             elif p.direction == "out":
-                s._driven = 'reg'
+                s._driven = 'wire'
                 s._used = True
             elif p.direction == "inout":
+                s._driven = 'wire'
                 s._read = True
-                s._driven = 'reg'
                 s._used = True
 
             if hasattr(s, '_inList') and s._inList:
@@ -672,8 +961,8 @@ class vhd_component(object):
 
         return sigs_list, sigs_dict
 
-    def _clean_signals(self):
-        self.entity._clean_signals()
+    def _clean_signals(self, level):
+        self.entity._clean_signals(level - 1)
 
 
 def _flatten(*args):
@@ -783,7 +1072,6 @@ class _ToVHDLConvertor(object):
         stdLogicPorts = self.std_logic_ports
         genHier = _GenerateHierarchy()
         hierarchy = genHier(h, stdLogicPorts)
-        # hierarchydict = self._analizeHier(h, func, name)
 
         _enumTypeSet.clear()
 
@@ -814,40 +1102,10 @@ class _ToVHDLConvertor(object):
             # like a top function
             entity._update()
 
-            for port in entity.ports_dict.values():
-                if isinstance(port.signal, _Signal):
-                    sigs_list.append(port.signal)
-
-            for sig in entity.architecture.sigs_dict.values():
-                if isinstance(sig.signal, _Signal):
-                    sigs_list.append(sig.signal)
-
-            # Substitutes _checkArgs(arglist)
-            entity.architecture._check_processes()
-            # Gets the arguments to emulate one top function
-            elargs = self._instanceArgs(entity.instance)
-
-            initlevel = entity.level - 1
-            # Substitutes _analyzeGens(arglist, h.absnames)
-            genlist = entity.architecture._generators()
-            # entity.architecture._clean_signal_names()
-            siglist, memlist = _analyzeSigs([entity.instance], hdl='VHDL',
-                                            initlevel=initlevel)
-            _annotateTypes(genlist)
-
-            # Infer interface
-            try:
-                _analyzeTopFunc(entity.instance, entity.instance.func,
-                                *elargs, **{})
-            except:
-                raise ToVHDLError(_error.NotSupported, "Top func: %s" %
-                                  entity.instance.func)
-            entity._sanity_checks()
-
             doc = _makeDoc(inspect.getdoc(entity.instance.func))
 
-            memlist.extend(entity._memory_update())
-            self._reviseMems(full_mems, memlist)
+            #memlist.extend(entity._memory_update())
+            #self._reviseMems(full_mems, memlist)
 
             self._convert_filter(entity)
 
@@ -876,7 +1134,7 @@ class _ToVHDLConvertor(object):
             sfile.write("\n\n")
 
             # clean-up properly #
-            self._cleanup(siglist)
+            entity._clean_signals()
 
         _writeFileHeader(vfile, vpath)
         _writeCustomPackage(vfile, cpname, hierarchy, fixed_point)
@@ -893,88 +1151,6 @@ class _ToVHDLConvertor(object):
             sig._clear()
 
         return h.top
-
-    def _instanceArgs(self, instance):
-        parent = instance.frame
-
-        argcount = parent.f_code.co_argcount
-        varnames = parent.f_code.co_varnames
-        argnames = varnames[:argcount]
-
-        topdict = instance.frame.f_locals
-
-        instargs = []
-        for argname in argnames:
-            instargs.append(topdict[argname])
-
-        return instargs
-
-    def _analizeHier(self, h, func, name=None):
-        p_entity_dict = {}
-        vhdl_entity_dict = {}
-        subhierarchy = h.hierarchy[:]
-
-        for idx, p_entity in enumerate(h.hierarchy):
-            subentitylist = []
-            frame = p_entity.frame
-
-            # subhierarchy.pop(0)
-
-            for subentity in subhierarchy:
-                if id(subentity.frame.f_back) == id(frame):
-                    subentitylist.append(subentity)
-
-            p_entity_dict[p_entity] = subentitylist
-
-        p_entity = h.hierarchy[0]
-
-        vhdl_entity = self._getEntity(p_entity, h.absnames)
-
-        if name is not None:
-            vhdl_entity.name = name
-
-        vhdl_entity_dict[p_entity] = vhdl_entity
-
-        for p_entity in h.hierarchy:
-            subentities = p_entity_dict[p_entity]
-            basename = p_entity.name
-
-            p_entity.obj = _flatten(p_entity.obj)
-            for subentity in subentities:
-                subentity.basename = basename
-                subentity.name = basename + "_" + subentity.name
-
-                resultobj = p_entity.obj
-                for gen in _flatten(subentity.obj):
-                    # _AlwaysComb has no sigregs member
-                    if hasattr(gen, 'sigregs'):
-                        for signal in gen.sigregs:
-                            signal._driven = None
-
-                    # Removing unused generators.
-                    for idx, rmgen in enumerate(resultobj):
-                        if gen == rmgen:
-                            resultobj.pop(idx)
-                            break
-
-                vhdl_entity = self._getEntity(subentity)
-                vhdl_entity.name = subentity.name
-                if "out" in vhdl_entity.args_list:
-                    raise ToVHDLError("Reserved port name: out")
-                if "in" in vhdl_entity.args_list:
-                    raise ToVHDLError("Reserved port name: in")
-                if "inout" in vhdl_entity.args_list:
-                    raise ToVHDLError("Reserved port name: inout")
-                for s in vhdl_entity.sigs_dict.values():
-                    if isinstance(s, _Signal):
-                        s._name = None
-                    elif isinstance(s, _MemInfo):
-                        s.name = None
-                vhdl_entity_dict[subentity] = vhdl_entity
-
-        result = dict((key, (p_entity_dict[key], vhdl_entity_dict[key]))
-                      for key in p_entity_dict.keys())
-        return result
 
     def _reviseMems(self, full_mems, memlist):
         for m in memlist:
@@ -1051,11 +1227,15 @@ def _writeCustomPackage(f, name, hierarchy, fixed_point=False):
         for t in sortedList:
             print(file=f)
             print("%s;" % t.toStr(True), file=f)
+    if hierarchy.rom_types:
+        sortedList = list(hierarchy.rom_types.values())
+        sortedList.sort(key=lambda x: x.toStr(False))
+        for t in sortedList:
+            print(file=f)
+            print("%s;" % t.toStr(True), file=f)
     print(file=f)
     print("end package %s;" % name, file=f)
     print(file=f)
-
-portConversions = []
 
 
 def _writeModuleHeader(f, pckName, lib, useClauses, version="93",
@@ -1085,7 +1265,6 @@ def _writeModuleHeader(f, pckName, lib, useClauses, version="93",
 
 def _writeEntityHeader(f, entity, doc):
     print("entity %s is" % entity.name, file=f)
-    del portConversions[:]
     if entity.ports_list:
         f.write("    port (")
         c = ''
@@ -1114,22 +1293,24 @@ def _writePort(f, port, entity=True):
     if port.convert:
         for sl in port.signal._slicesigs:
             sl._setName('VHDL')
-        port_type = "std_logic_vector"
+        port_type = "std_logic_vector(%d downto 0)" % (port.vhd_type.size - 1)
 
     f.write("\n        %s: %s %s" % (port.name,
                                      port.direction,
                                      port_type))
 
     if port.convert and entity:
+        port_conversions = port.entity.architecture.signal_conversions
         if port.direction in ("inout", "out"):
-            portConversions.append("%s <= %s(%s);" %
-                                   (port.portname, port_type,
-                                    port.signal._name))
+            port_conversions.append(vhd_assign(port.name,
+                                               "%s(%s)" % ("std_logic_vector",
+                                                           port.convert)))
             port.signal._read = True
         else:
-            portConversions.append("%s <= %s(%s);" %
-                                   (port.signal._name,
-                                    port_type, port.portname))
+            port_conversions.append(vhd_assign(port.convert,
+                                               "%s(%s)" %
+                                               (port.vhd_type.toStr(False),
+                                                port.name)))
             port.signal._driven = "reg"
 
 
@@ -1144,35 +1325,34 @@ def _writeConstants(f, architecture):
     sorted_list = list(architecture.const_dict.values())
     sorted_list.sort(key=lambda x: x.name)
 
+    indent_length = 4
+    indent = " " * indent_length
+
     for c in sorted_list:
-        v = c.value.value
         if not c.used:
             continue
-        n = c.name
-        if n == '_':
-            continue
-        if isinstance(v, integer_types):
-            if abs(v) >= 2 ** 31:
+        if isinstance(c.value, _RomInfo):
+            n = c.name
+            t = c.vhd_type.toStr(False)
+            str_rom = indent + "constant %s: %s := (" % (n, t)
+            str_len = len(str_rom)
+            str_indent = ',\n' + (' ' * str_len)
+            for v in c.value.mem:
+                f.write(str_rom)
+                s = c.vhd_type.type.literal(v)
+                f.write("%s" % s)
+                str_rom = str_indent
+            f.write('\n' + (' ' * str_len) + ");\n")
+        else:
+            v = c.value.value
+            n = c.name
+            if n == '_':
                 continue
-            s = str(int(v))
-            sign = ''
-            if v < 0:
-                sign = '-'
-            for i in range(4, 31):
-                if abs(v) == 2 ** i:
-                    s = "%s(2**%s)" % (sign, i)
-                    break
-                if abs(v) == 2 ** i - 1:
-                    s = "%s((2**%s)-1)" % (sign, i)
-                    break
-            f.write("constant %s: integer := %s;\n" % (n, s))
-        elif isinstance(v, float):
-            s = str(float(v))
-            f.write("constant %s: real := %s;\n" % (n, s))
-        elif isinstance(v, EnumItemType):
-            s = str(v)
+            t = c.vhd_type.toStr(False)
+            s = c.vhd_type.literal(v)
+            f.write(indent)
             f.write("constant %s: %s := %s;\n" %
-                    (n, c.vhd_type.toStr(False), s))
+                    (n, t, s))
     f.write("\n")
 
 
@@ -1189,46 +1369,19 @@ def _writeSigDecls(f, architecture):
     sorted_list = list(architecture.sigs_dict.values())
     sorted_list.sort(key=lambda s: s.name)
     for signal in sorted_list:
-        s = signal.signal
         if not signal.used:
             continue
 
         if isinstance(signal.vhd_type, (vhd_array, vhd_enum)):
-            print("signal %s: %s;" % (signal.name,
-                                      signal.vhd_type.toStr(False)),
+            print("    signal %s: %s;" % (signal.name,
+                                          signal.vhd_type.toStr(False)),
                   file=f)
         else:
-            print("signal %s: %s;" % (signal.name,
-                                      signal.vhd_type.toStr(True)),
+            print("    signal %s: %s;" % (signal.name,
+                                          signal.vhd_type.toStr(True)),
                   file=f)
-
-        if signal.driven:
-            if not signal.read and \
-                    not isinstance(s, _TristateDriver):
-                warnings.warn("%s: %s(%s).%s" % (_error.UnreadSignal,
-                                                 architecture.entity.name,
-                                                 architecture.name,
-                                                 signal.name),
-                              category=ToVHDLWarning
-                              )
-            # the following line implements initial value assignments
-            # print >> f, "%s %s%s = %s;" % (s._driven, r, s._name,
-            # int(s._val))
-        elif s._read:
-            # the original exception
-            # raise ToVHDLError(_error.UndrivenSignal, s._name)
-            # changed to a warning and a continuous assignment to a wire
-            warnings.warn("%s: %s(%s).%s" % (_error.UndrivenSignal,
-                                             architecture.entity.name,
-                                             architecture.name,
-                                             signal.name),
-                          category=ToVHDLWarning
-                          )
-            if isinstance(signal.vhd_type, (vhd_array, vhd_enum)):
-                architecture.const_wires.extend(s.mem)
-            else:
-                architecture.const_wires.append(s)
-
+        if signal.signal_conversion:
+            architecture.signal_conversions.extend(signal.signal_conversion)
     print(file=f)
 
 
@@ -1237,7 +1390,6 @@ def _writeCompDecls(f, entity, lib):
 
     for component in components_list:
         f.write("component %s" % component.name)
-        del portConversions[:]
         f.write("    port (")
         c = ''
         for port_name in component.entity.ports_list:
@@ -1268,8 +1420,8 @@ def _checkPort(port):
             name = "open"
     elif port.direction == "in":
         if (not name) and (not port.signal._driven):
-            const_data = _getConstantValues(port.signal)
-            name = "%s%s%s" % const_data[1:]
+            const_data = port.vhd_type.literal(port.internal)
+            name = "%s" % const_data[1]
     return port.name, name
 
 
@@ -1280,12 +1432,11 @@ def _writeCompUnits(f, entity):
             f.write("    port map (")
             c = ''
             for port_name in component.entity.ports_list:
-                port = component.entity.ports_dict[port_name]
                 f.write(c)
                 c = ",\n              "
-                names = _checkPort(port)
-                f.write(" %s => %s" % names)
-            f.write("\n               );\n")
+                name = component.ports_signals_dict[port_name]
+                f.write("%s => %s" % (port_name, name))
+            f.write("\n              );\n")
             f.write('\n')
 
 
@@ -1298,82 +1449,6 @@ def _writeModuleFooter(f, arch):
     print("end architecture %s;" % arch, file=f)
 
 
-def _getMemTypeString(m):
-    r = _getRangeString(m.elObj)
-    p = _getTypeString(m.elObj)
-    type_name = m.type
-    type_def = "type %s is array(0 to %s) of %s%s;" % (type_name, m.depth - 1,
-                                                       p, r)
-    m.type = type_name
-
-    return type_def
-
-
-def _getRangeString(s):
-    if isinstance(s, _MemInfo):
-        return ''
-    elif isinstance(s._val, EnumItemType):
-        return ''
-    elif s._type is bool:
-        return ''
-    elif issubclass(s._type, bitarray):
-        return "(%s downto %s)" % (s.high - 1, s.low)
-    elif s._nrbits is not None:
-        msb = s._nrbits - 1
-        return "(%s downto 0)" % msb
-    else:
-        raise AssertionError
-
-
-def _getTypeString(s):
-    if isinstance(s, _MemInfo):
-        return s.type
-    elif isinstance(s._val, EnumItemType):
-        return s._val._type._name
-    elif s._type is bool:
-        return "std_logic"
-    elif issubclass(s._type, bitarray):
-        obj = inferVhdlObj(s)
-        if obj is not None:
-            return obj.toStr(False)
-    if not s._numeric:
-        return "std_logic_vector"
-    if s._min is not None and s._min < 0:
-        return "signed"
-    else:
-        return "unsigned"
-
-
-def _getConstantValues(s):
-    if s._type is bool:
-        c = int(s._val)
-        pre, suf = "'", "'"
-    elif issubclass(s._type, intbv):
-        c = int(s._val)
-        w = len(s)
-        assert w != 0
-        if s._min < 0:
-            pre, suf = "to_signed(", ", %s)" % w
-        else:
-            pre, suf = "to_unsigned(", ", %s)" % w
-    elif issubclass(s._type, uintba):
-        c = s.internal
-        w = s.high
-        pre, suf = "to_unsigned(", ", %s)" % w
-    elif issubclass(s._type, sintba):
-        c = s.internal
-        w = s.high
-        pre, suf = "to_signed(", ", %s)" % w
-    elif issubclass(s._type, sfixba):
-        c = s.internal
-        h = s.high
-        l = s.low
-        pre, suf = "to_sfixed(", ", %s, %s)" % (h - 1, l)
-    else:
-        raise ToVHDLError("Unexpected type for constant signal", s._name)
-    return (s._name, pre, c, suf)
-
-
 def _convertGens(architecture, vfile):
     genlist = [process.generator for process in architecture.process_list]
     siglist = [s.signal for s in architecture.sigs_dict.values()
@@ -1382,7 +1457,6 @@ def _convertGens(architecture, vfile):
                if isinstance(s.signal, _MemInfo)]
     constdict = dict((const.value.orig_name, const.value)
                      for const in architecture.const_dict.values())
-    constwires = architecture.const_wires
     blockBuf = StringIO()
     funcBuf = StringIO()
     for tree in genlist:
@@ -1408,23 +1482,8 @@ def _convertGens(architecture, vfile):
     funcBuf.close()
     print("begin", file=vfile)
     print(file=vfile)
-    for st in portConversions:
-        print(st, file=vfile)
-    print(file=vfile)
-    for s in constwires:
-        const_data = _getConstantValues(s)
-        print("%s <= %s%s%s;" % const_data, file=vfile)
-    print(file=vfile)
-    # shadow signal assignments
-    for s in siglist:
-        if hasattr(s, 'toVHDL') and s._read:
-            print(s.toVHDL(), file=vfile)
-    # hack for slice signals in a list
-    for m in memlist:
-        if m._read:
-            for s in m.mem:
-                if hasattr(s, 'toVHDL'):
-                    print(s.toVHDL(), file=vfile)
+    for assign in architecture.signal_conversions:
+        print(assign.toStr(), file=vfile)
     print(file=vfile)
     vfile.write(blockBuf.getvalue())
     blockBuf.close()
@@ -1826,44 +1885,7 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
         lhs = node.targets[0]
         rhs = node.value
         # shortcut for expansion of ROM in case statement
-        if isinstance(node.value, ast.Subscript) and \
-                isinstance(node.value.slice, ast.Index) and \
-                isinstance(node.value.value.obj, _Rom):
-            rom = node.value.value.obj.rom
-            self.write("case ")
-            self.visit(node.value.slice)
-            self.write(" is")
-            self.indent()
-            size = lhs.vhd.size
-            for i, n in enumerate(rom):
-                self.writeline()
-                if i == len(rom) - 1:
-                    self.write("when others => ")
-                else:
-                    self.write("when %s => " % i)
-                self.visit(lhs)
-                if self.SigAss:
-                    self.write(' <= ')
-                    self.SigAss = False
-                else:
-                    self.write(' := ')
-                if isinstance(lhs.vhd, vhd_std_logic):
-                    self.write("'%s';" % n)
-                elif isinstance(lhs.vhd, (vhd_int, vhd_nat)):
-                    self.write("%s;" % int(n))
-                elif isinstance(lhs.vhd, vhd_sfixed):
-                    high = size[0]
-                    low = size[1]
-                    self.write('resize(c_str2f(')
-                    self.write('"%s"' % bin(n, high + 1))
-                    self.write('), %s, %s);' % (high, low))
-                else:
-                    self.write('"%s";' % bin(n, size))
-            self.dedent()
-            self.writeline()
-            self.write("end case;")
-            return
-        elif isinstance(node.value, ast.ListComp):
+        if isinstance(node.value, ast.ListComp):
             # skip list comprehension assigns for now
             return
         # default behavior
@@ -1875,6 +1897,8 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
         self.isLhs = False
         if self.SigAss:
             self.write(' <= ')
+            if hasattr(lhs, "id") and lhs.id in self.tree.vardict:
+                raise ToVHDLError("Variable treated as signal: %s" % lhs.id)
             self.SigAss = False
         else:
             self.write(' := ')
@@ -2158,7 +2182,8 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
             var = 'i'
             while var in self.tree.symdict:
                 var += 'i'
-            v = self.tree.vardict.pop('_')
+            if "_" in self.tree.vardict:
+                v = self.tree.vardict['_']
             self.tree.vardict[var] = v
         cf = node.iter
         f = self.getObj(cf.func)
@@ -2450,6 +2475,11 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
                 obj.used = True
             elif _isMem(obj):
                 m = _getMemInfo(obj)
+                assert m.name
+                s = m.name
+                m.used = True
+            elif _isRom(obj):
+                m = _getRomInfo(obj)
                 assert m.name
                 s = m.name
                 m.used = True
@@ -3066,6 +3096,21 @@ class vhd_int(vhd_type):
     def toStr(self, constr=True):
         return "integer"
 
+    def literal(self, value):
+        s = str(int(value))
+        sign = ''
+        if value < 0:
+            sign = '-'
+        for i in range(4, 31):
+            if abs(value) == 2 ** i:
+                s = "%s(2**%s)" % (sign, i)
+                break
+            if abs(value) == 2 ** i - 1:
+                s = "%s((2**%s)-1)" % (sign, i)
+                break
+
+        return s
+
     def _direct(self, other):
         if isinstance(other, vhd_int):
             return vhd_int()
@@ -3103,6 +3148,20 @@ class vhd_nat(vhd_int):
     def toStr(self, constr=True):
         return "natural"
 
+    def literal(self, value):
+        s = str(int(value))
+        if value < 0:
+            raise ToVHDLError('Negative Natural: %d' % value)
+        for i in range(4, 31):
+            if abs(value) == 1 << i:
+                s = "(2**%s)" % i
+                break
+            if abs(value) == (1 << i) - 1:
+                s = "((2**%s)-1)" % i
+                break
+
+        return s
+
     def _direct(self, other):
         if isinstance(other, vhd_nat):
             return vhd_nat()
@@ -3139,6 +3198,9 @@ class vhd_real(vhd_type):
 
     def toStr(self, constr=True):
         return "real"
+
+    def literal(self, value):
+        return str(float(value))
 
     def _direct(self, other):
         if isinstance(other, vhd_real):
@@ -3232,6 +3294,9 @@ class vhd_enum(vhd_type):
         self._type = tipe
         self._name = "enum_%s" % tipe.__dict__['_name']
 
+    def literal(self, value):
+        return str(value)
+
     def toStr(self, constr=True):
         if constr:
             return self._type._toVHDL()
@@ -3247,6 +3312,13 @@ class vhd_std_logic(vhd_type):
 
     def toStr(self, constr=True):
         return 'std_logic'
+
+    def literal(self, value):
+        if isinstance(value, (intbv, uintba)):
+            value = value[0]
+        s = str(int(bool(value)))
+
+        return "'%s'" % s
 
     def _logical(self, other):
         if isinstance(other, (vhd_std_logic, vhd_boolean)):
@@ -3279,6 +3351,9 @@ class vhd_boolean(vhd_type):
     def __init__(self, size=0):
         vhd_type.__init__(self)
         self.size = 1
+
+    def literal(self, value):
+        return "'%s'" % bool(value)
 
     def toStr(self, constr=True):
         return 'boolean'
@@ -3412,6 +3487,9 @@ class vhd_unsigned(vhd_vector):
         vhd_type.__init__(self, size)
         self._name = 'unsigned_%s' % size
 
+    def literal(self, value):
+        return '"%s"' % bin(value, self.size)
+
     def toStr(self, constr=True):
         if constr:
             return "unsigned(%s downto 0)" % (self.size - 1)
@@ -3525,6 +3603,9 @@ class vhd_signed(vhd_vector):
         vhd_type.__init__(self, size)
         self._name = 'signed_%s' % size
 
+    def literal(self, value):
+        return '"%s"' % bin(value, self.size)
+
     def toStr(self, constr=True):
         if constr:
             return "signed(%s downto 0)" % (self.size - 1)
@@ -3619,7 +3700,25 @@ class vhd_signed(vhd_vector):
 class vhd_sfixed(vhd_type):
     def __init__(self, size=(0, 0)):
         vhd_type.__init__(self, size)
-        self._name = "sfixed_%s_%s" % size
+        if size[0] < 0:
+            high = "n%d" % (-size[0])
+        elif size[0] > 0:
+            high = "p%d" % (size[0])
+        else:
+            high = "0"
+
+        if size[1] < 0:
+            low = "n%d" % (-size[1])
+        elif size[1] > 0:
+            low = "p%d" % (size[1])
+        else:
+            low = "0"
+
+        self._name = "sfixed_%s_%s" % (high, low)
+
+    def literal(self, value):
+        return '"%s"' % bin(sfixba(value, self.size[0] + 1, self.size[1]),
+                            self.size[0] - self.size[1] + 1)
 
     def toStr(self, constr=True):
         if constr:
@@ -3835,10 +3934,13 @@ class vhd_sfixed(vhd_type):
 
 
 class vhd_array(object):
-    def __init__(self, length=0, tipe=None):
+    def __init__(self, length, tipe):
         self._name = "t_array_%s_%s" % (length, tipe)
         self.high = length - 1
         self.type = tipe
+
+    def literal(self, values):
+        return [self.type.literal(value) for value in values]
 
     def toStr(self, constr=True):
         if constr:
@@ -3888,7 +3990,7 @@ def inferVhdlClass(obj):
             vhd = vhd_int
     elif isinstance(obj, float):
         vhd = vhd_real
-    elif isinstance(obj, _MemInfo):
+    elif isinstance(obj, (_MemInfo, _RomInfo)):
         vhd = vhd_array
     return vhd
 
@@ -4221,7 +4323,7 @@ class _AnnotateTypesVisitor(ast.NodeVisitor, _ConversionMixin):
         elif isinstance(obj, _Ram):
             node.vhd = inferVhdlObj(obj.elObj)
         elif isinstance(obj, _Rom):
-            node.vhd = vhd_int()
+            node.vhd = inferVhdlObj(obj.rom[0])
         elif isinstance(obj, (intbv, bitarray)):
             node.vhd = vhd_std_logic()
         node.vhdOri = copy(node.vhd)

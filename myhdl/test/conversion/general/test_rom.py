@@ -1,31 +1,33 @@
 from __future__ import absolute_import, print_function
-
+from random import randrange, seed
+from myhdl import instance, intbv, always_comb, Signal, delay, \
+    StopSimulation, conversion, toVHDL, toVerilog
 import os
 path = os.path
-from random import randrange
-
-from myhdl import *
+seed(5)
 
 D = 256
 
 ROM = tuple([randrange(D) for i in range(D)])
 
+
 def rom1(dout, addr, clk):
 
     @instance
-    def rdLogic() :
+    def rdLogic():
         while 1:
             yield clk.posedge
             dout.next = ROM[int(addr)]
 
     return rdLogic
 
+
 def rom2(dout, addr, clk):
-    
+
     theROM = ROM
 
     @instance
-    def rdLogic() :
+    def rdLogic():
         while 1:
             yield clk.posedge
             dout.next = theROM[int(addr)]
@@ -35,9 +37,8 @@ def rom2(dout, addr, clk):
 
 def rom3(dout, addr, clk):
 
-
     @instance
-    def rdLogic() :
+    def rdLogic():
         tmp = intbv(0)[8:]
         while 1:
             yield addr
@@ -55,7 +56,16 @@ def rom4(dout, addr, clk):
 
     return read
 
-      
+
+def rom5(dout, addr, clk):
+
+    @always_comb
+    def read():
+        tmp = ROM[int(addr)]
+        dout.next = tmp
+
+    return read
+
 
 def RomBench(rom):
 
@@ -86,19 +96,32 @@ def RomBench(rom):
 
     return clkgen, stimulus, rom_inst
 
+
 def test1():
+    toVHDL.name = toVerilog.name = "RomBench1"
     assert conversion.verify(RomBench, rom1) == 0
-    
+    toVHDL.name = toVerilog.name = None
+
+
 def test2():
+    toVHDL.name = toVerilog.name = "RomBench2"
     assert conversion.verify(RomBench, rom2) == 0
-    
+    toVHDL.name = toVerilog.name = None
+
+
 def test3():
+    toVHDL.name = toVerilog.name = "RomBench3"
     assert conversion.verify(RomBench, rom3) == 0
-    
+    toVHDL.name = toVerilog.name = None
+
+
 def test4():
+    toVHDL.name = toVerilog.name = "RomBench4"
     assert conversion.verify(RomBench, rom4) == 0
+    toVHDL.name = toVerilog.name = None
 
-        
-        
-    
 
+def test5():
+    toVHDL.name = toVerilog.name = "RomBench5"
+    assert conversion.verify(RomBench, rom5) == 0
+    toVHDL.name = toVerilog.name = None

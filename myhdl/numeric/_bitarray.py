@@ -31,7 +31,7 @@ class bitarray(object):
     def __init__(self, *args, **kwargs):
         value, high, low = self._get_arguments(*args, **kwargs)
 
-        if (high != None) and (low != None) and (high == low):
+        if (high is not None) and (low is not None) and (high == low):
             raise TypeError(type(self).__name__ + " must have a size.")
 
         if isinstance(value, integer_types):
@@ -55,26 +55,26 @@ class bitarray(object):
 
                 self._from_bitarray(value, high, low)
         else:
-            raise TypeError("bitarray constructor val should be int, string " \
+            raise TypeError("bitarray constructor val should be int, string "
                             "or bitarray child: {}".format(type(value)))
 
     _signed = None
-    
+
     @property
     def is_signed(self):
         return self._signed
-    
+
     @staticmethod
     def _get_arguments(*args, **kwargs):
         value = 0
         high = None
         low = None
-        format = None
-        
+        value_format = None
+
         i = -1
         for i, arg in enumerate(args):
             if i > 0 and isinstance(arg, bitarray):
-                format = arg
+                value_format = arg
                 break
             if i == 0:
                 value = arg
@@ -85,27 +85,27 @@ class bitarray(object):
             else:
                 raise TypeError("Too much positional arguments")
         else:
-            if format is None:
+            if value_format is None:
                 if isinstance(value, bitarray):
-                    format = value
+                    value_format = value
         length = len(args)
         if length != (i + 1):
-                raise TypeError("No positional arguments allowed after " \
-                                "format object")
+                raise TypeError("No positional arguments allowed after "
+                                "value_format object")
         if (length == 0) and ('value' in kwargs):
             value = kwargs['value']
 
         if high is None:
             if ('high' in kwargs):
                 high = kwargs['high']
-            elif format is not None:
-                high = format.high
-                
+            elif value_format is not None:
+                high = value_format.high
+
         if low is None:
             if ('low' in kwargs):
                 low = kwargs['low']
-            elif format is not None:
-                low = format.low
+            elif value_format is not None:
+                low = value_format.low
         return (value, high, low)
 
     def _zero(self, val, high, low):
@@ -123,7 +123,7 @@ class bitarray(object):
 
     def _convert_string(self, value):
         if '__' in value:
-            warnings.warn("At least two join underscores in the string: "  +
+            warnings.warn("At least two join underscores in the string: " +
                           value, RuntimeWarning)
 
         if value[0] in ('+', '-', '_'):
@@ -143,7 +143,7 @@ class bitarray(object):
 
         ba_length = self._high - self._low
         if (length != ba_length):
-            warnings.warn("String has different length than vector: " \
+            warnings.warn("String has different length than vector: "
                           "{0}, {1}".format(length, ba_length),
                           RuntimeWarning)
 
@@ -168,14 +168,15 @@ class bitarray(object):
         self_length = self._high - self._low
 
         if (abs(self._val) >> self_length != 0):
-            warnings.warn("Vector truncated: " \
-                          "{0}, {1}".format(length, self_length), RuntimeWarning)
+            warnings.warn("Vector truncated: "
+                          "{0}, {1}".format(length, self_length),
+                          RuntimeWarning)
 
         self._wrap()
 
     def _from_bitarray(self, value, high, low):
         ba_length = len(value)
-        
+
         if high is None and low is None:
             self._high = value.high
             self._low = value.low
@@ -216,15 +217,15 @@ class bitarray(object):
         elif dlow >= 0:
             tmp &= ((1 << (self._high - self._low)) - 1) << dlow
             self._val = tmp >> dlow
-                
+
     def _handle_limits(self, high, low, length):
-        if (high == None) and (low == None):
+        if (high is None) and (low is None):
             self._low = 0
             self._high = length
-        elif (high == None):
+        elif (high is None):
             self._low = int(low)
             self._high = length + self._low
-        elif (low == None):
+        elif (low is None):
             if hasattr(high, 'high') and hasattr(high, 'low'):
                 self._high = high.high
                 self._low = high.low
@@ -234,9 +235,9 @@ class bitarray(object):
         else:
             self._high = int(high)
             self._low = int(low)
-        
+
         if self._high <= self._low:
-            warnings.warn("High must be greater than low: " \
+            warnings.warn("High must be greater than low: "
                           "{0}, {1}".format(self._high, self._low),
                           RuntimeWarning)
 
@@ -253,6 +254,7 @@ class bitarray(object):
     @property
     def val(self):
         return copy(self)
+
     # support for the 'high' and 'low' attributes
     @property
     def high(self):
@@ -274,7 +276,7 @@ class bitarray(object):
     @staticmethod
     def _divide(l, r):
         neg_quot = False
-        
+
         if r < 0:
             r = -r
             neg_quot = True
@@ -283,15 +285,16 @@ class bitarray(object):
             neg_quot = not neg_quot
 
         division = l // r
-        
+
         if neg_quot:
             division = -division
 
         return division
+
     @staticmethod
     def _module(l, r):
         xnum = abs(l)
-        
+
         if r < 0:
             xdenom = -r
             rneg = True
@@ -324,7 +327,8 @@ class bitarray(object):
 
     # iterator method
     def __iter__(self):
-        return iter([self[i] for i in range(self._high - 1, self._low - 1, -1)])
+        return iter([self[i]
+                     for i in range(self._high - 1, self._low - 1, -1)])
 
     # logical testing
     def __bool__(self):
@@ -350,19 +354,19 @@ class bitarray(object):
             else:
                 i = i.__index__()
             if i <= j:
-                warnings.warn("bitarray[i:j] requires i > j: " \
+                warnings.warn("bitarray[i:j] requires i > j: "
                               "i, j = {0}, {1}".format(i, j),
                               RuntimeWarning)
             if (i > self._high) or (j < self._low):
-                raise IndexError("bitarray[i:j] requires i and j between " \
-                                 "the margins: high, i, j, low = " \
+                raise IndexError("bitarray[i:j] requires i and j between "
+                                 "the margins: high, i, j, low = "
                                  "{0}, {1}, {2}, {3}".format(self._high,
-                                                         i, j, self._low))
+                                                             i, j, self._low))
 
             res = type(self)(high=i - j, low=0)
 
             disp = j - self._low
-            
+
             if disp > 0:
                 val = self._val >> disp
             else:
@@ -374,10 +378,10 @@ class bitarray(object):
         else:
             i = key.__index__()
             if (i >= self._high) or (i < self._low):
-                raise IndexError("bitarray[i] requires i between " \
-                                 "the margins: high, i, low = " \
+                raise IndexError("bitarray[i] requires i between "
+                                 "the margins: high, i, low = "
                                  "{0}, {1}, {2}".format(self._high,
-                                                     i, self._low))
+                                                        i, self._low))
             i -= self._low
             res = bool((self._val >> i) & 0x1)
 
@@ -397,13 +401,13 @@ class bitarray(object):
             else:
                 i = i.__index__()
             if i <= j:
-                raise IndexError("bitarray[i:j] = v requires i > j: " \
+                raise IndexError("bitarray[i:j] = v requires i > j: "
                                  "i, j, v = {0}, {1}, {2}".format(i, j, val))
             if (i > self._high) or (j < self._low):
-                raise IndexError("bitarray[i:j] = v requires i and j " \
-                                 "between the margins: high, i, j, low = " \
+                raise IndexError("bitarray[i:j] = v requires i and j "
+                                 "between the margins: high, i, j, low = "
                                  "{0}, {1}, {2}, {3}".format(self._high,
-                                                         i, j, self._low))
+                                                             i, j, self._low))
 
             if not isinstance(val, bitarray):
                 if hasattr(val, 'val'):
@@ -416,16 +420,16 @@ class bitarray(object):
                     data = bitarray(val, i - j, 0)
             else:
                 data = val
-            
+
             length = len(data)
-            ba_length = i  - j
+            ba_length = i - j
             if length != ba_length:
-                warnings.warn("Argument does not fit inside the range: " \
+                warnings.warn("Argument does not fit inside the range: "
                               "{0}, {1}".format(length, ba_length),
                               RuntimeWarning)
 
             value = data._val
-            
+
             mask = (long(1) << (i - j)) - 1
             self._val &= ~(mask << (j - self._low))
             self._val |= ((value & mask) << (j - self._low))
@@ -436,19 +440,19 @@ class bitarray(object):
             elif isinstance(val, bitarray) and (len(val) == 1):
                 val = bool(val)
             else:
-                warnings.warn("bitarray[i] = v requires v in (0, 1), " \
+                warnings.warn("bitarray[i] = v requires v in (0, 1), "
                               "i: {0}, v: {1}".format(i, val),
                               RuntimeWarning)
             if (i >= self._high) or (i < self._low):
-                raise IndexError("bitarray[i] = v requires i between " \
-                                 "the margins: high, i, low = " \
+                raise IndexError("bitarray[i] = v requires i between "
+                                 "the margins: high, i, low = "
                                  "{0}, {1}, {2}".format(self._high,
-                                                     i, self._low))
+                                                        i, self._low))
             if val:
                 self._val |= (long(1) << (i - self._low))
             else:
                 self._val &= ~(long(1) << (i - self._low))
-                      
+
         self._wrap()
 
     def _not_implemented_binary(self, arg):
@@ -456,10 +460,10 @@ class bitarray(object):
 
     # integer-like methods
     __add__ = __radd__ = __sub__ = __rsub__ = \
-    __mul__ = __rmul__ = __div__ = __rdiv__ = \
-    __truediv__ = __rtruediv__ = __floordiv__ = __rfloordiv__ = \
-    __mod__ = __rmod__ = __pow__ = __rpow__ = \
-    __rlshift__ = __rrshift__ = _not_implemented_binary
+        __mul__ = __rmul__ = __div__ = __rdiv__ = \
+        __truediv__ = __rtruediv__ = __floordiv__ = __rfloordiv__ = \
+        __mod__ = __rmod__ = __pow__ = __rpow__ = \
+        __rlshift__ = __rrshift__ = _not_implemented_binary
 
     def __lshift__(self, other):
         if isinstance(other, integer_types):
@@ -537,7 +541,8 @@ class bitarray(object):
         return NotImplemented
 
     __iadd__ = __isub__ = __imul__ = __ifloordiv__ = \
-    __itruediv__ = __idiv__ = __imod__ = __ipow__ = _not_implemented_in_place
+        __itruediv__ = __idiv__ = __imod__ = __ipow__ = \
+        _not_implemented_in_place
 
     def __iand__(self, other):
         value = self & other
@@ -586,7 +591,7 @@ class bitarray(object):
         return NotImplemented
 
     __neg__ = __pos__ = __abs__ = \
-    __int__ = __long__ = __float__ = _not_implemented_unary
+        __int__ = __long__ = __float__ = _not_implemented_unary
 
     def __invert__(self):
         result = type(self)(0, self._high, self._low)
@@ -668,21 +673,20 @@ class bitarray(object):
 
         return ((0x6996 >> val) & 1) == 1
 
-    def resize(*args):
+    def resize(self, *args):
         length = len(args)
-        if length == 2:
-            value = args[0]
-            format = args[1]
-            if isinstance(format, bitarray):
-                high = format.high
-                low = format.low
+        value = self
+        if length == 1:
+            value_format = args[0]
+            if isinstance(value_format, bitarray):
+                high = value_format.high
+                low = value_format.low
             else:
-                raise TypeError("If only one arguments is given, " \
+                raise TypeError("If only one arguments is given, "
                                 "it must be the format.")
-        elif length == 3:
-            value = args[0]
-            high = args[1]
-            low = args[2]
+        elif length == 2:
+            high = args[0]
+            low = args[1]
         else:
             raise TypeError("Incorrect number of arguments")
         result = type(value)(0, high, low)

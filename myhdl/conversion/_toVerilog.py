@@ -952,6 +952,8 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
             if isinstance(item, EnumItemType):
                 self.write(item._toVerilog(dontcare=True))
             else:
+                if isinstance(item, str):
+                    item = self.tree.symdict[item]
                 self.write(self.IntRepr(item, radix='hex'))
             self.write(": begin")
             self.indent()
