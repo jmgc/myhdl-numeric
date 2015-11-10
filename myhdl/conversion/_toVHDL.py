@@ -169,8 +169,6 @@ class _GenerateHierarchy(object):
             intf = _analyzeTopFunc(p_entity, p_entity.func, *elargs, **{})
             intf.name = p_entity.name
 
-            self._sanity_checks(intf)
-
             # Updating the components ports
             for component in components_list:
                 component._update()
@@ -214,6 +212,8 @@ class _GenerateHierarchy(object):
             for n in intf.argnames:
                 if n in mems_dict:
                     mems_dict.pop(n)
+
+            self._sanity_checks(intf)
 
             vhd_ports_dict, vhd_ports_convert = \
                 self._revisePorts(intf, stdLogicPorts)
@@ -522,7 +522,7 @@ class _GenerateHierarchy(object):
         for port_name in intf.argnames:
             s = intf.argdict[port_name]
             if isinstance(s, _Signal):
-                if s._name is None:
+                if s._name is None and not isinstance(s, _SliceSignal):
                     raise ToVHDLError(_error.ShadowingSignal,
                                       "%s.%s" % (intf.name, port_name))
                 if s._inList is not None:
@@ -2112,10 +2112,12 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
                 self.write('signed\'("%s")' % bin(n, node.vhd.size))
         elif isinstance(node.vhd, vhd_sfixed):
             if isinstance(n, integer_types):
+                if node.vhd.size[0] < 0:
+                    v = "0"
+                else:
+                    v = bin(n, node.vhd.size[0] + 1)
                 self.write('resize(c_str2f("%s"), %s, %s)' %
-                           (bin(n, node.vhd.size[0] + 1),
-                            node.vhd.size[0],
-                            node.vhd.size[1]))
+                           (v, node.vhd.size[0], node.vhd.size[1]))
             else:
                 self.write('to_sfixed(%s, %s, %s)' %
                            (n, node.vhd.size[0], node.vhd.size[1]))
@@ -2916,7 +2918,7 @@ def _convertInitVal(reg, init):
         high = tipe.size[0]
         low = tipe.size[1]
         v = '%sc_str2f("%s", %s, %s)%s' % (pre,
-                                           bin(init,
+                                           bin(init.internal,
                                                tipe.size[0] -
                                                tipe.size[1] + 1),
                                            high, low, suf)
@@ -3110,6 +3112,9 @@ class vhd_int(vhd_type):
         return "integer"
 
     def literal(self, value):
+        limit = 1 << 31
+        if value >= limit or value < -limit:
+            raise ToVHDLError("Not representable integer value: %d" % value)
         s = str(int(value))
         sign = ''
         if value < 0:
@@ -3162,9 +3167,10 @@ class vhd_nat(vhd_int):
         return "natural"
 
     def literal(self, value):
+        limit = 1 << 32
+        if value >= limit or value < 0:
+            raise ToVHDLError("Not representable natural value: %d" % value)
         s = str(int(value))
-        if value < 0:
-            raise ToVHDLError('Negative Natural: %d' % value)
         for i in range(4, 31):
             if abs(value) == 1 << i:
                 s = "(2**%s)" % i

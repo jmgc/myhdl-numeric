@@ -73,6 +73,11 @@ class sintba(bitarray):
 
     def __pos__(self):
         return type(self)(self)
+        # if self._val < 0:
+        #     value = -self._val
+        # else:
+        #     value = self._val
+        # return type(self)(value, self)
 
     def __add__(self, other):
         length = self._high
