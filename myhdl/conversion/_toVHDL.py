@@ -267,6 +267,7 @@ class _GenerateHierarchy(object):
 
             for name, rom in p_entity.romdict.items():
                 vhd_obj = inferVhdlObj(rom)
+                rom.orig_name = name
                 name = name.upper()
                 rom.name = name
                 vhd_consts_dict[name] = vhd_constant(name,
@@ -280,6 +281,7 @@ class _GenerateHierarchy(object):
                         vhd_obj.type._type._setName(rom.name + suf)
                         self.enum_types[vhd_obj.type._type] = vhd_obj
 
+            components_list.sort(key=lambda x: x.name)
             architecture = vhd_architecture(list(sigs_dict.keys()) +
                                             list(mems_dict.keys()),
                                             vhd_signals_dict,
@@ -321,6 +323,7 @@ class _GenerateHierarchy(object):
 
                 process_list.append(process)
 
+            process_list.reverse()
             architecture.process_list = process_list
 
             for component in architecture.components_list:
@@ -1136,8 +1139,6 @@ class _ToVHDLConvertor(object):
         sfile = StringIO()
         cpname = "pck_" + name
 
-        full_mems = []
-
         fixed_point = hierarchy.sfixed
 
         sigs_list = []
@@ -1153,9 +1154,6 @@ class _ToVHDLConvertor(object):
             entity._update()
 
             doc = _makeDoc(inspect.getdoc(entity.instance.func))
-
-            #memlist.extend(entity._memory_update())
-            #self._reviseMems(full_mems, memlist)
 
             self._convert_filter(entity)
 
@@ -1439,18 +1437,18 @@ def _writeCompDecls(f, entity, lib):
     components_list = entity.architecture.components_list
 
     for component in components_list:
-        f.write("component %s" % component.name)
-        f.write("    port (")
+        f.write("    component %s" % component.name)
+        f.write(" port (")
         c = ''
         for port_name in component.entity.ports_list:
             p = component.entity.ports_dict[port_name]
             f.write("%s" % c)
             c = ';'
             _writePort(f, p, False)
-        f.write("\n    );\n")
-        f.write("end component;\n\n")
-        f.write("for all : %s\n"
-                "    use entity %s.%s(%s);\n\n" %
+        f.write("\n        );\n")
+        f.write("    end component;\n\n")
+        f.write("    for all : %s\n"
+                "        use entity %s.%s(%s);\n\n" %
                 (component.name, lib, component.name,
                  component.entity.architecture.name))
 
@@ -1478,15 +1476,15 @@ def _checkPort(port):
 def _writeCompUnits(f, entity):
     for component in entity.architecture.components_list:
         if len(component.entity.ports_list) > 0:
-            f.write("U_%s : %s\n" % (component.name.upper(), component.name))
-            f.write("    port map (")
+            f.write("    U_%s : %s\n" % (component.name.upper(), component.name))
+            f.write("        port map (")
             c = ''
             for port_name in component.entity.ports_list:
                 f.write(c)
-                c = ",\n              "
+                c = ",\n                  "
                 name = component.ports_signals_dict[port_name]
                 f.write("%s => %s" % (port_name, name))
-            f.write("\n              );\n")
+            f.write("\n                  );\n")
             f.write('\n')
 
 
@@ -1505,6 +1503,8 @@ def _convertGens(architecture, vfile):
                if isinstance(s.signal, _Signal)]
     memlist = [s.signal for s in architecture.sigs_dict.values()
                if isinstance(s.signal, _MemInfo)]
+    for n, c in architecture.const_dict.items():
+        c.value.name = n
     constdict = dict((const.value.orig_name, const.value)
                      for const in architecture.const_dict.values())
     blockBuf = StringIO()
@@ -1528,14 +1528,18 @@ def _convertGens(architecture, vfile):
             Visitor = _ConvertAlwaysCombVisitor
         v = Visitor(tree, blockBuf, funcBuf)
         v.visit(tree)
-    vfile.write(funcBuf.getvalue())
+    lines = funcBuf.getvalue()
+    for line in lines.split("\n"):
+        vfile.write("    %s\n" % line)
     funcBuf.close()
     print("begin", file=vfile)
     print(file=vfile)
     for assign in architecture.signal_conversions:
-        print(assign.toStr(), file=vfile)
+        print("    %s" % assign.toStr(), file=vfile)
     print(file=vfile)
-    vfile.write(blockBuf.getvalue())
+    lines = blockBuf.getvalue()
+    for line in lines.split("\n"):
+        vfile.write("    %s\n" % line)
     blockBuf.close()
 
 
@@ -2454,33 +2458,34 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
                         s = "%s" % obj
             elif isinstance(obj, integer_types):
                 if n in constdict and obj == constdict[n].value:
+                    name = constdict[n].name
                     if isinstance(node.vhd, (vhd_int, vhd_real)):
                         if abs(obj) < 2 ** 31:
-                            s = n
+                            s = name
                             constdict[n].used = True
                         else:
                             s = self.IntRepr(obj)
                     elif isinstance(node.vhd, vhd_boolean):
-                        s = "bool(%s)" % n
+                        s = "bool(%s)" % name
                         constdict[n].used = True
                     elif isinstance(node.vhd, vhd_std_logic):
-                        s = "stdl(%s)" % n
+                        s = "stdl(%s)" % name
                         constdict[n].used = True
                     elif isinstance(node.vhd, vhd_unsigned):
                         if abs(obj) < 2 ** 31:
-                            s = "to_unsigned(%s, %s)" % (n, node.vhd.size)
+                            s = "to_unsigned(%s, %s)" % (name, node.vhd.size)
                             constdict[n].used = True
                         else:
                             s = 'unsigned\'("%s")' % bin(obj, node.vhd.size)
                     elif isinstance(node.vhd, vhd_signed):
                         if abs(obj) < 2 ** 31:
-                            s = "to_signed(%s, %s)" % (n, node.vhd.size)
+                            s = "to_signed(%s, %s)" % (name, node.vhd.size)
                             constdict[n].used = True
                         else:
                             s = 'signed\'("%s")' % bin(obj, node.vhd.size)
                     elif isinstance(node.vhd, vhd_sfixed):
                         s = 'resize(to_sfixed("%s", %s, 0), %s, %s)' % \
-                                    (n, node.vhd.size[0],
+                                    (name, node.vhd.size[0],
                                      node.vhd.size[0], node.vhd.size[1])
                         constdict[n].used = True
                 else:
