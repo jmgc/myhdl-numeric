@@ -433,7 +433,6 @@ class _HierExtr(object):
                             genfunc = _genfunc(item)
                             if genfunc.__code__ in consts:
                                 local_gens.append(item)
-                        print(funcname, local_gens)
                         if local_gens:
                             cellvarlist = _getCellVars(symdict, local_gens)
                             cellvars.extend(cellvarlist)
