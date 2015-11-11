@@ -778,12 +778,6 @@ class vhd_signal(object):
                     s._driven = self.driven
                 if self.read:
                     s._read = self.read
-                if s._inList is not None and id(s._inList) != id(self.signal):
-                    raise ConversionError(_error.SignalInMultipleLists,
-                                          "%s != %s" %
-                                          (s._inList.name, self.signal.name))
-                else:
-                    s._inList = self.signal
                 if not s._nrbits:
                     raise ConversionError(_error.UndefinedBitWidth, s._name)
                 if not isinstance(s.val, type(self.signal.elObj.val)):
