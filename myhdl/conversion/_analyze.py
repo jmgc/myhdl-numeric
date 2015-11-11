@@ -82,10 +82,6 @@ def _analyzeSigs(hierarchy, hdl='Verilog', initlevel=0):
     memlist = []
     prefixes = []
 
-    open_sym, close_sym = '[', ']'
-    if hdl == 'VHDL':
-        open_sym, close_sym = '(', ')'
-
     for inst in hierarchy:
         level = inst.level
         name = inst.name
@@ -120,11 +116,29 @@ def _analyzeSigs(hierarchy, hdl='Verilog', initlevel=0):
             m.name = _makeName(n, prefixes)
             memlist.append(m)
 
+    if hdl != "VHDL":
+        _analyzeMems(memlist, hdl)
+
+    return siglist, memlist
+
+
+def _analyzeMems(memlist, hdl):
+    open_sym, close_sym = '[', ']'
+    if hdl == 'VHDL':
+        open_sym, close_sym = '(', ')'
+
     # handle the case where a named signal appears in a list also by giving
     # priority to the list and marking the signals as unused
     for m in memlist:
         if not m._used:
             continue
+        for s in m.mem:
+            s._inList = None
+
+    for m in memlist:
+        if not m._used:
+            continue
+
         for i, s in enumerate(m.mem):
             s._name = "%s%s%s%s" % (m.name, open_sym, i, close_sym)
             s._used = False
@@ -137,8 +151,6 @@ def _analyzeSigs(hierarchy, hdl='Verilog', initlevel=0):
                 raise ConversionError(_error.InconsistentType, s._name)
             if s._nrbits != m.elObj._nrbits:
                 raise ConversionError(_error.InconsistentBitWidth, s._name)
-
-    return siglist, memlist
 
 
 def _analyzeGens(top, absnames):

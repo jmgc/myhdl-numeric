@@ -54,7 +54,7 @@ from myhdl._instance import _Instantiator
 from myhdl.conversion._misc import (_error, _kind, _context,
                                     _ConversionMixin, _Label, _genUniqueSuffix,
                                     _isConstant)
-from myhdl.conversion._analyze import (_analyzeSigs,
+from myhdl.conversion._analyze import (_analyzeSigs, _analyzeMems,
                                        _analyzeGens, _analyzeTopFunc,
                                        _Ram, _Rom, _enumTypeSet)
 from myhdl._Signal import _Signal, _WaiterList, _SliceSignal, _isListOfSigs
@@ -186,11 +186,6 @@ class _GenerateHierarchy(object):
                     s._name = n
                     revert_sigs_list.append(s)
 
-            # Adding the local signals
-            sigs_dict.update([(s._name, s) for s in sigs_list])
-            for n in intf.argnames:
-                if n in sigs_dict:
-                    sigs_dict.pop(n)
             # Updating the slice signals
             for sig in sigs_dict.values():
                 if sig._slicesigs:
@@ -199,24 +194,33 @@ class _GenerateHierarchy(object):
 
             # Naming the signals members of a memory
             for n, m in mems_dict.items():
-                if m.name is None:
-                    m.name = n
-                    for idx, s in enumerate(m.mem):
-                        if s._name is None:
-                            s._name = "%s(%d)" % (n, idx)
-                            revert_sigs_list.append(s)
-                    revert_mems_list.append(m)
+                m.name = n
+                revert_mems_list.append(m)
+                for idx, s in enumerate(m.mem):
+                    s._name = "%s(%d)" % (n, idx)
 
+            # Adding the local signals
+            sigs_dict.update([(s._name, s) for s in sigs_list])
             # Adding the local mems. It must be done after naming the contents
             mems_dict.update([(m.name, m) for m in mems_list])
-            for n in intf.argnames:
-                if n in mems_dict:
-                    mems_dict.pop(n)
 
             self._sanity_checks(intf)
 
             vhd_ports_dict, vhd_ports_convert = \
                 self._revisePorts(intf, stdLogicPorts)
+
+            self._update_mems(mems_dict.values())
+            self._update_slices(sigs_dict.values())
+
+            # Removing the ports signals
+            for n in intf.argnames:
+                if n in sigs_dict:
+                    sigs_dict.pop(n)
+            # Removing the ports arrays
+            for n in intf.argnames:
+                if n in mems_dict:
+                    mems_dict.pop(n)
+
 
             vhd_signals_dict = dict((s.name, s) for s in vhd_ports_convert)
 
@@ -431,6 +435,20 @@ class _GenerateHierarchy(object):
         vhd_ports_dict = {}
         vhd_ports_convert = []
 
+        for s in intf.argdict.values():
+            if isinstance(s, _MemInfo):
+                for sig in s.mem:
+                    if not s._driven:
+                        s._driven = sig._driven
+                    if not s._read:
+                        s._read = sig._read
+            elif s._slicesigs:
+                for sig in s._slicesigs:
+                    if not sig._driven:
+                        s._driven = sig._driven
+                    if not s._read:
+                        s._read = sig._read
+
         for name, s in intf.argdict.items():
             vhd_obj = inferVhdlObj(s)
             port = vhd_port(name, s, vhd_obj)
@@ -471,8 +489,6 @@ class _GenerateHierarchy(object):
                 else:
                     port_direction = "out"
                 s._used = True
-                # Indicate to the components that the signal is read
-                s._read = True
             else:
                 if not s._read:
                     warnings.warn("%s: %s.%s" % (_error.UnusedPort,
@@ -482,9 +498,6 @@ class _GenerateHierarchy(object):
                                   )
                 else:
                     s._used = True
-                # Indicate to the components that the signal is driven by
-                # the port
-                s._driven = "reg"
                 port_direction = "in"
 
             port.direction = port_direction
@@ -494,7 +507,31 @@ class _GenerateHierarchy(object):
             if isinstance(port.signal, _MemInfo):
                 self.mem_types[vhd_obj.toStr(False)] = vhd_obj
 
+        # Indicate to the components that the signal is managed by the port
+        for port in vhd_ports_dict.values():
+            s = port.signal
+            if port.direction == "in":
+                s._driven = "reg"
+            else:
+                s._read = True
+
         return vhd_ports_dict, vhd_ports_convert
+
+    def _update_mems(self, mems_list):
+        _analyzeMems(mems_list, "VHDL")
+        for s in mems_list:
+            for sig in s.mem:
+                if not sig._driven:
+                    sig._driven = s._driven
+                sig._read = s._read
+
+    def _update_slices(self, sigs_list):
+        for s in sigs_list:
+            for sig in s._slicesigs:
+                sig._setName("VHDL")
+                if not sig._driven:
+                    sig._driven = s._driven
+                sig._read = s._read
 
     def _check_generators(self, generator_list):
         for generator in generator_list:
