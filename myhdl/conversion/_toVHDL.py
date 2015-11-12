@@ -835,6 +835,9 @@ class vhd_constant(object):
     def used(self, val):
         self.value.used = bool(val)
 
+    def _update(self):
+        self.value.name = self.name
+
 
 class vhd_variable(object):
     def __init__(self, name, value, vhd_type,
@@ -910,6 +913,9 @@ class vhd_architecture(object):
         sorted_list.sort(key=lambda x: not isinstance(x.signal, _MemInfo))
         for signal in sorted_list:
             signal._update()
+
+        for const in self.const_dict.values():
+            const._update()
 
         for component in self.components_list:
             component._update()
@@ -1154,7 +1160,7 @@ class _ToVHDLConvertor(object):
             gfile = StringIO()
 
             _writeModuleHeader(sfile, cpname, lib, useClauses,
-                               fixed_point=fixed_point)
+                               version=version, fixed_point=fixed_point)
             _writeEntityHeader(sfile, entity, doc)
             _writeFuncDecls(sfile)
             _writeCompDecls(sfile, entity, lib)
@@ -1493,12 +1499,10 @@ def _writeModuleFooter(f, arch):
 
 def _convertGens(architecture, vfile):
     genlist = [process.generator for process in architecture.process_list]
-    siglist = [s.signal for s in architecture.sigs_dict.values()
-               if isinstance(s.signal, _Signal)]
-    memlist = [s.signal for s in architecture.sigs_dict.values()
-               if isinstance(s.signal, _MemInfo)]
-    for n, c in architecture.const_dict.items():
-        c.value.name = n
+    #siglist = [s.signal for s in architecture.sigs_dict.values()
+    #           if isinstance(s.signal, _Signal)]
+    #memlist = [s.signal for s in architecture.sigs_dict.values()
+    #           if isinstance(s.signal, _MemInfo)]
     constdict = dict((const.value.orig_name, const.value)
                      for const in architecture.const_dict.values())
     blockBuf = StringIO()
