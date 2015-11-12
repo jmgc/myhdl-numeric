@@ -25,28 +25,34 @@ from __future__ import absolute_import
 from myhdl._bin import bin
 from myhdl._compat import string_types
 
+
 class EnumType(object):
     def __init__(self):
-        raise TypeError("class EnumType is only intended for type checking on subclasses")
+        raise TypeError("class EnumType is only intended for type"
+                        " checking on subclasses")
+
 
 class EnumItemType(object):
     def __init__(self):
-        raise TypeError("class EnumItemType is only intended for type checking on subclasses")
+        raise TypeError("class EnumItemType is only intended for type"
+                        " checking on subclasses")
 
 supported_encodings = ("binary", "one_hot", "one_cold")
+
 
 def enum(*names, **kwargs):
 
     # args = args
     encoding = kwargs.get('encoding', None)
     if encoding is not None and encoding not in supported_encodings:
-        raise ValueError("Unsupported enum encoding: %s\n    Supported encodings: %s" % \
+        raise ValueError("Unsupported enum encoding: %s\n"
+                         "    Supported encodings: %s" %
                          (encoding, supported_encodings))
     if encoding in ("one_hot", "one_cold"):
         nrbits = len(names)
-    else: # binary as default
+    else:  # binary as default
         nrbits = len(bin(len(names)-1))
-    
+
     codedict = {}
     i = 0
     for name in names:
@@ -55,25 +61,25 @@ def enum(*names, **kwargs):
         if name in codedict:
             raise ValueError("enum literals should be unique")
         if encoding == "one_hot":
-            code = bin(1<<i, nrbits)
+            code = bin(1 << i, nrbits)
         elif encoding == "one_cold":
-            code = bin(~(1<<i), nrbits)
-        else: # binary as default
+            code = bin(~(1 << i), nrbits)
+        else:  # binary as default
             code = bin(i, nrbits)
         if len(code) > nrbits:
             code = code[-nrbits:]
         codedict[name] = code
         i += 1
-       
+
     class EnumItem(EnumItemType):
 
-        def __init__(self, index, name, val, type):
+        def __init__(self, index, name, val, tipe):
             self._index = index
             self._name = name
             self._val = val
-            self._nrbits = type._nrbits
-            self._nritems = type._nritems
-            self._type = type
+            self._nrbits = tipe._nrbits
+            self._nritems = tipe._nritems
+            self._type = tipe
 
         def __hash__(self):
             return hash((self._type, self._index))
@@ -83,11 +89,8 @@ def enum(*names, **kwargs):
 
         __str__ = __repr__
 
-        def __int__(self):
-            return int(self._val, 2)
-
         def __hex__(self):
-            return hex(int(self._val, 2))
+            return hex(self.__index__())
 
         __str__ = __repr__
 
@@ -111,27 +114,26 @@ def enum(*names, **kwargs):
 
         def _notImplementedCompare(self, other):
             raise NotImplementedError
-        
+
         __le__ = __ge__ = __lt__ = __gt__ = _notImplementedCompare
 
         def __eq__(self, other):
-            if not isinstance(other, EnumItemType) or type(self) is not type(other):
+            if not isinstance(other, EnumItemType) or \
+                    type(self) is not type(other):
                 return NotImplemented
             else:
                 return self is other
 
         def __ne__(self, other):
-            if not isinstance(other, EnumItemType) or type(self) is not type(other):
+            if not isinstance(other, EnumItemType) or \
+                    type(self) is not type(other):
                 return NotImplemented
             else:
                 return self is not other
 
-        def __hash__(self):
-            return self.__index__()
-        
         def __index__(self):
             return int(self._val, 2)
-        
+
         def __int__(self):
             return self.__index__()
 
@@ -165,18 +167,15 @@ def enum(*names, **kwargs):
         _toVHDL = __str__
 
         def _toVHDL(self):
-            typename =  self.__dict__['_name']
-            str = "type %s is (\n        " % typename
-            str += ",\n        ".join(self._names)         
-            str += "\n    );"
+            typename = self.__dict__['_name']
+            type_str = "type %s is (\n        " % typename
+            type_str += ",\n        ".join(self._names)
+            type_str += "\n    );"
             if self._encoding is not None:
-                codes = " ".join([self._codedict[name] for name in self._names])
-                str += '\nattribute enum_encoding of %s: type is "%s";' % (typename, codes)
-            return str
+                codes = " ".join([self._codedict[name]
+                                  for name in self._names])
+                type_str += '\nattribute enum_encoding of %s:' \
+                    ' type is "%s";' % (typename, codes)
+            return type_str
 
     return Enum(names, codedict, nrbits, encoding)
-
-
-
-    
-        

@@ -13,9 +13,9 @@ from myhdl._Simulation import Simulation
 from myhdl.conversion._toVHDL import toVHDL
 from myhdl.conversion._toVerilog import toVerilog
 
-_version = myhdl.__version__.replace('.','')
+_version = myhdl.__version__.replace('.', '')
 # strip 'dev' for version
-_version = _version.replace('dev','')
+_version = _version.replace('dev', '')
 
 _simulators = {}
 
@@ -82,7 +82,8 @@ registerSimulator(
 registerSimulator(
     name="vcom",
     hdl="VHDL",
-    analyze="vcom -2008 -work work_vcom pck_myhdl_%(version)s.vhd %(topname)s.vhd",
+    analyze="vcom -2008 -work work_vcom pck_myhdl_%(version)s.vhd"
+        " %(topname)s.vhd",
     simulate='vsim work_vcom.%(topname)s -quiet -c -do "run -all; quit -f"',
     skiplines=6,
     skipchars=2,
@@ -107,7 +108,7 @@ registerSimulator(
     )
 
 
-class  _VerificationClass(object):
+class _VerificationClass(object):
 
     __slots__ = ("simulator", "_analyzeOnly")
 
@@ -115,12 +116,11 @@ class  _VerificationClass(object):
         self.simulator = "ghdl"
         self._analyzeOnly = analyzeOnly
 
-
     def __call__(self, func, *args, **kwargs):
 
         if not self.simulator:
             raise ValueError("No simulator specified")
-        if  self.simulator not in _simulators:
+        if self.simulator not in _simulators:
             raise ValueError("Simulator %s is not registered" % self.simulator)
         hdlsim = _simulators[self.simulator]
         hdl = hdlsim.hdl
@@ -188,19 +188,19 @@ class  _VerificationClass(object):
         flines = f.readlines()
         f.close()
         if not flines:
-            print("No MyHDL simulation output - nothing to verify", file=sys.stderr)
+            print("No MyHDL simulation output - nothing to verify",
+                  file=sys.stderr)
             return 1
 
-
         if elaborate is not None:
-            #print(elaborate)
+            # print(elaborate)
             ret = subprocess.call(elaborate, shell=True)
             if ret != 0:
                 print("Elaboration failed", file=sys.stderr)
                 return ret
-            
+
         g = tempfile.TemporaryFile(mode='w+t')
-        #print(simulate)
+        # print(simulate)
         ret = subprocess.call(simulate, stdout=g, shell=True)
     #    if ret != 0:
     #        print "Simulation run failed"
@@ -219,7 +219,8 @@ class  _VerificationClass(object):
         glines = [line[skipchars:] for line in glines]
         flinesNorm = [line.lower() for line in flines]
         glinesNorm = [line.lower() for line in glines]
-        g = difflib.unified_diff(flinesNorm, glinesNorm, fromfile=hdlsim.name, tofile=hdl)
+        g = difflib.unified_diff(flinesNorm, glinesNorm, fromfile=hdlsim.name,
+                                 tofile=hdl)
 
         MyHDLLog = "MyHDL.log"
         HDLLog = hdlsim.name + ".log"

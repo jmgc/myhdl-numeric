@@ -19,18 +19,15 @@
 
 from __future__ import absolute_import, division
 from ._bitarray import bitarray
-from myhdl._compat import long, integer_types, bit_length
+from myhdl._compat import long, integer_types
 from copy import copy
-
-import warnings
 
 
 class sintba(bitarray):
     def __init__(self, *args, **kwargs):
         if 'low' in kwargs:
             if kwargs['low'] != 0:
-                raise TypeError("The low parameter must be 0 or None " \
-                                "{0}".format(low))
+                raise TypeError("The low parameter must be 0 or None")
         else:
             kwargs['low'] = 0
 
@@ -52,7 +49,6 @@ class sintba(bitarray):
 
     def _wrap(self):
         val = self._val
-        length = self._high - self._low
         lim = long(1) << (self._high - 1)
         if val & lim:
             tmp = long(-1)
@@ -77,6 +73,11 @@ class sintba(bitarray):
 
     def __pos__(self):
         return type(self)(self)
+        # if self._val < 0:
+        #     value = -self._val
+        # else:
+        #     value = self._val
+        # return type(self)(value, self)
 
     def __add__(self, other):
         length = self._high
@@ -89,9 +90,9 @@ class sintba(bitarray):
             length = other._high
         else:
             return NotImplemented
-        
+
         size = max(self._high, length)
-        
+
         result = type(self)(0, high=size)
         result._val = self._val + value
         result._wrap()
@@ -116,9 +117,9 @@ class sintba(bitarray):
             length = other._high
         else:
             return NotImplemented
-        
+
         size = max(self._high, length)
-        
+
         result = type(self)(0, high=size)
         result._val = self._val - value
         result._wrap()
@@ -143,9 +144,9 @@ class sintba(bitarray):
             length = other._high
         else:
             return NotImplemented
-        
+
         size = self._high + length
-        
+
         result = type(self)(0, self)
         result._high = size
         result._val = self._val * value
@@ -194,7 +195,7 @@ class sintba(bitarray):
             size = other._high
         else:
             return NotImplemented
-        
+
         module = self._module(self._val, value)
         result = type(self)(0, high=size)
         result._val = module
@@ -276,30 +277,27 @@ class sintba(bitarray):
             return bitarray.__and__(self, other)
         else:
             return NotImplemented
-    
+
     __rand__ = __and__
-    
+
     def __or__(self, other):
         if isinstance(other, sintba):
             return bitarray.__or__(self, other)
         else:
             return NotImplemented
-    
+
     __ror__ = __or__
-    
+
     def __xor__(self, other):
         if isinstance(other, sintba):
             return bitarray.__xor__(self, other)
         else:
             return NotImplemented
-    
+
     __rxor__ = __xor__
-    
+
     def __iadd__(self, other):
-#         if isinstance(other, bitarray) and \
-#                 self.is_signed and not other.is_signed:
-#             other = other.signed()
-        result = self +other
+        result = self + other
         if self.is_signed:
             value = result.resize(self.high, self.low)
         else:
@@ -310,10 +308,7 @@ class sintba(bitarray):
         return self
 
     def __isub__(self, other):
-#         if isinstance(other, bitarray) and \
-#                 self.is_signed and not other.is_signed:
-#             other = other.signed()
-        result = self -other
+        result = self - other
         if self.is_signed:
             value = result.resize(self.high, self.low)
         else:
@@ -324,9 +319,6 @@ class sintba(bitarray):
         return self
 
     def __imul__(self, other):
-#         if isinstance(other, bitarray) and \
-#                 self.is_signed and not other.is_signed:
-#             other = other.signed()
         result = self * other
         if self.is_signed:
             value = result.resize(self.high, self.low)
@@ -338,9 +330,6 @@ class sintba(bitarray):
         return self
 
     def __ifloordiv__(self, other):
-#         if isinstance(other, bitarray) and \
-#                 self.is_signed and not other.is_signed:
-#             other = other.signed()
         result = self // other
         if self.is_signed:
             value = result.resize(self.high, self.low)
@@ -352,9 +341,6 @@ class sintba(bitarray):
         return self
 
     def __imod__(self, other):
-#         if isinstance(other, bitarray) and \
-#                 self.is_signed and not other.is_signed:
-#             other = other.signed()
         result = self % other
         if self.is_signed:
             value = result.resize(self.high, self.low)
@@ -364,13 +350,6 @@ class sintba(bitarray):
         self._val = value._val
         self._wrap()
         return self
-
-    def __pos__(self):
-        if self._val < 0:
-            value = -self._val
-        else:
-            value = self._val
-        return type(self)(value, self)
 
     def __int__(self):
         return int(self._val)
@@ -450,21 +429,20 @@ class sintba(bitarray):
         return type(self).__name__ + \
                 "({0:x}, high={1})".format(self._val, self._high)
 
-    def resize(*args):
+    def resize(self, *args):
         length = len(args)
-        if length == 2:
-            value = args[0]
-            format = args[1]
-            if isinstance(format, integer_types):
-                high = format
+        value = self
+        if length == 1:
+            value_format = args[0]
+            if isinstance(value_format, integer_types):
+                high = value_format
                 low = 0
             else:
-                high = format.high
-                low = format.low
-        elif length == 3:
-            value = args[0]
-            high = args[1]
-            low = args[2]
+                high = value_format.high
+                low = value_format.low
+        elif length == 2:
+            high = args[0]
+            low = args[1]
         else:
             raise TypeError("Incorrect number of arguments")
         result = copy(value)

@@ -1,18 +1,19 @@
 from __future__ import absolute_import, print_function
 
-from myhdl import *
+from myhdl import Signal, intbv, always, always_comb, instance, delay, \
+    conversion, StopSimulation
 from myhdl import ConversionError
 from myhdl.conversion._misc import _error
+from myhdl.conversion._verify import _simulators
 
 N = 8
-M= 2**N
+M = 2**N
 
 
-### A first case that already worked with 5.0 list of signal constraints ###
-
+# A first case that already worked with 5.0 list of signal constraints #
 def intbv2list():
     """Conversion between intbv and list of boolean signals."""
-    
+
     a = Signal(intbv(0)[N:])
     b = [Signal(bool(0)) for i in range(len(a))]
     z = Signal(intbv(0)[N:])
@@ -38,13 +39,13 @@ def intbv2list():
 
     return extract, assemble, stimulus
 
-# test
 
+# test
 def test_intbv2list():
     assert conversion.verify(intbv2list) == 0
-            
-    
-### A number of cases with relaxed constraints, for various decorator types ###
+
+
+# A number of cases with relaxed constraints, for various decorator types #
 
 def inv1(z, a):
     @always(a)
@@ -68,6 +69,7 @@ def inv3(z, a):
             z.next = not a
     return logic
 
+
 def inv4(z, a):
     @instance
     def logic():
@@ -79,8 +81,9 @@ def inv4(z, a):
 
 
 def case1(z, a, inv):
-    b = [Signal(bool(1)) for i in range(len(a))]
-    c = [Signal(bool(0)) for i in range(len(a))]
+    b = [Signal(bool(1)) for _ in range(len(a))]
+    c = [Signal(bool(0)) for _ in range(len(a))]
+
     @always(a)
     def extract():
         for i in range(len(a)):
@@ -99,8 +102,9 @@ def case1(z, a, inv):
 
 
 def case2(z, a, inv):
-    b = [Signal(bool(1)) for i in range(len(a))]
-    c = [Signal(bool(0)) for i in range(len(a))]
+    b = [Signal(bool(1)) for _ in range(len(a))]
+    c = [Signal(bool(0)) for _ in range(len(a))]
+
     @always_comb
     def extract():
         for i in range(len(a)):
@@ -119,8 +123,9 @@ def case2(z, a, inv):
 
 
 def case3(z, a, inv):
-    b = [Signal(bool(1)) for i in range(len(a))]
-    c = [Signal(bool(0)) for i in range(len(a))]
+    b = [Signal(bool(1)) for _ in range(len(a))]
+    c = [Signal(bool(0)) for _ in range(len(a))]
+
     @instance
     def extract():
         while True:
@@ -143,8 +148,9 @@ def case3(z, a, inv):
 
 
 def case4(z, a, inv):
-    b = [Signal(bool(1)) for i in range(len(a))]
-    c = [Signal(bool(0)) for i in range(len(a))]
+    b = [Signal(bool(1)) for _ in range(len(a))]
+    c = [Signal(bool(0)) for _ in range(len(a))]
+
     @instance
     def extract():
         while True:
@@ -168,13 +174,8 @@ def case4(z, a, inv):
     return extract, inst, assemble
 
 
-
-
-
-
 def processlist(case, inv):
     """Extract list from intbv, do some processing, reassemble."""
-    
     a = Signal(intbv(1)[N:])
     z = Signal(intbv(0)[N:])
 
@@ -194,28 +195,30 @@ def processlist(case, inv):
 
 
 # functional tests
-    
 def test_processlist11():
     assert conversion.verify(processlist, case1, inv1) == 0
-    
+
+
 def test_processlist12():
     assert conversion.verify(processlist, case1, inv2) == 0
-    
+
+
 def test_processlist22():
     assert conversion.verify(processlist, case2, inv2) == 0
-    
+
+
 def test_processlist33():
     assert conversion.verify(processlist, case3, inv3) == 0
+
 
 def test_processlist44():
     assert conversion.verify(processlist, case4, inv4) == 0
 
 
-
 # signed and unsigned
 def unsigned():
     z = Signal(intbv(0)[8:])
-    a = [Signal(intbv(0)[8:]) for i in range(3)]
+    a = [Signal(intbv(0)[8:]) for _ in range(3)]
 
     @always_comb
     def logic():
@@ -233,11 +236,11 @@ def unsigned():
 
 def test_unsigned():
     conversion.verify(unsigned)
-        
+
 
 def signed():
     z = Signal(intbv(0, min=-10, max=34))
-    a = [Signal(intbv(0, min=-5, max=17)) for i in range(3)]
+    a = [Signal(intbv(0, min=-5, max=17)) for _ in range(3)]
 
     @always_comb
     def logic():
@@ -255,12 +258,12 @@ def signed():
 
 def test_signed():
     conversion.verify(signed)
-        
+
 
 def mixed():
     z = Signal(intbv(0, min=0, max=34))
-    a = [Signal(intbv(0, min=-11, max=17)) for i in range(3)]
-    b = [Signal(intbv(0)[5:]) for i in range(3)]
+    a = [Signal(intbv(0, min=-11, max=17)) for _ in range(3)]
+    b = [Signal(intbv(0)[5:]) for _ in range(3)]
 
     @always_comb
     def logic():
@@ -278,12 +281,11 @@ def mixed():
 
 def test_mixed():
     conversion.verify(mixed)
-        
 
-### error tests
+
+# error tests
 
 # port in list
-
 def portInList(z, a, b):
 
     m = [a, b]
@@ -296,42 +298,45 @@ def portInList(z, a, b):
 
 
 def test_portInList():
-    z, a, b = [Signal(intbv(0)[8:]) for i in range(3)]
+    simulator = conversion.analyze.simulator
+    hdl = _simulators[simulator].hdl
+
+    z, a, b = [Signal(intbv(0)[8:]) for _ in range(3)]
 
     try:
-        inst = conversion.analyze(portInList, z, a, b)
+        conversion.analyze(portInList, z, a, b)
     except ConversionError as e:
-        assert e.kind == _error.PortInList
+        assert (e.kind == _error.PortInList) and (hdl == "Verilog")
     else:
-        assert False
-       
-    
-# signal in multiple lists
+        assert hdl == "VHDL"
 
+
+# signal in multiple lists
 def sigInMultipleLists():
 
-    z, a, b = [Signal(intbv(0)[8:]) for i in range(3)]
+    z, a, b, c = [Signal(intbv(0)[8:]) for _ in range(4)]
 
     m1 = [a, b]
-    m2 = [a, b]
+    m2 = [a, c]
 
     @always_comb
     def logic():
-        z.next = m1[0] + m2[1]
+        z.next = m1[0] + m2[0]
 
     return logic
+
 
 def test_sigInMultipleLists():
 
     try:
-        inst = conversion.analyze(sigInMultipleLists)
+        conversion.analyze(sigInMultipleLists)
     except ConversionError as e:
         assert e.kind == _error.SignalInMultipleLists
     else:
         assert False
 
+
 # list of signals as port
-       
 def my_register(clk, inp, outp):
     @always(clk.posedge)
     def my_register_impl():
@@ -339,18 +344,17 @@ def my_register(clk, inp, outp):
             outp[index].next = inp[index]
     return my_register_impl
 
+
 def test_listAsPort():
+    simulator = conversion.analyze.simulator
+    hdl = _simulators[simulator].hdl
     count = 3
     clk = Signal(False)
-    inp = [Signal(intbv(0)[8:0]) for index in range(count)]
-    outp = [Signal(intbv(0)[8:0]) for index in range(count)]
+    inp = [Signal(intbv(0)[8:0]) for _ in range(count)]
+    outp = [Signal(intbv(0)[8:0]) for _ in range(count)]
     try:
-        inst = conversion.analyze(my_register, clk, inp, outp)
+        conversion.analyze(my_register, clk, inp, outp)
     except ConversionError as e:
-        assert e.kind == _error.ListAsPort
+        assert (e.kind == _error.ListAsPort) and (hdl == "Verilog")
     else:
-        assert False
-
-
-
-    
+        assert hdl == "VHDL"

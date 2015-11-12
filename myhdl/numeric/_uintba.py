@@ -22,16 +22,12 @@ from copy import copy
 from ._bitarray import bitarray
 from ._sintba import sintba
 
-from myhdl._compat import long, integer_types
-
-import warnings
-
 
 class uintba(sintba):
     def _from_int(self, value, high, low=0):
         if value < 0:
-            raise TypeError("Only natural values are allowed: " \
-                          "{}".format(value))
+            raise TypeError("Only natural values are allowed: "
+                            "{}".format(value))
         sintba._from_int(self, value, high, low)
 
     def _resize(self, value):
@@ -42,13 +38,13 @@ class uintba(sintba):
 
     def _get_max(self):
         return (1 << (self._high - self._low))
-    
+
     def _get_min(self):
         return 0
 
     def __neg__(self):
         raise TypeError(type(self).__name__ +
-                      " cannot generate/store negative values")
+                        " cannot generate/store negative values")
 
     _wrap = bitarray._wrap
 
@@ -56,6 +52,6 @@ class uintba(sintba):
 
     def unsigned(self):
         return copy(self)
-    
+
     def signed(self):
         return type(self)(self, high=self.high + 1)

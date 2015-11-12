@@ -22,31 +22,32 @@
 """
 from __future__ import absolute_import
 
-
-import sys
 import inspect
-from inspect import currentframe, getframeinfo, getouterframes
-import re
 import string
-from types import GeneratorType
-import linecache
+import sys
+import ast
 
-from myhdl import ExtractHierarchyError, ToVerilogError, ToVHDLError
+from myhdl import ExtractHierarchyError, ToVerilogError, ToVHDLError, \
+    EnumItemType
 from myhdl._Signal import _Signal, _isListOfSigs
-from myhdl._util import _isGenFunc, _flatten, _genfunc
+from myhdl._compat import integer_types
+from myhdl._getcellvars import _getCellVars
 from myhdl._misc import _isGenSeq
 from myhdl._resolverefs import _resolveRefs
-from myhdl._getcellvars import _getCellVars
-from myhdl._compat import integer_types
+from myhdl._util import _flatten, _genfunc, _isTupleOfInts, _isTupleOfFloats
 
 
 _profileFunc = None
 
+
 class _error:
     pass
+
 _error.NoInstances = "No instances found"
-_error.InconsistentHierarchy = "Inconsistent hierarchy - are all instances returned ?"
+_error.InconsistentHierarchy = "Inconsistent hierarchy - are all" \
+    " instances returned ?"
 _error.InconsistentToplevel = "Inconsistent top level %s for %s - should be 1"
+
 
 class _Constant(object):
     def __init__(self, orig_name, value):
@@ -56,19 +57,23 @@ class _Constant(object):
         self.value = value
         self.used = False
 
+
 class _Instance(object):
     __slots__ = ['level', 'obj', 'subs', 'constdict', 'sigdict', 'memdict',
-                 'name', 'basename', 'func', 'argdict', 'objdict']
+                 'romdict', 'name', 'func', 'frame', 'argdict',
+                 'objdict']
+
     def __init__(self, level, obj, subs, constdict, sigdict, memdict,
-                 basename, func, argdict, objdict=None):
+                 romdict, func, frame, argdict, objdict=None):
         self.level = level
         self.obj = obj
         self.subs = subs
         self.constdict = constdict
         self.sigdict = sigdict
         self.memdict = memdict
-        self.basename = basename
+        self.romdict = romdict
         self.func = func
+        self.frame = frame
         self.argdict = argdict
         if objdict:
             self.objdict = objdict
@@ -76,20 +81,41 @@ class _Instance(object):
 
 _memInfoMap = {}
 
+
 class _MemInfo(object):
-    __slots__ = ['mem', 'name', 'elObj', 'depth', '_used', '_driven', '_read']
+    __slots__ = ['mem', 'name', 'elObj', 'depth', 'type', '_used', '_driven',
+                 '_read']
+
     def __init__(self, mem):
         self.mem = mem
         self.name = None
         self.depth = len(mem)
         self.elObj = mem[0]
+        self.type = None
         self._used = False
         self._driven = None
-        self._read = None
+        self._read = False
+
+    @property
+    def used(self):
+        return self._used
+
+    @used.setter
+    def used(self, val):
+        self._used = bool(val)
+        for s in self.mem:
+            s._used = bool(val)
+
+    def _clear(self):
+        self._driven = None
+        self._read = False
+        for el in self.mem:
+            el._clear()
 
 
 def _getMemInfo(mem):
     return _memInfoMap[id(mem)]
+
 
 def _makeMemInfo(mem):
     key = id(mem)
@@ -97,16 +123,70 @@ def _makeMemInfo(mem):
         _memInfoMap[key] = _MemInfo(mem)
     return _memInfoMap[key]
 
+
 def _isMem(mem):
     return id(mem) in _memInfoMap
 
-_userCodeMap = {'verilog' : {},
-                'vhdl' : {}
-               }
+
+_romInfoMap = {}
+
+
+class _RomInfo(object):
+    __slots__ = ['mem', 'orig_name', 'name', 'elObj', 'depth', 'type', '_used']
+
+    def __init__(self, orig_name, mem):
+        self.mem = mem
+        self.orig_name = orig_name
+        self.name = None
+        self.depth = len(mem)
+        if (self.depth > 0):
+            if isinstance(mem[0], integer_types):
+                for elObj in mem:
+                    if elObj < 0:
+                        break
+            else:
+                elObj = mem[0]
+            self.elObj = elObj
+        else:
+            self.elObj = None
+        self.type = None
+        self._used = False
+
+    @property
+    def used(self):
+        return self._used
+
+    @used.setter
+    def used(self, val):
+        self._used = bool(val)
+
+
+def _getRomInfo(mem):
+    return _romInfoMap[id(mem)]
+
+
+def _makeRomInfo(n, mem):
+    key = id(mem)
+    if key not in _romInfoMap:
+        _romInfoMap[key] = _RomInfo(n, mem)
+    return _romInfoMap[key]
+
+
+def _isRom(mem):
+    return id(mem) in _romInfoMap
+
+
+_userCodeMap = {'verilog': {},
+                'vhdl': {}
+                }
+
 
 class _UserCode(object):
-    __slots__ = ['code', 'namespace', 'funcname', 'func', 'sourcefile', 'sourceline']
-    def __init__(self, code, namespace, funcname, func, sourcefile, sourceline):
+    __slots__ = ['code', 'namespace', 'funcname', 'func', 'sourcefile',
+                 'sourceline']
+
+    def __init__(self, code, namespace, funcname, func, sourcefile,
+                 sourceline):
         self.code = code
         self.namespace = namespace
         self.sourcefile = sourcefile
@@ -116,12 +196,12 @@ class _UserCode(object):
 
     def __str__(self):
         try:
-            code =  self._interpolate()
+            code = self._interpolate()
         except:
-            type, value, tb = sys.exc_info()
+            tipe, value, _ = sys.exc_info()
             info = "in file %s, function %s starting on line %s:\n    " % \
                    (self.sourcefile, self.funcname, self.sourceline)
-            msg = "%s: %s" % (type, value)
+            msg = "%s: %s" % (tipe, value)
             self.raiseError(msg, info)
         code = "\n%s\n" % code
         return code
@@ -129,20 +209,25 @@ class _UserCode(object):
     def _interpolate(self):
         return string.Template(self.code).substitute(self.namespace)
 
+
 class _UserCodeDepr(_UserCode):
     def _interpolate(self):
         return self.code % self.namespace
+
 
 class _UserVerilogCode(_UserCode):
     def raiseError(self, msg, info):
         raise ToVerilogError("Error in user defined Verilog code", msg, info)
 
+
 class _UserVhdlCode(_UserCode):
     def raiseError(self, msg, info):
         raise ToVHDLError("Error in user defined VHDL code", msg, info)
 
+
 class _UserVerilogCodeDepr(_UserVerilogCode, _UserCodeDepr):
     pass
+
 
 class _UserVhdlCodeDepr(_UserVhdlCode, _UserCodeDepr):
     pass
@@ -154,13 +239,15 @@ class _UserVerilogInstance(_UserVerilogCode):
         s = "%s %s(" % (self.funcname, self.code)
         sep = ''
         for arg in args:
-            if arg in self.namespace and isinstance(self.namespace[arg], _Signal):
+            if arg in self.namespace and isinstance(self.namespace[arg],
+                                                    _Signal):
                 signame = self.namespace[arg]._name
                 s += sep
                 sep = ','
                 s += "\n    .%s(%s)" % (arg, signame)
         s += "\n);\n\n"
         return s
+
 
 class _UserVhdlInstance(_UserVhdlCode):
     def __str__(self):
@@ -169,7 +256,8 @@ class _UserVhdlInstance(_UserVhdlCode):
         s += "    port map ("
         sep = ''
         for arg in args:
-            if arg in self.namespace and isinstance(self.namespace[arg], _Signal):
+            if arg in self.namespace and isinstance(self.namespace[arg],
+                                                    _Signal):
                 signame = self.namespace[arg]._name
                 s += sep
                 sep = ','
@@ -178,15 +266,14 @@ class _UserVhdlInstance(_UserVhdlCode):
         return s
 
 
-
 def _addUserCode(specs, arg, funcname, func, frame):
     classMap = {
-                '__verilog__' : _UserVerilogCodeDepr,
-                '__vhdl__' :_UserVhdlCodeDepr,
-                'verilog_code' : _UserVerilogCode,
-                'vhdl_code' :_UserVhdlCode,
-                'verilog_instance' : _UserVerilogInstance,
-                'vhdl_instance' :_UserVhdlInstance,
+                '__verilog__': _UserVerilogCodeDepr,
+                '__vhdl__': _UserVhdlCodeDepr,
+                'verilog_code': _UserVerilogCode,
+                'vhdl_code': _UserVhdlCode,
+                'verilog_instance': _UserVerilogInstance,
+                'vhdl_instance': _UserVhdlInstance,
 
                }
     namespace = frame.f_globals.copy()
@@ -208,7 +295,9 @@ def _addUserCode(specs, arg, funcname, func, frame):
         if spec:
             assert id(arg) not in _userCodeMap[hdl]
             code = specs[spec]
-            _userCodeMap[hdl][id(arg)] = classMap[spec](code, namespace, funcname, func, sourcefile, sourceline)
+            _userCodeMap[hdl][id(arg)] = classMap[spec](code, namespace,
+                                                        funcname, func,
+                                                        sourcefile, sourceline)
 
 
 class _CallFuncVisitor(object):
@@ -217,14 +306,13 @@ class _CallFuncVisitor(object):
         self.linemap = {}
 
     def visitAssign(self, node):
-        if isinstance(node.expr, ast.CallFunc):
+        if isinstance(node.expr, ast.Call):
             self.lineno = None
             self.visit(node.expr)
             self.linemap[self.lineno] = node.lineno
 
     def visitName(self, node):
         self.lineno = node.lineno
-
 
 
 class _HierExtr(object):
@@ -235,10 +323,10 @@ class _HierExtr(object):
         _memInfoMap.clear()
         for hdl in _userCodeMap:
             _userCodeMap[hdl].clear()
-        self.skipNames = ('always_comb', 'instance', \
-                          'always_seq', '_always_seq_decorator', \
-                          'always', '_always_decorator', \
-                          'instances', \
+        self.skipNames = ('always_comb', 'instance',
+                          'always_seq', '_always_seq_decorator',
+                          'always', '_always_decorator',
+                          'instances',
                           'processes', 'posedge', 'negedge')
         self.skip = 0
         self.hierarchy = hierarchy = []
@@ -262,23 +350,26 @@ class _HierExtr(object):
         obj, subs = top_inst.obj, top_inst.subs
         names[id(obj)] = name
         absnames[id(obj)] = name
+
         if not top_inst.level == 1:
-            raise ExtractHierarchyError(_error.InconsistentToplevel % (top_inst.level, name))
+            raise ExtractHierarchyError(_error.InconsistentToplevel %
+                                        (top_inst.level, name))
         for inst in hierarchy:
             obj, subs = inst.obj, inst.subs
             if id(obj) not in names:
                 raise ExtractHierarchyError(_error.InconsistentHierarchy)
             inst.name = names[id(obj)]
             tn = absnames[id(obj)]
+
             for sn, so in subs:
                 names[id(so)] = sn
                 absnames[id(so)] = "%s_%s" % (tn, sn)
+
                 if isinstance(so, (tuple, list)):
                     for i, soi in enumerate(so):
-                        sni =  "%s_%s" % (sn, i)
+                        sni = "%s_%s" % (sn, i)
                         names[id(soi)] = sni
                         absnames[id(soi)] = "%s_%s_%s" % (tn, sn, i)
-
 
     def extractor(self, frame, event, arg):
         if event == "call":
@@ -286,7 +377,7 @@ class _HierExtr(object):
             funcname = frame.f_code.co_name
             # skip certain functions
             if funcname in self.skipNames:
-                self.skip +=1
+                self.skip += 1
             if not self.skip:
                 self.level += 1
 
@@ -294,6 +385,7 @@ class _HierExtr(object):
 
             funcname = frame.f_code.co_name
             func = frame.f_globals.get(funcname)
+
             if func is None:
                 # Didn't find a func in the global space, try the local "self"
                 # argument and see if it has a method called *funcname*
@@ -304,20 +396,18 @@ class _HierExtr(object):
             if not self.skip:
                 isGenSeq = _isGenSeq(arg)
                 if isGenSeq:
-                    if self.level != 1:
-                        basename = frame.f_back.f_code.co_name
-                    else:
-                        basename = None
                     specs = {}
                     for hdl in _userCodeMap:
                         spec = "__%s__" % hdl
                         if spec in frame.f_locals and frame.f_locals[spec]:
                             specs[spec] = frame.f_locals[spec]
                         spec = "%s_code" % hdl
-                        if func and hasattr(func, spec) and getattr(func, spec):
+                        if func and hasattr(func, spec) and \
+                                getattr(func, spec):
                             specs[spec] = getattr(func, spec)
                         spec = "%s_instance" % hdl
-                        if func and hasattr(func, spec) and getattr(func, spec):
+                        if func and hasattr(func, spec) and \
+                                getattr(func, spec):
                             specs[spec] = getattr(func, spec)
                     if specs:
                         _addUserCode(specs, arg, funcname, func, frame)
@@ -326,6 +416,7 @@ class _HierExtr(object):
                     constdict = {}
                     sigdict = {}
                     memdict = {}
+                    romdict = {}
                     argdict = {}
                     if func:
                         arglist = inspect.getargspec(func).args
@@ -334,7 +425,6 @@ class _HierExtr(object):
                     symdict = frame.f_globals.copy()
                     symdict.update(frame.f_locals)
                     cellvars = []
-
                     # All nested functions will be in co_consts
                     if func:
                         local_gens = []
@@ -348,27 +438,37 @@ class _HierExtr(object):
                             cellvars.extend(cellvarlist)
                             objlist = _resolveRefs(symdict, local_gens)
                             cellvars.extend(objlist)
-                    #for dict in (frame.f_globals, frame.f_locals):
+
                     for n, v in symdict.items():
                         # extract signals and memories
-                        # also keep track of whether they are used in generators
-                        # only include objects that are used in generators
-##                             if not n in cellvars:
-##                                 continue
+                        # also keep track of whether they are used in
+                        # generators only include objects that are used in
+                        # generators
                         if isinstance(v, _Signal):
                             sigdict[n] = v
                             if n in cellvars:
                                 v._markUsed()
-                        elif isinstance(v, (integer_types, float)):
+                        elif isinstance(v, (integer_types, float,
+                                            EnumItemType)):
                             constdict[n] = _Constant(n, v)
-                        if _isListOfSigs(v):
+                        elif _isListOfSigs(v):
                             m = _makeMemInfo(v)
                             memdict[n] = m
                             if n in cellvars:
                                 m._used = True
+                        elif _isTupleOfInts(v):
+                            m = _makeRomInfo(n, v)
+                            romdict[n] = m
+                            if n in cellvars:
+                                m._used = True
+                        elif _isTupleOfFloats(v):
+                            m = _makeRomInfo(n, v)
+                            romdict[n] = m
+                            if n in cellvars:
+                                m._used = True
                         # save any other variable in argdict
                         if (n in arglist) and (n not in sigdict) and \
-                                (n not in memdict):
+                                (n not in memdict) and (n not in romdict):
                             argdict[n] = v
 
                     subs = []
@@ -376,10 +476,9 @@ class _HierExtr(object):
                         for elt in _inferArgs(arg):
                             if elt is sub:
                                 subs.append((n, sub))
-
-
                     inst = _Instance(self.level, arg, subs, constdict,
-                                     sigdict, memdict, basename, func, argdict)
+                                     sigdict, memdict, romdict, func, frame,
+                                     argdict)
                     self.hierarchy.append(inst)
 
                 self.level -= 1

@@ -1,10 +1,11 @@
 from __future__ import absolute_import, print_function
 
+import unittest
+from myhdl import always, Signal, sfixba, always_comb, instance, delay, \
+    StopSimulation, toVHDL, toVerilog, conversion
 import os
 path = os.path
-import unittest
 
-from myhdl import *
 
 def ternary1(dout, clk, rst):
 
@@ -34,6 +35,7 @@ def ternary2(dout, clk, rst):
         dout_d.next = (dout + 1) if dout < 127 else 0
 
     return logic, comb
+
 
 def TernaryBench(ternary):
 
@@ -65,13 +67,16 @@ def TernaryBench(ternary):
     return stimulus, ternary_inst
 
 
-
 # uncomment when we have a VHDL-2008 compliant simulator
 def test_ternary1():
-    toVHDL.name = 'ternary1'
+    toVHDL.name = "ternary1"
     assert conversion.verify(TernaryBench, ternary1) == 0
+    toVHDL.name = None
+
 
 def test_ternary2():
-    toVHDL.name = 'ternary2'
+    toVHDL.name = "ternary2"
     assert conversion.verify(TernaryBench, ternary2) == 0
+    toVHDL.name = None
+
 

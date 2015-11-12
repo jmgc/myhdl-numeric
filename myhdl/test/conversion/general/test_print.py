@@ -1,9 +1,10 @@
 from __future__ import absolute_import, print_function
-from myhdl import *
+from myhdl import instance, Signal, intbv, delay, enum, conversion
 from myhdl import ConversionError
 from myhdl.conversion._misc import _error
 
 t_State = enum("START", "RUN", "STOP")
+
 
 def PrintBench():
     si1 = Signal(intbv(0)[8:])
@@ -27,17 +28,17 @@ def PrintBench():
         print("%d %d" % (int(i1), int(i2)))
         print(int(si1))
         print(int(si2))
-        
+
         yield delay(10)
         print("This is a test")
-        
+
         yield delay(10)
         print(int(b))
         print(int(sb))
-        
+
         yield delay(10)
         print("i1 is %s" % int(i1))
-        
+
         yield delay(10)
         print("i1 is %s, i2 is %s" % (int(i1), int(i2)))
         print("i1 %s i2 %s b %s si1 %s si2 %s" %
@@ -45,9 +46,9 @@ def PrintBench():
         print("i1 %d i2 %d b %d si1 %d si2 %d" %
               (int(i1), int(i2), b, int(si1), int(si2)))
         print(b)
-        #print "%% %s" % i1
-        
-        yield delay(10)       
+        # print "%% %s" % i1
+
+        yield delay(10)
         print(state)
         print("the state is %s" % state)
         print("the state is %s" % (state,))
@@ -67,6 +68,7 @@ def PrintBench():
 
     return logic
 
+
 def testPrint():
     assert conversion.verify(PrintBench) == 0
 
@@ -74,12 +76,14 @@ def testPrint():
 # format string errors and unsupported features
 
 def PrintError1():
-     @instance
-     def logic():
-         i1 = intbv(12)[8:]
-         yield delay(10)
-         print("floating point %f end" % i1)
-     return logic
+    @instance
+    def logic():
+        i1 = intbv(12)[8:]
+        yield delay(10)
+        print("floating point %f end" % i1)
+
+    return logic
+
 
 def testPrintError1():
     try:
@@ -88,14 +92,17 @@ def testPrintError1():
         assert e.kind == _error.UnsupportedFormatString
     else:
         assert False
-        
+
+
 def PrintError2():
-     @instance
-     def logic():
-         i1 = intbv(12)[8:]
-         yield delay(10)
-         print("begin %s %s end" % i1)
-     return logic
+    @instance
+    def logic():
+        i1 = intbv(12)[8:]
+        yield delay(10)
+        print("begin %s %s end" % i1)
+
+    return logic
+
 
 def testPrintError2():
     try:
@@ -104,15 +111,18 @@ def testPrintError2():
         assert e.kind == _error.FormatString
     else:
         assert False
-       
+
+
 def PrintError3():
-     @instance
-     def logic():
-         i1 = intbv(12)[8:]
-         i2 = intbv(13)[8:]
-         yield delay(10)
-         print("begin %s end" % (i1, i2))
-     return logic
+    @instance
+    def logic():
+        i1 = intbv(12)[8:]
+        i2 = intbv(13)[8:]
+        yield delay(10)
+        print("begin %s end" % (i1, i2))
+
+    return logic
+
 
 def testPrintError3():
     try:
@@ -121,14 +131,17 @@ def testPrintError3():
         assert e.kind == _error.FormatString
     else:
         assert False
-       
+
+
 def PrintError4():
-     @instance
-     def logic():
-         i1 = intbv(12)[8:]
-         yield delay(10)
-         print("%10s" % i1)
-     return logic
+    @instance
+    def logic():
+        i1 = intbv(12)[8:]
+        yield delay(10)
+        print("%10s" % i1)
+
+    return logic
+
 
 def testPrintError4():
     try:
@@ -137,14 +150,17 @@ def testPrintError4():
         assert e.kind == _error.UnsupportedFormatString
     else:
         assert False
-        
+
+
 def PrintError5():
-     @instance
-     def logic():
-         i1 = intbv(12)[8:]
-         yield delay(10)
-         print("%-10s" % i1)
-     return logic
+    @instance
+    def logic():
+        i1 = intbv(12)[8:]
+        yield delay(10)
+        print("%-10s" % i1)
+
+    return logic
+
 
 def testPrintError5():
     try:

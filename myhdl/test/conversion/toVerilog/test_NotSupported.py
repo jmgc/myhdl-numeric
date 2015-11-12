@@ -17,6 +17,7 @@ class TestNotSupported(unittest.TestCase):
         except ConversionError as e:
             self.assertEqual(e.kind, _error.NotSupported)
         except:
+            raise f
             self.fail()
         else:
             self.fail()

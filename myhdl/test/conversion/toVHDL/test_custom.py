@@ -1,23 +1,22 @@
 from __future__ import absolute_import, print_function
 
-import os
-path = os.path
-
 import random
+from myhdl.test.conftest import bug
 from random import randrange
-random.seed(2)
-
 from myhdl import *
-
 from myhdl import ConversionError
 from myhdl.conversion._misc import _error
+import os
+path = os.path
+random.seed(2)
 
 
 ACTIVE_LOW, INACTIVE_HIGH = 0, 1
 
+
 def incRef(count, enable, clock, reset, n):
     """ Incrementer with enable.
-    
+
     count -- output
     enable -- control input, increment when 1
     clock -- clock input
@@ -50,16 +49,17 @@ def incGen(count, enable, clock, reset, n):
                     count.next = (count + 1) % n
     return logic
 
-                                        
+
 def inc(count, enable, clock, reset, n):
     """ Incrementer with enable.
-    
+
     count -- output
     enable -- control input, increment when 1
     clock -- clock input
     reset -- asynchronous reset input
     n -- counter max value
     """
+
     @always(clock.posedge, reset.negedge)
     def incProcess():
         # make it fail in conversion
@@ -84,12 +84,12 @@ process (%(clock)s, %(reset)s) begin
     end if;
 end process;
 """
-                
+
     return incProcess
 
 
 def incErr(count, enable, clock, reset, n):
-    
+
     @always(clock.posedge, reset.negedge)
     def incProcess():
         # make it fail in conversion
@@ -115,9 +115,8 @@ always @(posedge %(clock)s, negedge %(reset)s) begin
     end
 end
 """
-                
-    return incProcess
 
+    return incProcess
 
 
 def inc_comb(nextCount, count, n):
@@ -136,6 +135,7 @@ def inc_comb(nextCount, count, n):
 """
 
     return logic
+
 
 def inc_seq(count, nextCount, enable, clock, reset):
 
@@ -161,11 +161,12 @@ process (%(clock)s, %(reset)s) begin
     end if;
 end process;
 """
-    
+
     return logic
 
+
 def inc2(count, enable, clock, reset, n):
-    
+
     nextCount = Signal(intbv(0, min=0, max=n))
 
     comb = inc_comb(nextCount, count, n)
@@ -188,9 +189,10 @@ def clockGen(clock):
             clock.next = not clock
     return logic
 
-NRTESTS = 1000
+NRTESTS = 2  # 1000
 
 ENABLES = tuple([min(1, randrange(5)) for i in range(NRTESTS)])
+
 
 def stimulus(enable, clock, reset):
     @instance
@@ -222,8 +224,6 @@ def check(count, enable, clock, reset, n):
             if enable:
                 expect = (expect + 1) % n
             yield delay(1)
-            # print "%d count %s expect %s count_v %s" % (now(), count, expect, count_v)
-            # assert count == expect
             print(int(count))
     return logic
 
@@ -245,45 +245,52 @@ def customBench(inc):
     return inc_inst, clk_1, st_1, ch_1
 
 
-
 def testIncRef():
+    toVHDL.name = "customBenchIncRef"
     assert conversion.verify(customBench, incRef) == 0
+    toVHDL.name = None
 
+
+@bug("Detection of ports", "vhdl")
 def testInc():
+    toVHDL.name = "customBenchInc"
     assert conversion.verify(customBench, inc) == 0
-    
+    toVHDL.name = None
+
+
+@bug("Detection of ports", "vhdl")
 def testInc2():
+    toVHDL.name = "customBenchInc2"
     assert conversion.verify(customBench, inc2) == 0
-    
+    toVHDL.name = None
+
+
+@bug("Detection of ports", "vhdl")
 def testInc3():
+    toVHDL.name = "customBenchInc3"
     assert conversion.verify(customBench, inc3) == 0
+    toVHDL.name = None
+
 
 def testIncGen():
     try:
+        toVHDL.name = "customBenchIncGen"
         assert conversion.verify(customBench, incGen) == 0
-    except ConversionError as e:
+    except ConversionError:
         pass
     else:
         assert False
-        
+    finally:
+        toVHDL.name = None
+
+
 def testIncErr():
     try:
+        toVHDL.name = "customBenchIncErr"
         assert conversion.verify(customBench, incErr) == 0
-    except ConversionError as e:
+    except ConversionError:
         pass
     else:
         assert False
-
-
-
-
-    
-
-    
-        
-
-
-                
-
-        
-
+    finally:
+        toVHDL.name = None

@@ -1,10 +1,10 @@
 from __future__ import absolute_import, print_function
 
+from myhdl import instance, Signal, intbv, always_comb, always, delay, \
+    conversion, StopSimulation
 import os
 path = os.path
-import unittest
 
-from myhdl import *
 
 def ram1(dout, din, addr, we, clk, depth=128):
     """ Simple ram model """
@@ -20,13 +20,13 @@ def ram1(dout, din, addr, we, clk, depth=128):
                 mem[int(addr)][:] = din
             dout.next = mem[int(addr)]
     return logic
-        
+
 
 def ram_clocked(dout, din, addr, we, clk, depth=128):
     """ Ram model """
-    
-    mem = [Signal(intbv(0)[8:]) for i in range(depth)]
-    
+
+    mem = [Signal(intbv(0)[8:]) for _ in range(depth)]
+
     @instance
     def access():
         while 1:
@@ -34,12 +34,13 @@ def ram_clocked(dout, din, addr, we, clk, depth=128):
             if we:
                 mem[int(addr)].next = din
             dout.next = mem[int(addr)]
-            
+
     return access
+
 
 def ram_deco1(dout, din, addr, we, clk, depth=128):
     """  Ram model """
-    
+
     mem = [Signal(intbv(0)[8:]) for i in range(depth)]
 
     @instance
@@ -48,23 +49,24 @@ def ram_deco1(dout, din, addr, we, clk, depth=128):
             yield clk.posedge
             if we:
                 mem[int(addr)].next = din
-                
+
     @always_comb
     def read():
         dout.next = mem[int(addr)]
-        
+
     return write, read
+
 
 def ram_deco2(dout, din, addr, we, clk, depth=128):
     """  Ram model """
-    
-    mem = [Signal(intbv(0)[8:]) for i in range(depth)]
+
+    mem = [Signal(intbv(0)[8:]) for _ in range(depth)]
 
     @always(clk.posedge)
     def write():
         if we:
             mem[int(addr)].next = din
-                
+
     @always_comb
     def read():
         dout.next = mem[int(addr)]
@@ -73,24 +75,23 @@ def ram_deco2(dout, din, addr, we, clk, depth=128):
 
 
 def ram2(dout, din, addr, we, clk, depth=128):
-        
+
     memL = [Signal(intbv()[len(dout):]) for i in range(depth)]
 
     @instance
-    def wrLogic() :
+    def wrLogic():
         while 1:
             yield clk.posedge
             if we:
                 memL[int(addr)].next = din
 
     @instance
-    def rdLogic() :
+    def rdLogic():
         while 1:
             yield clk.posedge
             dout.next = memL[int(addr)]
 
     return wrLogic, rdLogic
-
 
 
 def RamBench(ram, depth=128):
@@ -131,19 +132,21 @@ def RamBench(ram, depth=128):
     return clkgen, stimulus, mem_inst
 
 
-
-
 def testram_deco1():
     assert conversion.verify(RamBench, ram_deco1) == 0
+
 
 def testram_deco2():
     assert conversion.verify(RamBench, ram_deco2) == 0
 
+
 def testram_clocked():
     assert conversion.verify(RamBench, ram_clocked) == 0
-    
+
+
 def test2():
     assert conversion.verify(RamBench, ram2) == 0
-    
+
+
 def test1():
     assert conversion.verify(RamBench, ram1) == 0

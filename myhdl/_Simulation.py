@@ -31,21 +31,23 @@ from types import GeneratorType
 from myhdl import Cosimulation, StopSimulation, _SuspendSimulation
 from myhdl import SimulationError
 from ._simulator import _simulator
-from myhdl._Waiter import _Waiter, _inferWaiter, _SignalWaiter,_SignalTupleWaiter
+from myhdl._Waiter import _Waiter, _inferWaiter, _SignalWaiter, \
+    _SignalTupleWaiter
 from myhdl._util import _flatten, _printExcInfo
 from myhdl._instance import _Instantiator
 from myhdl._ShadowSignal import _ShadowSignal
 
 
-
 schedule = _simulator._futureEvents.append
+
 
 class _error:
     pass
 _error.ArgType = "Inappriopriate argument type"
 _error.MultipleCosim = "Only a single cosimulator argument allowed"
 _error.DuplicatedArg = "Duplicated argument"
-            
+
+
 class Simulation(object):
 
     """ Simulation class.
@@ -71,8 +73,7 @@ class Simulation(object):
         del _simulator._futureEvents[:]
         del _simulator._siglist[:]
         del _simulator._signals[:]
-        
-        
+
     def _finalize(self):
         cosim = self._cosim
         if cosim:
@@ -87,11 +88,9 @@ class Simulation(object):
         for s in _simulator._signals:
             s._clear()
         self._finished = True
-            
-        
+
     def runc(self, duration=0, quiet=0):
         simrunc.run(sim=self, duration=duration, quiet=quiet)
-
 
     def run(self, duration=None, quiet=0):
 
@@ -197,12 +196,12 @@ class Simulation(object):
                     tracefile.flush()
                 # if the exception came from a yield, make sure we can resume
                 if exc and e is exc[0]:
-                    pass # don't finalize
+                    pass  # don't finalize
                 else:
                     self._finalize()
-                # now reraise the exepction
+                # now reraise the exception
                 raise
-                
+
 
 def _makeWaiters(arglist):
     waiters = []
@@ -220,7 +219,7 @@ def _makeWaiters(arglist):
             waiters.append(_SignalTupleWaiter(cosim._waiter()))
         elif isinstance(arg, _Waiter):
             waiters.append(arg)
-        elif arg == True:
+        elif arg is True:
             pass
         else:
             raise SimulationError(_error.ArgType, str(type(arg)))
@@ -232,4 +231,3 @@ def _makeWaiters(arglist):
         if hasattr(sig, '_waiter'):
             waiters.append(sig._waiter)
     return waiters, cosim
-        

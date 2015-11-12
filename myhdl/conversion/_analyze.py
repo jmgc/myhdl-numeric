@@ -23,16 +23,16 @@
 from __future__ import absolute_import, print_function, division
 
 import inspect
+import sys
 # import compiler
 # from compiler import ast as astNode
 from types import FunctionType, MethodType
 import re
 import ast
-from itertools import chain
-from collections import defaultdict
 
 import myhdl
-from myhdl import *
+from myhdl import intbv, EnumType, EnumItemType, modbv, concat, \
+    delay, downrange
 from myhdl import ConversionError
 from myhdl._always_comb import _AlwaysComb
 from myhdl._always_seq import _AlwaysSeq
@@ -43,44 +43,44 @@ from myhdl.conversion._misc import (_error, _access, _kind,
 from myhdl._extractHierarchy import _isMem, _getMemInfo, _UserCode
 from myhdl._Signal import _Signal, _WaiterList
 from myhdl._ShadowSignal import _ShadowSignal, _SliceSignal, _TristateDriver
-from myhdl._util import _isTupleOfInts, _dedent, _flatten, _makeAST
+from myhdl._util import _isTupleOfInts, _flatten, _makeAST
 from myhdl._resolverefs import _AttrRefTransformer
-from myhdl._compat import builtins, integer_types, string_types, PY2, ast_parse, long
-from ..numeric._bitarray import bitarray
-from ..numeric._conversion import (numeric_functions_dict,
-                                   numeric_attributes_dict)
+from myhdl._compat import builtins, integer_types, long, string_types, PY2
+from myhdl.numeric._conversion import (numeric_functions_dict,
+                                       numeric_attributes_dict)
+from myhdl.numeric._bitarray import bitarray
 
 myhdlObjects = myhdl.__dict__.values()
 builtinObjects = builtins.__dict__.values()
 
 _enumTypeSet = set()
 
-def _makeName(n, prefixes, case='lower'):
+
+def _makeName(n, prefixes, case=None):
     # trim empty prefixes
     prefixes = [p for p in prefixes if p]
     if len(prefixes) > 1:
-#        name = '_' + '_'.join(prefixes[1:]) + '_' + n
+        # name = '_' + '_'.join(prefixes[1:]) + '_' + n
         name = '_'.join(prefixes[1:]) + '_' + n
     else:
         name = n
     if '[' in name or ']' in name:
         name = "\\" + name + ' '
-##     print prefixes
-##     print name
+        # print prefixes
+        # print name
     if case == 'lower':
         return name.lower()
-    else:
+    elif case == 'upper':
         return name.upper()
+    else:
+        return name
 
-def _analyzeSigs(hierarchy, hdl='Verilog'):
-    curlevel = 0
+
+def _analyzeSigs(hierarchy, hdl='Verilog', initlevel=0):
+    curlevel = initlevel
     siglist = []
     memlist = []
     prefixes = []
-
-    open, close = '[', ']'
-    if hdl == 'VHDL':
-        open, close = '(', ')'
 
     for inst in hierarchy:
         level = inst.level
@@ -90,7 +90,7 @@ def _analyzeSigs(hierarchy, hdl='Verilog'):
         delta = curlevel - level
         curlevel = level
         assert(delta >= -1)
-        if delta > -1: # same or higher level
+        if delta > -1:  # same or higher level
             prefixes = prefixes[:curlevel-1]
         # skip processing and prefixing in context without signals
         if not (sigdict or memdict):
@@ -116,58 +116,42 @@ def _analyzeSigs(hierarchy, hdl='Verilog'):
             m.name = _makeName(n, prefixes)
             memlist.append(m)
 
+    if hdl != "VHDL":
+        _analyzeMems(memlist, hdl)
+
+    return siglist, memlist
+
+
+def _analyzeMems(memlist, hdl):
+    open_sym, close_sym = '[', ']'
+    if hdl == 'VHDL':
+        open_sym, close_sym = '(', ')'
+
     # handle the case where a named signal appears in a list also by giving
     # priority to the list and marking the signals as unused
     for m in memlist:
         if not m._used:
             continue
+        for s in m.mem:
+            s._inList = None
+
+    for m in memlist:
+        if not m._used:
+            continue
+
         for i, s in enumerate(m.mem):
-            s._name = "%s%s%s%s" % (m.name, open, i, close)
+            s._name = "%s%s%s%s" % (m.name, open_sym, i, close_sym)
             s._used = False
-            if s._inList:
+            if s._inList is not None:
                 raise ConversionError(_error.SignalInMultipleLists, s._name)
-            s._inList = True
+            s._inList = m
             if not s._nrbits:
                 raise ConversionError(_error.UndefinedBitWidth, s._name)
-            if type(s.val) != type(m.elObj.val):
+            if not isinstance(s.val, type(m.elObj.val)):
                 raise ConversionError(_error.InconsistentType, s._name)
             if s._nrbits != m.elObj._nrbits:
                 raise ConversionError(_error.InconsistentBitWidth, s._name)
 
-    return siglist, memlist
-
-def _analyzeConsts(hierarchy, hdl='Verilog'):
-    curlevel = 0
-    constdict = {}
-    prefixes = []
-
-    open, close = '[', ']'
-    if hdl == 'VHDL':
-        open, close = '(', ')'
-
-    for inst in hierarchy:
-        level = inst.level
-        name = inst.name
-        _constdict = inst.constdict
-        delta = curlevel - level
-        curlevel = level
-        assert(delta >= -1)
-        if delta > -1: # same or higher level
-            prefixes = prefixes[:curlevel-1]
-        # skip processing and prefixing in context without constants
-        if not (_constdict):
-            prefixes.append("")
-            continue
-        prefixes.append(name)
-        for n, s in _constdict.items():
-            if s.name is not None:
-                continue
-            s.name = _makeName(n, prefixes, case='upper')
-            s.instance = inst
-            if not s.name in constdict:
-                constdict[s.name] = s                
-
-    return constdict
 
 def _analyzeGens(top, absnames):
     genlist = []
@@ -185,7 +169,8 @@ def _analyzeGens(top, absnames):
                 for n, c in zip(f.__code__.co_freevars, f.__closure__):
                     obj = c.cell_contents
                     tree.symdict[n] = obj
-                    # currently, only intbv as automatic nonlocals (until Python 3.0)
+                    # currently, only intbv as automatic nonlocals
+                    # (until Python 3.0)
                     if isinstance(obj, (intbv, bitarray)):
                         tree.nonlocaldict[n] = obj
             tree.name = absnames.get(id(g), str(_Label("BLOCK"))).upper()
@@ -196,11 +181,12 @@ def _analyzeGens(top, absnames):
             if isinstance(g, _AlwaysComb):
                 v = _AnalyzeAlwaysCombVisitor(tree, g.senslist)
             elif isinstance(g, _AlwaysSeq):
-                v = _AnalyzeAlwaysSeqVisitor(tree, g.senslist, g.reset, g.sigregs, g.varregs)
+                v = _AnalyzeAlwaysSeqVisitor(tree, g.senslist, g.reset,
+                                             g.sigregs, g.varregs)
             else:
                 v = _AnalyzeAlwaysDecoVisitor(tree, g.senslist)
             v.visit(tree)
-        else: # @instance
+        else:  # @instance
             f = g.gen.gi_frame
             tree = g.ast
             tree.symdict = f.f_globals.copy()
@@ -243,9 +229,9 @@ class _FirstPassVisitor(ast.NodeVisitor, _ConversionMixin):
     def visit_Dict(self, node):
         self.raiseError(node, _error.NotSupported, "dictionary")
 
-    #def visit_BinOp(self, node):
-    #    if isinstance(node.op, ast.Div):
-    #        
+    # def visit_BinOp(self, node):
+    #     if isinstance(node.op, ast.Div):
+    #
 
     def visit_Ellipsis(self, node):
         self.raiseError(node, _error.NotSupported, "ellipsis")
@@ -270,13 +256,16 @@ class _FirstPassVisitor(ast.NodeVisitor, _ConversionMixin):
 
     def visit_ListComp(self, node):
         if len(node.generators) > 1:
-            self.raiseError(node, _error.NotSupported, "multiple for statements in list comprehension")
+            self.raiseError(node, _error.NotSupported, "multiple for"
+                            " statements in list comprehension")
         if node.generators[0].ifs:
-            self.raiseError(node, _error.NotSupported, "if statement in list comprehension")
+            self.raiseError(node, _error.NotSupported, "if statement in list"
+                            " comprehension")
         self.generic_visit(node)
 
     def visit_List(self, node):
         self.raiseError(node, _error.NotSupported, "list")
+
     def visitSliceObj(self, node):
         self.raiseError(node, _error.NotSupported, "slice object")
 
@@ -287,9 +276,9 @@ class _FirstPassVisitor(ast.NodeVisitor, _ConversionMixin):
     # Legacy try blocks
     def visit_TryExcept(self, node):
         self.raiseError(node, _error.NotSupported, "try-except statement")
+
     def visit_TryFinally(self, node):
         self.raiseError(node, _error.NotSupported, "try-finally statement")
-
 
     def visit_Assign(self, node):
         if len(node.targets) > 1:
@@ -308,7 +297,8 @@ class _FirstPassVisitor(ast.NodeVisitor, _ConversionMixin):
             kwargs = node.kwargs is not None
 
         if starargs:
-            self.raiseError(node, _error.NotSupported, "extra positional arguments")
+            self.raiseError(node, _error.NotSupported, "extra positional"
+                            " arguments")
         if kwargs:
             self.raiseError(node, _error.NotSupported, "extra named arguments")
         self.generic_visit(node)
@@ -320,16 +310,18 @@ class _FirstPassVisitor(ast.NodeVisitor, _ConversionMixin):
 
     def visit_FunctionDef(self, node):
         if node.args.vararg or node.args.kwarg:
-            self.raiseError(node, _error.NotSupported, "extra positional or named arguments")
+            self.raiseError(node, _error.NotSupported, "extra positional or"
+                            " named arguments")
         if not self.toplevel:
-            self.raiseError(node, _error.NotSupported, "embedded function definition")
+            self.raiseError(node, _error.NotSupported, "embedded function"
+                            " definition")
         self.toplevel = False
         node.argnames = _get_argnames(node)
         # don't visit decorator lists - they can support more than other calls
         # put official docstrings aside for separate processing
         node.doc = None
         if node.body and isinstance(node.body[0], ast.Expr) and \
-            isinstance(node.body[0].value, ast.Str):
+                isinstance(node.body[0].value, ast.Str):
             node.doc = node.body[0].value.s
             node.body = node.body[1:]
         self.visitList(node.body)
@@ -337,9 +329,10 @@ class _FirstPassVisitor(ast.NodeVisitor, _ConversionMixin):
     def flattenIf(self, node, tests, else_, co):
         """ Flatten if-then-else as in compiler package."""
         if node:
+            # ugly hack to detect separate else clause
             if len(node) == 1 and \
-                isinstance(node[0], ast.If) and \
-                node[0].body[0].col_offset == co: # ugly hack to detect separate else clause
+                    isinstance(node[0], ast.If) and \
+                    node[0].body[0].col_offset == co:
                 elifnode = node[0]
                 tests.append((elifnode.test, elifnode.body))
                 self.flattenIf(elifnode.orelse, tests, else_, co)
@@ -353,7 +346,7 @@ class _FirstPassVisitor(ast.NodeVisitor, _ConversionMixin):
             if isinstance(test, ast.Name):
                 if test.id == '__debug__':
                     node.ignore = True
-                    return # skip
+                    return  # skip
         self.generic_visit(node)
 
         # add fields that match old compiler package
@@ -363,18 +356,20 @@ class _FirstPassVisitor(ast.NodeVisitor, _ConversionMixin):
         node.tests = tests
         node.else_ = else_
 
-
     def visit_Print(self, node):
         if node.dest is not None:
-            self.raiseError(node, _error.NotSupported, "printing to a file with >> syntax")
+            self.raiseError(node, _error.NotSupported, "printing to a file"
+                            " with >> syntax")
         if not node.nl:
-            self.raiseError(node, _error.NotSupported, "printing without newline")
+            self.raiseError(node, _error.NotSupported, "printing without"
+                            " newline")
 
 
 def getNrBits(obj):
     if hasattr(obj, '_nrbits'):
         return obj._nrbits
     return None
+
 
 def hasType(obj, theType):
     if isinstance(obj, theType):
@@ -388,14 +383,15 @@ def hasType(obj, theType):
 class ReferenceStack(list):
     def push(self):
         self.append(set())
+
     def add(self, item):
         self[-1].add(item)
+
     def __contains__(self, item):
         for s in self:
             if item in s:
                 return True
         return False
-
 
 
 class _Ram(object):
@@ -404,11 +400,14 @@ class _Ram(object):
 
 class _Rom(object):
     __slots__ = ['rom']
+
     def __init__(self, rom):
         self.rom = rom
 
 re_str = re.compile(r"[^%]+")
-re_ConvSpec = re.compile(r"%(?P<justified>[-]?)(?P<width>[0-9]*)(?P<conv>[sd])")
+re_ConvSpec = re.compile(r"%(?P<justified>[-]?)"
+                         "(?P<width>[0-9]*)(?P<conv>[sd])")
+
 
 class ConvSpec(object):
     def __init__(self, **kwargs):
@@ -423,6 +422,7 @@ class ConvSpec(object):
             self.conv = int
 
 defaultConvSpec = ConvSpec(**re_ConvSpec.match(r"%s").groupdict())
+
 
 def _getNritems(obj):
     """Return the number of items in an objects' type"""
@@ -549,7 +549,7 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
                 node.obj = long(0)
         else:
             node.obj = result
-    
+
     def _bitop_size(self, node, l, r):
         if isinstance(node.op, ast.BitAnd):
             node.obj = l & r
@@ -579,7 +579,8 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
                 try:
                     self._truediv_size(node, l, r)
                 except NotImplementedError:
-                    self.raiseError(node, _error.NotSupported, "true division - consider '//'")
+                    self.raiseError(node, _error.NotSupported, "true division"
+                                    " - consider '//'")
             elif isinstance(node.op, ast.Mod):
                 if isinstance(l, string_types):
                     node.obj = long(-1)
@@ -608,7 +609,8 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
             self.visit(n)
         for n in node.values:
             if not hasType(n.obj, bool):
-                self.raiseError(node, _error.NotSupported, "non-boolean argument in logical operator")
+                self.raiseError(node, _error.NotSupported, "non-boolean"
+                                " argument in logical operator")
         node.obj = bool()
 
     def visit_UnaryOp(self, node):
@@ -678,7 +680,7 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
                 _enumTypeSet.add(obj)
                 suf = _genUniqueSuffix.next()
                 obj._setName(n+suf)
-        if node.obj is None: # attribute lookup failed
+        if node.obj is None:  # attribute lookup failed
             self.raiseError(node, _error.UnsupportedAttribute, node.attr)
 
     def visit_Assign(self, node):
@@ -767,36 +769,36 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
             node.obj = self.getVal(node)
         elif f is len:
             self.access = _access.UNKNOWN
-            node.obj = long(0) # XXX
+            node.obj = long(0)  # XXX
         elif f is bool:
             node.obj = bool()
         elif f in _flatten(integer_types, ord):
             try:
-                value = self.getVal
                 if self.getVal(node) < 0:
                     node.obj = long(-1)
                 else:
                     node.obj = long(0)
             except ConversionError:
-                #To have a default value in case the conversion fails.
+                # To have a default value in case the conversion fails.
                 node.obj = long(-1)
-##         elif f in (posedge , negedge):
-##             node.obj = _EdgeDetector()
+        # elif f in (posedge , negedge):
+        #     node.obj = _EdgeDetector()
         elif f is float:
             node.obj = float(-1.0)
         elif f is delay:
             node.obj = delay(0)
-        ### suprize: identity comparison on unbound methods doesn't work in python 2.5??
         elif f == intbv.signed:
             node.obj = int(-1)
         elif f is print:
             argsAreInputs = False
             if hasattr(node, 'keywords'):
                 for keyword in node.keywords:
-                    if keyword.arg =='file':
-                        self.raiseError(node, _error.NotSupported, 'print to file with file= syntax')
-                    elif keyword.arg =='end':
-                        self.raiseError(node, _error.NotSupported, 'print end keyword not support')
+                    if keyword.arg == 'file':
+                        self.raiseError(node, _error.NotSupported, "print to"
+                                        " file with file= syntax")
+                    elif keyword.arg == 'end':
+                        self.raiseError(node, _error.NotSupported, "print"
+                                        " end keyword not support")
             self.visit_Print(node)
         elif f in myhdlObjects:
             pass
@@ -831,7 +833,8 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
             node.obj = tree.returnObj
             node.tree = tree
             tree.argnames = argnames = _get_argnames(tree.body[0])
-            # extend argument list with keyword arguments on the correct position
+            # extend argument list with keyword arguments on the correct
+            # position
             node.args.extend([None]*len(node.keywords))
             for kw in node.keywords:
                 node.args[argnames.index(kw.arg)] = kw.value
@@ -843,7 +846,7 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
                 if n in tree.inputs:
                     self.visit(arg)
         elif type(f) is MethodType:
-            self.raiseError(node,_error.NotSupported, "method call: '%s'" %
+            self.raiseError(node, _error.NotSupported, "method call: '%s'" %
                             fname)
         else:
             debug_info = [e for e in ast.iter_fields(node.func)]
@@ -857,16 +860,21 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
         for n in [node.left] + node.comparators:
             self.visit(n)
         op, arg = node.ops[0], node.comparators[0]
-##         node.expr.target = self.getObj(arg)
-##         arg.target = self.getObj(node.expr)
+        # node.expr.target = self.getObj(arg)
+        # arg.target = self.getObj(node.expr)
         # detect specialized case for the test
         if isinstance(op, ast.Eq) and isinstance(node.left, ast.Name):
             # check wether it can be a case
             val = arg.obj
             if isinstance(val, bool):
-                val = int(val) # cast bool to int first
+                val = int(val)  # cast bool to int first
             if isinstance(val, (EnumItemType, integer_types)):
                 node.case = (node.left, val)
+                if isinstance(arg, ast.Name):
+                    name = arg.id
+                    if (name in self.tree.objlist) and \
+                            (self.tree.symdict[name] == val):
+                        node.case = (node.left, name)
             # check whether it can be part of an edge check
             n = node.left.id
             if n in self.tree.sigdict:
@@ -906,9 +914,11 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
 
         cf = node.iter
         self.visit(cf)
-        self.require(node, isinstance(cf, ast.Call), "Expected (down)range call")
+        self.require(node, isinstance(cf, ast.Call),
+                     "Expected (down)range call")
         f = self.getObj(cf.func)
-        self.require(node, f in (range, downrange), "Expected (down)range call")
+        self.require(node, f in (range, downrange),
+                     "Expected (down)range call")
         if len(cf.args) == 1 or (cf.args[0].obj >= 0 and cf.args[1].obj >= 0):
             self.tree.vardict[var] = 0
         else:
@@ -925,10 +935,13 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
         raise AssertionError("subclass must implement this")
 
     def visit_If(self, node):
+        const_names = False
         if node.ignore:
             return
         for test, suite in node.tests:
             self.visit(test)
+            if hasattr(test, "case") and isinstance(test.case[1], str):
+                const_names = True
             self.refStack.push()
             self.visitList(suite)
             self.refStack.pop()
@@ -960,7 +973,8 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
         node.isCase = True
         node.caseVar = var1
         node.caseItem = item1
-        if node.else_ or (len(choices) == _getNritems(var1.obj)) :
+        if (node.else_ or (len(choices) == _getNritems(var1.obj))) and \
+                (not const_names):
             node.isFullCase = True
 
     def visit_ListComp(self, node):
@@ -975,7 +989,8 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
                 raise
         self.kind = _kind.NORMAL
         mem.elObj = self.getObj(node.elt)
-        if not isinstance(mem.elObj, (intbv, bitarray)) or not len(mem.elObj) > 0:
+        if not isinstance(mem.elObj, (intbv, bitarray)) or \
+                not len(mem.elObj) > 0:
             self.raiseError(node, _error.UnsupportedListComp)
         cf = node.generators[0].iter
         self.visit(cf)
@@ -995,18 +1010,16 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
         else:
             self.getName(node)
 
-    def visit_NameConstant(self, node):
-        node.obj = node.value
-
     def setName(self, node):
         # XXX INOUT access in Store context, unlike with compiler
         # XXX check whether ast context is correct
         n = node.id
-        if self.access == _access.INOUT: # augmented assign
+        if self.access == _access.INOUT:  # augmented assign
             if n in self.tree.sigdict:
                 sig = self.tree.sigdict[n]
                 if isinstance(sig, _Signal):
-                    self.raiseError(node, _error.NotSupported, "Augmented signal assignment")
+                    self.raiseError(node, _error.NotSupported,
+                                    "Augmented signal assignment")
             if n in self.tree.vardict:
                 obj = self.tree.vardict[n]
                 # upgrade bool to int for augmented assignments
@@ -1052,10 +1065,11 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
             elif self.access == _access.UNKNOWN:
                 pass
             else:
-                self.raiseError(node, _error.NotSupported, "Augmented signal assignment")
+                self.raiseError(node, _error.NotSupported,
+                                "Augmented signal assignment")
         if n in self.tree.vardict:
             obj = self.tree.vardict[n]
-            if self.access == _access.INOUT: # probably dead code
+            if self.access == _access.INOUT:  # probably dead code
                 # upgrade bool to int for augmented assignments
                 if isinstance(obj, bool):
                     obj = int(-1)
@@ -1076,7 +1090,8 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
                 elif self.access == _access.UNKNOWN:
                     pass
                 else:
-                    assert False, "unexpected mem access %s %s" % (n, self.access)
+                    assert False, "unexpected mem access %s %s" % \
+                        (n, self.access)
                 self.tree.hasLos = True
             elif isinstance(node.obj, integer_types):
                 node.value = node.obj
@@ -1084,7 +1099,7 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
                 node.value = node.obj
             if n in self.tree.nonlocaldict:
                 # hack: put nonlocal intbv's in the vardict
-                self.tree.vardict[n] = v = node.obj
+                self.tree.vardict[n] = node.obj
         elif n in builtins.__dict__:
             node.obj = builtins.__dict__[n]
         else:
@@ -1123,11 +1138,15 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
                     if m:
                         c = ConvSpec(**m.groupdict())
                         if c.justified != "RIGHT":
-                            self.raiseError(node,_error.UnsupportedFormatString,
-                                            "format justification specification: %s" %s)
+                            self.raiseError(node,
+                                            _error.UnsupportedFormatString,
+                                            "format justification"
+                                            " specification: %s" % s)
                         if c.width != 0:
-                            self.raiseError(node,_error.UnsupportedFormatString,
-                                            "format width specification: %s" %s)
+                            self.raiseError(node,
+                                            _error.UnsupportedFormatString,
+                                            "format width"
+                                            " specification: %s" % s)
                         f.append(c)
                         s = s[m.end():]
                         nr += 1
@@ -1137,7 +1156,8 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
                         f.append(s[:m.end()])
                         s = s[m.end():]
                         continue
-                    self.raiseError(node, _error.UnsupportedFormatString, "%s" % s)
+                    self.raiseError(node, _error.UnsupportedFormatString,
+                                    "%s" % s)
             else:
                 f.append(defaultConvSpec)
                 a.append(n)
@@ -1169,7 +1189,7 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
             self.visit(lower)
         if upper:
             self.visit(upper)
-        if isinstance(node.obj , (intbv, bitarray)):
+        if isinstance(node.obj, (intbv, bitarray)):
             if self.kind == _kind.DECLARATION:
                 self.require(lower, "Expected leftmost index")
                 leftind = self.getVal(lower)
@@ -1200,7 +1220,7 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
         elif isinstance(node.value.obj, (intbv, bitarray)):
             node.obj = bool()
         else:
-            node.obj = bool() # XXX default
+            node.obj = bool()  # XXX default
 
     def visit_Tuple(self, node):
         self.generic_visit(node)
@@ -1221,11 +1241,11 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
         y = node.body[0]
         if isinstance(y, ast.Expr):
             y = y.value
-        if ((PY2 and (node.test.obj == True)) or \
-            ((not PY2) and (self.getObj(node.test) == True))) and \
-           isinstance(y, ast.Yield) and \
-           not self.tree.hasYield > 1 and \
-           not isinstance(self.getObj(y.value), delay):
+        if ((PY2 and (node.test.obj is True)) or
+                ((not PY2) and (self.getObj(node.test) is True))) and \
+                isinstance(y, ast.Yield) and \
+                not self.tree.hasYield > 1 and \
+                not isinstance(self.getObj(y.value), delay):
             node.kind = _kind.ALWAYS
             self.tree.senslist = y.senslist
         self.require(node, not node.orelse, "while-else not supported")
@@ -1274,7 +1294,6 @@ class _AnalyzeBlockVisitor(_AnalyzeVisitor):
                 self.tree.kind = _kind.INITIAL
         self.refStack.pop()
 
-
     def visit_Module(self, node):
         self.generic_visit(node)
         for n in self.tree.outputs:
@@ -1286,17 +1305,15 @@ class _AnalyzeBlockVisitor(_AnalyzeVisitor):
             s = self.tree.sigdict[n]
             s._markRead()
 
-
     def visit_Return(self, node):
-        ### value should be None
+        # value should be None
         if node.value is None:
             pass
         elif isinstance(node.value, ast.Name) and node.value.id == "None":
             pass
         else:
-            self.raiseError(node, _error.NotSupported, "return value other than None")
-
-
+            self.raiseError(node, _error.NotSupported,
+                            "return value other than None")
 
 
 class _AnalyzeAlwaysCombVisitor(_AnalyzeBlockVisitor):
@@ -1305,7 +1322,6 @@ class _AnalyzeAlwaysCombVisitor(_AnalyzeBlockVisitor):
         _AnalyzeBlockVisitor.__init__(self, tree)
         self.tree.senslist = senslist
 
-
     def visit_FunctionDef(self, node):
         self.refStack.push()
         for n in node.body:
@@ -1313,7 +1329,7 @@ class _AnalyzeAlwaysCombVisitor(_AnalyzeBlockVisitor):
         self.tree.kind = _kind.SIMPLE_ALWAYS_COMB
         for n in node.body:
             if isinstance(n, ast.Expr) and isinstance(n.value, ast.Str):
-                continue # skip doc strings
+                continue  # skip doc strings
             if isinstance(n, ast.Assign) and \
                isinstance(n.targets[0], ast.Attribute) and \
                self.getKind(n.targets[0].value) != _kind.REG:
@@ -1327,9 +1343,6 @@ class _AnalyzeAlwaysCombVisitor(_AnalyzeBlockVisitor):
         if self.tree.hasRom:
             self.tree.kind = _kind.ALWAYS_COMB
         self.refStack.pop()
-
-
-
 
     def visit_Module(self, node):
         _AnalyzeBlockVisitor.visit_Module(self, node)
@@ -1351,7 +1364,6 @@ class _AnalyzeAlwaysSeqVisitor(_AnalyzeBlockVisitor):
         self.tree.sigregs = sigregs
         self.tree.varregs = varregs
 
-
     def visit_FunctionDef(self, node):
         self.refStack.push()
         for n in node.body:
@@ -1366,14 +1378,12 @@ class _AnalyzeAlwaysDecoVisitor(_AnalyzeBlockVisitor):
         _AnalyzeBlockVisitor.__init__(self, tree)
         self.tree.senslist = senslist
 
-
     def visit_FunctionDef(self, node):
         self.refStack.push()
         for n in node.body:
             self.visit(n)
         self.tree.kind = _kind.ALWAYS_DECO
         self.refStack.pop()
-
 
 
 class _AnalyzeFuncVisitor(_AnalyzeVisitor):
@@ -1384,7 +1394,6 @@ class _AnalyzeFuncVisitor(_AnalyzeVisitor):
         self.keywords = keywords
         self.tree.hasReturn = False
         self.tree.returnObj = None
-
 
     def visit_FunctionDef(self, node):
         self.refStack.push()
@@ -1414,7 +1423,6 @@ class _AnalyzeFuncVisitor(_AnalyzeVisitor):
             if self.tree.returnObj is None:
                 self.raiseError(node, _error.NotSupported,
                                 "pure function without return value")
-
 
     def visit_Return(self, node):
         self.kind = _kind.DECLARATION
@@ -1449,9 +1457,13 @@ class _AnalyzeFuncVisitor(_AnalyzeVisitor):
 
 
 ismethod = inspect.ismethod
+
+
 # inspect doc is wrong: ismethod checks both bound and unbound methods
 def isboundmethod(m):
-    return ismethod(m) and m.__self__ is not None
+    method = ismethod(m)
+    method_self = hasattr(m, '__self__') and m.__self__ is not None
+    return method and method_self
 
 
 def _analyzeTopFunc(top_inst, func, *args, **kwargs):
@@ -1464,22 +1476,27 @@ def _analyzeTopFunc(top_inst, func, *args, **kwargs):
         if not isinstance(obj, _Signal):
             objs.append((name, obj))
 
-    #create ports for any signal in the top instance if it was buried in an
-    #object passed as in argument
-    #TODO: This will not work for nested objects in the top level
+    # create ports for any signal in the top instance if it was buried in an
+    # object passed as in argument
+    # TODO: This will not work for nested objects in the top level
     for name, obj in objs:
-        if not hasattr(obj, '__dict__'):
-            continue
-        for attr, attrobj in sorted(vars(obj).items()):
-            if isinstance(attrobj, _Signal):
-                signame = attrobj._name
-                if not signame:
-                    signame = name + '_' + attr
-                    attrobj._name = signame
-                v.argdict[signame] = attrobj
-                v.argnames.append(signame)
+        if _isMem(obj):
+            m = _getMemInfo(obj)
+            m.name = name
+            v.argdict[name] = m
+            v.argnames.append(name)
+        elif hasattr(obj, '__dict__'):
+            for attr, attrobj in vars(obj).items():
+                if isinstance(attrobj, _Signal):
+                    signame = attrobj._name
+                    if not signame:
+                        signame = name + '_' + attr
+                        attrobj._name = signame
+                    v.argdict[signame] = attrobj
+                    v.argnames.append(signame)
 
     return v
+
 
 class _AnalyzeTopFuncVisitor(_AnalyzeVisitor):
 
@@ -1494,7 +1511,6 @@ class _AnalyzeTopFuncVisitor(_AnalyzeVisitor):
         self.argnames = []
 
     def visit_FunctionDef(self, node):
-
         self.name = node.name
         self.argnames = _get_argnames(node)
         if isboundmethod(self.func):
@@ -1503,20 +1519,23 @@ class _AnalyzeTopFuncVisitor(_AnalyzeVisitor):
                                 "first method argument name other than 'self'")
             # skip self
             self.argnames = self.argnames[1:]
-        i=-1
+            self.args = self.args[1:]
+        i = -1
         for i, arg in enumerate(self.args):
             n = self.argnames[i]
             self.fullargdict[n] = arg
             if isinstance(arg, _Signal):
                 self.argdict[n] = arg
-            if _isMem(arg):
-                self.raiseError(node, _error.ListAsPort, n)
+            elif _isMem(arg):
+                pass
+                # self.raiseError(node, _error.ListAsPort, n)
         for n in self.argnames[i+1:]:
             if n in self.kwargs:
                 arg = self.kwargs[n]
                 self.fullargdict[n] = arg
                 if isinstance(arg, _Signal):
                     self.argdict[n] = arg
-                if _isMem(arg):
-                    self.raiseError(node, _error.ListAsPort, n)
+                elif _isMem(arg):
+                    pass
+                    # self.raiseError(node, _error.ListAsPort, n)
         self.argnames = [n for n in self.argnames if n in self.argdict]

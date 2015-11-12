@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
-from myhdl import *
+from myhdl import Signal, intbv, always_comb, conversion
+
 
 def constants(v, u, x, y, z, a):
 
@@ -20,10 +21,10 @@ def constants(v, u, x, y, z, a):
     return logic
 
 
-x, y, z, a  = [Signal(bool(0)) for i in range(4)]
+x, y, z, a = [Signal(bool(0)) for i in range(4)]
 u = Signal(intbv(0)[8:])
 v = Signal(intbv(0, min=-3, max=9))
 
+
 def test_constants():
-    assert conversion.analyze(constants, v, u, x, y, z, a) == 0 
-        
+    assert conversion.analyze(constants, v, u, x, y, z, a) == 0

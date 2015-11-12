@@ -41,7 +41,7 @@ import myhdl
 from myhdl import *
 from myhdl._compat import integer_types, class_types, PY2
 from myhdl import ToVerilogError, ToVerilogWarning
-from myhdl._extractHierarchy import (_HierExtr, _isMem, _getMemInfo,
+from myhdl._extractHierarchy import (_HierExtr, _isMem, _getMemInfo, _MemInfo,
                                      _UserVerilogCode, _userCodeMap)
 
 from myhdl._instance import _Instantiator
@@ -246,9 +246,11 @@ def _writeModuleHeader(f, intf, doc):
     print(file=f)
     for portname in intf.argnames:
         s = intf.argdict[portname]
+        if isinstance(s, _MemInfo):
+            raise ToVerilogError(_error.ListAsPort, portname)
         if s._name is None:
             raise ToVerilogError(_error.ShadowingSignal, portname)
-        if s._inList:
+        if s._inList is not None:
             raise ToVerilogError(_error.PortInList, portname)
         # make sure signal name is equal to its port name
         s._name = portname
@@ -950,6 +952,8 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
             if isinstance(item, EnumItemType):
                 self.write(item._toVerilog(dontcare=True))
             else:
+                if isinstance(item, str):
+                    item = self.tree.symdict[item]
                 self.write(self.IntRepr(item, radix='hex'))
             self.write(": begin")
             self.indent()
