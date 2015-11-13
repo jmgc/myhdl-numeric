@@ -1757,7 +1757,7 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
     def writeDeclarations(self):
         if self.tree.hasPrint:
             self.writeline()
-            self.write("variable L: line;")
+            self.write("variable print: line;")
         for name, obj in self.tree.vardict.items():
             if isinstance(obj, _loopInt):
                 continue  # hack for loop vars
@@ -2560,7 +2560,7 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
         argnr = 0
         for s in node.format:
             if isinstance(s, str):
-                self.write('write(L, string\'("%s"));' % s)
+                self.write('write(print, string\'("%s"));' % s)
             else:
                 a = node.args[argnr]
                 argnr += 1
@@ -2573,7 +2573,7 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
                         a.vhd = vhd_boolean()
                     elif isinstance(a.vhdOri, vhd_enum):
                         a.vhd = vhd_string()
-                self.write("write(L, ")
+                self.write("write(print, ")
                 self.context = _context.PRINT
                 self.visit(a)
                 self.context = None
@@ -2584,7 +2584,7 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
                 self.write(")")
                 self.write(';')
             self.writeline()
-        self.write("writeline(output, L);")
+        self.write("writeline(output, print);")
 
     def visit_Raise(self, node):
         self.write('assert False report "End of Simulation" severity Failure;')
