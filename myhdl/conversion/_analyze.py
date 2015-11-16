@@ -528,7 +528,7 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
                     r_val = r.min
                 r_obj = type(r)(r_val, r)
             else:
-                r_obj = r
+                r_obj = type(r)(1)
         else:
             r_obj = r
         result = l % r_obj
