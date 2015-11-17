@@ -28,55 +28,56 @@ from myhdl._compat import long, integer_types, bit_length
 
 import unittest
 from unittest import TestCase
-import random
-from random import randrange
-random.seed(2)  # random, but deterministic
-maxint = sys.maxsize
 import operator
 from copy import copy, deepcopy
 
 from myhdl import sfixba, fixmath
-from myhdl import uintba
 from myhdl import sintba
-from myhdl import bitarray
-from myhdl import EnumItemType
-from math import floor, ceil, fmod, modf, ldexp, copysign
+from math import floor, fmod, ldexp
 from decimal import Decimal, ROUND_HALF_EVEN
-import warnings
 
-def truediv_round(value, format):
+import warnings
+import random
+from random import randrange
+
+random.seed(2)  # random, but deterministic
+maxint = sys.maxsize
+
+
+def truediv_round(value, value_format):
     if value < 0:
         neg = True
         tmp = -value
     else:
         neg = False
         tmp = value
-    
-    tmp = ldexp(floor(ldexp(tmp, -format.low + format.guard_bits)),
-                -format.guard_bits)
+
+    tmp = ldexp(floor(ldexp(tmp, -value_format.low + value_format.guard_bits)),
+                -value_format.guard_bits)
     str_tmp = '{0:.4f}'.format(tmp)
     d = Decimal(str_tmp).quantize(0, rounding=ROUND_HALF_EVEN)
-    tmp = ldexp(float(d), format.low)
+    tmp = ldexp(float(d), value_format.low)
     if neg:
         return -tmp
     else:
         return tmp
 
-def resize(value, format):
+
+def resize(value, value_format):
     val = float(value)
-    lim = ldexp(1.0, format.high - 1)
-    margin = ldexp(1.0, format.high)
-    
+    lim = ldexp(1.0, value_format.high - 1)
+    margin = ldexp(1.0, value_format.high)
+
     rounding = False
-    
-    if format.overflow == fixmath.overflows.saturate:
+
+    if value_format.overflow == fixmath.overflows.saturate:
         if val >= lim:
-            val = lim - ldexp(1.0, format.low)
+            val = lim - ldexp(1.0, value_format.low)
         elif val < -lim:
             val = -lim
         else:
             rounding = True
-    elif format.overflow == fixmath.overflows.wrap:
+    elif value_format.overflow == fixmath.overflows.wrap:
         if val < -lim or val >= lim:
             val = fmod(val, margin)
         if val < -lim:
@@ -85,28 +86,28 @@ def resize(value, format):
             val -= margin
         rounding = True
 
-    if rounding and format.rounding == fixmath.roundings.round:
-        tmp = ldexp(val, -format.low)
+    if rounding and value_format.rounding == fixmath.roundings.round:
+        tmp = ldexp(val, -value_format.low)
         str_tmp = '{0:.4f}'.format(tmp)
         d = Decimal(str_tmp).quantize(0, rounding=ROUND_HALF_EVEN)
         rtmp = float(d)
         if (rtmp == 0.0) and tmp < 0 and tmp > -0.25:
-            val = ldexp(-1.0, format.low)
+            val = ldexp(-1.0, value_format.low)
         else:
-            val = ldexp(rtmp, format.low)
-    elif format.rounding == fixmath.roundings.truncate:
-        tmp = ldexp(val, -format.low)
+            val = ldexp(rtmp, value_format.low)
+    elif value_format.rounding == fixmath.roundings.truncate:
+        tmp = ldexp(val, -value_format.low)
         tmp = float(floor(tmp))
-        val = ldexp(tmp, format.low) 
+        val = ldexp(tmp, value_format.low)
 
-    
     if isinstance(value, integer_types):
         return long(val)
     else:
         return val
 
-def wrap(val, format):
-    length = format._high - format._low
+
+def wrap(val, value_format):
+    length = value_format._high - value_format._low
     lim = long(1) << (length - 1)
     if val & lim:
         tmp = long(-1)
@@ -116,6 +117,7 @@ def wrap(val, format):
     val &= wrap
     tmp &= ~wrap
     return tmp | val
+
 
 class TestSFixBaInit(TestCase):
     def testDefaultValue(self):
@@ -136,7 +138,7 @@ class TestSFixBaInit(TestCase):
         self.assertEqual(value.low, 0, "Wrong low value")
         self.assertEqual(value.max, 8, "Wrong maximum value")
         self.assertEqual(value.min, -8, "Wrong minimum value")
-        self.assertEqual(str(value), "0101", "Wrong binary string " \
+        self.assertEqual(str(value), "0101", "Wrong binary string "
                          "high={0}, low={1}".format(value.high, value.low))
 
     def testMIntValue(self):
@@ -147,7 +149,7 @@ class TestSFixBaInit(TestCase):
         self.assertEqual(value.low, 0, "Wrong low value")
         self.assertEqual(value.max, 8, "Wrong maximum value")
         self.assertEqual(value.min, -8, "Wrong minimum value")
-        self.assertEqual(str(value), "1011", "Wrong binary string " \
+        self.assertEqual(str(value), "1011", "Wrong binary string "
                          "high={0}, low={1}".format(value.high, value.low))
 
     def testIntPLowValue(self):
@@ -255,13 +257,16 @@ class TestSFixBaInit(TestCase):
                    "+0x16a09e667f3bcd0.",
                    "+0x2d413cccfe779a0.",
                    "-0x1.6a09e667f3bcd")
-        for i, f_value, i_value, b, h in zip(cases, f_values, i_values, b_check, h_check):
+        for i, f_value, i_value, b, h in zip(cases, f_values, i_values,
+                                             b_check, h_check):
             value = sfixba(f_value)
             self.assertEqual(value.internal, i_value)
             self.assertEqual(value.high, 2 + i, "Wrong high value")
             self.assertEqual(value.low, -52 + i, "Wrong low value")
-            self.assertEqual(value.max, 9007199254740992, "Wrong maximum value")
-            self.assertEqual(value.min, -9007199254740992, "Wrong minimum value")
+            self.assertEqual(value.max, 9007199254740992,
+                             "Wrong maximum value")
+            self.assertEqual(value.min, -9007199254740992,
+                             "Wrong minimum value")
             self.assertEqual(value.bin(), b,
                              "Wrong binary string, {0}".format(i))
             self.assertEqual(value.hex(), h,
@@ -273,11 +278,12 @@ class TestSFixBaInit(TestCase):
                     check = resize(f_value, data)
                     if float(data) != check:
                         check = resize(f_value, data)
-                    self.assertEqual(float(data), check, "value: {0}, " \
-                                     "fix: {1}, float(fix): {2}, float: {3}, " \
-                                     "high:{4}, low: {5}".format( f_value, data,
-                                                                float(data),
-                                                                check, j, k))
+                    self.assertEqual(float(data), check, "value: {0}, "
+                                     "fix: {1}, float(fix): {2}, float: {3}, "
+                                     "high:{4}, low: {5}".format(f_value,
+                                                                 data,
+                                                                 float(data),
+                                                                 check, j, k))
 
     def testResize(self):
         for delta in range(-5, 0):
@@ -286,16 +292,16 @@ class TestSFixBaInit(TestCase):
                     for k in range(-128, 128):
                         f_value = ldexp(k, delta)
                         value = sfixba(k).scalb(delta)
-             
+
                         data = value.resize(i, j)
                         check = resize(f_value, data)
-                        self.assertEqual(data, check, "integer: {0}, " \
-                                         "delta: {1}, i: {2}, " \
-                                         "j: {3}, data: {4}, " \
+                        self.assertEqual(data, check, "integer: {0}, "
+                                         "delta: {1}, i: {2}, "
+                                         "j: {3}, data: {4}, "
                                          "float: {5}".format(k, delta, i,
-                                                            j,
-                                                            data,
-                                                            check))
+                                                             j,
+                                                             data,
+                                                             check))
 
     def testFloatPLowValue(self):
         warnings.filterwarnings('error')
@@ -303,7 +309,8 @@ class TestSFixBaInit(TestCase):
         low = 3
         value = sfixba(f_value, low=low)
         i_value = int(round(f_value*(2.0 ** -low)))
-        self.assertEqual(value.internal,  i_value, "Wrong value {0}, {1}".format(value, i_value))
+        self.assertEqual(value.internal,  i_value,
+                         "Wrong value {0}, {1}".format(value, i_value))
         self.assertEqual(value.high, 6, "Wrong high value")
         self.assertEqual(value.low, 3, "Wrong low value")
         self.assertEqual(value.max, 4, "Wrong maximum value")
@@ -325,17 +332,17 @@ class TestSFixBaInit(TestCase):
         for guard_bits in range(1, 6):
             step = 5 ** guard_bits
             scale = 10 ** guard_bits
-            maths=fixmath(rounding=fixmath.roundings.round,
-                          guard_bits=guard_bits)
+            maths = fixmath(rounding=fixmath.roundings.round,
+                            guard_bits=guard_bits)
             for i in range(-10 * scale, 10 * scale, step):
                 f = i/float(scale)
                 value = sfixba(f, high=7, low=0, maths=maths)
                 check = resize(f, value)
                 self.assertEqual(value, check,
-                                 "Incorrect rounding: " \
+                                 "Incorrect rounding: "
                                  "{0}, {1}, {2}, {3}".format(f, check.hex(),
-                                                         value.hex(),
-                                                         guard_bits))
+                                                             value.hex(),
+                                                             guard_bits))
                 self.assertEqual(value.high, 7, "Wrong high value")
                 self.assertEqual(value.low, 0, "Wrong low value")
                 self.assertEqual(value.max, 64, "Wrong maximum value")
@@ -343,7 +350,7 @@ class TestSFixBaInit(TestCase):
 
     def testSFixBaRoundingValue(self):
         warnings.filterwarnings('error')
-        maths=fixmath(rounding=fixmath.roundings.round)
+        maths = fixmath(rounding=fixmath.roundings.round)
         for i in range(-2000, 2000, 125):
             f = i/1000.
             f_value = sfixba(f, high=7, low=-8)
@@ -360,17 +367,16 @@ class TestSFixBaInit(TestCase):
 
     def testFloatTruncateValue(self):
         warnings.filterwarnings('error')
-        maths=fixmath(rounding=fixmath.roundings.truncate)
+        maths = fixmath(rounding=fixmath.roundings.truncate)
         for i in range(-2000, 2000):
             f = (int((i/1000.)*8)/8.)
             value = sfixba(f, high=7, low=0, maths=maths)
-            check = int(ldexp(f, 4))>>4
+            check = int(ldexp(f, 4)) >> 4
             if value != check:
                 value = sfixba(f, high=7, low=0, maths=maths)
             self.assertEqual(value, check,
-                             "Incorrect truncate: {0}, {1}, {2}".format(f.hex(),
-                                                                     hex(check),
-                                                                     value.hex()))
+                             "Incorrect truncate: {0}, {1}, {2}"
+                             .format(f.hex(), hex(check), value.hex()))
             self.assertEqual(value.high, 7, "Wrong high value")
             self.assertEqual(value.low, 0, "Wrong low value")
             self.assertEqual(value.max, 64, "Wrong maximum value")
@@ -389,7 +395,7 @@ class TestSFixBaInit(TestCase):
             else:
                 r = i
             self.assertEqual(value, r,
-                             "Incorrect saturation: " \
+                             "Incorrect saturation: "
                              "sat({0})={1}, {2}".format(i, r, value.hex()))
             self.assertEqual(value.high, 5, "Wrong high value")
             self.assertEqual(value.low, 0, "Wrong low value")
@@ -409,12 +415,9 @@ class TestSFixBaInit(TestCase):
                 r = -16
             else:
                 r = i
-            
-            if not value == r:
-                value == r
-                value != r
+
             self.assertEqual(value, r,
-                             "Incorrect saturation: " \
+                             "Incorrect saturation: "
                              "sat({0})={1}, {2}".format(i, r, value.hex()))
             self.assertEqual(value.high, 5, "Wrong high value")
             self.assertEqual(value.low, 0, "Wrong low value")
@@ -451,21 +454,22 @@ class TestSFixBaInit(TestCase):
         self.assertEqual(value.low, -17, "Wrong low value")
         self.assertEqual(value.hex(), "+0x00000.cd9c0")
 
+
 def getItem(s, i):
     ext = '0' * (i - len(s) + 1)
     exts = ext + s
     si = len(exts) - 1 - i
     return exts[si]
-  
-  
+
+
 def getSlice(s, i, j):
     ext = '0' * (i - len(s) + 1)
     exts = ext + s
     si = len(exts) - i
     sj = len(exts) - j
     return exts[si:sj]
-  
-  
+
+
 def getSliceLeftOpen(s, j):
     ext = '0' * (j - len(s) + 1)
     exts = ext + s
@@ -473,29 +477,29 @@ def getSliceLeftOpen(s, j):
         return exts[:-j]
     else:
         return exts
-  
-  
+
+
 def setItem(s, i, val):
     ext = '0' * (i - len(s) + 1)
     exts = ext + s
     si = len(exts) - 1 - i
     return exts[:si] + val + exts[si + 1:]
-  
-  
+
+
 def setSlice(s, i, j, val):
     ext = '0' * (i - len(s) + 1)
     exts = ext + s
     si = len(exts) - i
     sj = len(exts) - j
     return exts[:si] + val[si - sj:] + exts[sj:]
-  
-  
+
+
 def setSliceLeftOpen(s, j, val):
     return setSlice(s, len(s), j, val)
-  
-  
+
+
 class TestSFixBaIndexing(TestCase):
-  
+
     def seqsSetup(self):
         seqs = ["0", "1", "000", "111", "010001", "110010010",
                 "011010001110010"]
@@ -509,7 +513,7 @@ class TestSFixBaIndexing(TestCase):
         seqv.append("0110101001111010101110011010011")
         seqv.append("1101101010101101010101011001101101001100110011")
         self.seqv = seqv
-  
+
     def testGetItem(self):
         warnings.filterwarnings('error')
         self.seqsSetup()
@@ -526,7 +530,7 @@ class TestSFixBaIndexing(TestCase):
                 self.assertEqual(type(res), bool)
                 self.assertEqual(resi, ref ^ 1)
                 self.assertEqual(type(resi), bool)
-  
+
     def testGetSlice(self):
         warnings.filterwarnings('error')
         self.seqsSetup()
@@ -548,7 +552,7 @@ class TestSFixBaIndexing(TestCase):
                     self.assertEqual(type(res), sfixba)
                     self.assertEqual(resi, wrap(~ref, resi))
                     self.assertEqual(type(resi), sfixba)
-  
+
     def testGetSliceLeftOpen(self):
         warnings.filterwarnings('error')
         self.seqsSetup()
@@ -564,12 +568,12 @@ class TestSFixBaIndexing(TestCase):
                 self.assertEqual(type(res), sfixba)
                 if res_sum != -1:
                     resi + ref
-                self.assertEqual(res_sum, -1, "Incorrect " \
-                                 "result: " + \
+                self.assertEqual(res_sum, -1, "Incorrect "
+                                 "result: " +
                                  "{0}, {1}, {2}".format(repr(resi),
-                                                     repr(ref), -1))
+                                                        repr(ref), -1))
                 self.assertEqual(type(res), sfixba)
-  
+
     def testSetItem(self):
         warnings.filterwarnings('error')
         self.seqsSetup()
@@ -594,7 +598,7 @@ class TestSFixBaIndexing(TestCase):
                     self.assertEqual(ba1, ref1)
                     self.assertEqual(ba0i, ref0i)
                     self.assertEqual(ba1i, ref1i)
-  
+
     def testSetSlice(self):
         warnings.filterwarnings('error')
         self.seqsSetup()
@@ -615,9 +619,9 @@ class TestSFixBaIndexing(TestCase):
                             ba[i:j] = val
                         except RuntimeWarning:
                             if isinstance(val, integer_types):
-                                self.assertTrue((bit_length(val) > (i - j)) \
-                                                or (bit_length(-1 - val) > \
-                                                    (i - j)))
+                                self.assertTrue((bit_length(val) > (i - j)) or
+                                                (bit_length(-1 - val) >
+                                                 (i - j)))
                             else:
                                 self.assertTrue((len(val) != (i - j)) or \
                                                 (len(-1 - val) != (i - j)))
@@ -628,7 +632,7 @@ class TestSFixBaIndexing(TestCase):
                                 ba[i:j] = val
                                 str(ba)
                             self.assertEqual(ba, ref)
-  
+
     def testSetSliceLeftOpen(self):
         warnings.filterwarnings('error')
         self.seqsSetup()
@@ -647,29 +651,29 @@ class TestSFixBaIndexing(TestCase):
                         bai[:j] = -1 - val
                     except RuntimeWarning:
                         if isinstance(val, integer_types):
-                            self.assertTrue((bit_length(val) > \
-                                             (ba.high - j)) or \
-                                            (bit_length(-1-val) > \
+                            self.assertTrue((bit_length(val) >
+                                             (ba.high - j)) or
+                                            (bit_length(-1-val) >
                                              (bai.high - j - 1)))
                         else:
-                            self.assertTrue((len(val) != (ba.high - j)) or \
+                            self.assertTrue((len(val) != (ba.high - j)) or
                                             (len(-1-val) != (bai.high - j)))
                     else:
                         ref = long(setSliceLeftOpen(s, j, v), 2)
                         self.assertEqual(ba, wrap(ref, ba),
-                                         "Different value: " + \
+                                         "Different value: " +
                                          "{0}, {1}".format(ba, ref))
                         refi = ~long(setSliceLeftOpen(s, j, v), 2)
                         self.assertEqual(bai, wrap(refi, bai),
-                                         "Different value: " + \
+                                         "Different value: " +
                                          "{0}, {1}".format(bai, refi))
-  
-  
+
+
 class TestSFixBaAsInt(TestCase):
-   
+
     def seqSetup(self, imin, imax, jmin=0, jmax=None):
         seqi = [imin, imin, 12, 34]
-        seqj = [jmin, 12  , jmin, 34]
+        seqj = [jmin, 12, jmin, 34]
         if not imax and not jmax:
             l = 222222222
             seqi.append(l)
@@ -699,7 +703,7 @@ class TestSFixBaAsInt(TestCase):
             seqj.append(j)
         self.seqi = seqi
         self.seqj = seqj
- 
+
     def binaryMathCheck(self, op, imin=0, imax=None, jmin=0, jmax=None):
         warnings.filterwarnings('error')
         self.seqSetup(imin=imin, imax=imax, jmin=jmin, jmax=jmax)
@@ -714,15 +718,19 @@ class TestSFixBaAsInt(TestCase):
                     r1 = op(bi, j)
                     self.assertEqual(type(r1), sfixba)
                     self.assertEqual(r1, ref1,
-                                     "Different results " \
-                                     "{0} {1} {2} = {3}, {4}".format(int(bi), op, j,
-                                                                int(r1), ref1))
+                                     "Different results "
+                                     "{0} {1} {2} = {3}, {4}".format(int(bi),
+                                                                     op, j,
+                                                                     int(r1),
+                                                                     ref1))
                     r2 = op(i, bj)
                     self.assertEqual(type(r2), sfixba)
                     self.assertEqual(r2, ref2,
-                                     "Different results " \
-                                     "{0} {1} {2} = {3}, {4}".format(i, op, int(bj),
-                                                                int(r2), ref2))
+                                     "Different results "
+                                     "{0} {1} {2} = {3}, {4}".format(i, op,
+                                                                     int(bj),
+                                                                     int(r2),
+                                                                     ref2))
                 except TypeError:
                     self.assertTrue(op in (operator.truediv,
                                            operator.pow))
@@ -730,9 +738,11 @@ class TestSFixBaAsInt(TestCase):
                     r3 = op(bi, bj)
                     self.assertEqual(type(r3), sfixba)
                     self.assertEqual(r3, resize(ref3, r3),
-                                     "Different results " \
-                                     "{0} {1} {2} = {3}, {4}".format(bi, op, bj,
-                                                                int(r3), ref3))
+                                     "Different results "
+                                     "{0} {1} {2} = {3}, {4}".format(bi, op,
+                                                                     bj,
+                                                                     int(r3),
+                                                                     ref3))
             except TypeError:
                 self.assertTrue(op in (operator.truediv, operator.itruediv,
                                        operator.pow, operator.ipow))
@@ -750,27 +760,27 @@ class TestSFixBaAsInt(TestCase):
                 op(bi, j)
             self.assertEqual(type(r1), sfixba)
             self.assertEqual(r1, ref1,
-                             "Different results " \
+                             "Different results "
                              "{0} {1} {2} = {3}, {4}".format(float(bi),
-                                                        op, j,
-                                                        float(r1),
-                                                        ref1))
+                                                             op, j,
+                                                             float(r1),
+                                                             ref1))
             r2 = op(i, bj)
             ref2 = truediv_round(op(long(i), resize(j, bi)), r2)
             self.assertEqual(type(r2), sfixba)
             self.assertEqual(r2, ref2,
-                             "Different results " \
+                             "Different results "
                              "{0} {1} {2} = {3}, {4}".format(i, op,
-                                                        int(bj),
-                                                        int(r2),
-                                                        ref2))
+                                                             int(bj),
+                                                             int(r2),
+                                                             ref2))
             r3 = op(bi, bj)
             ref3 = truediv_round(op(long(i), j), r3)
             self.assertEqual(type(r3), sfixba)
             self.assertEqual(r3, resize(ref3, r3),
-                             "Different results " \
+                             "Different results "
                              "{0} {1} {2} = {3}, {4}".format(bi, op, bj,
-                                                        int(r3), ref3))
+                                                             int(r3), ref3))
         warnings.resetwarnings()
 
     def binaryShiftCheck(self, op, imin=0, imax=None, jmin=0, jmax=None):
@@ -783,25 +793,25 @@ class TestSFixBaAsInt(TestCase):
             r1 = op(bi, j)
             self.assertEqual(type(r1), sfixba)
             self.assertEqual(r1, ref,
-                             "Different results " \
+                             "Different results "
                              "{0} {1} {2} = {3}, {4}".format(bi, op, j,
-                                                        r1, ref))
+                                                             r1, ref))
             try:
                 r2 = op(bi, bj)
             except:
                 pass
             else:
-                self.fail("Shifting of an sfixba by an sfixba should not " \
+                self.fail("Shifting of an sfixba by an sfixba should not "
                           "pass")
             try:
                 r3 = op(i, bj)
             except:
                 pass
             else:
-                self.fail("Shifting of an integer by an sfixba should not " \
+                self.fail("Shifting of an integer by an sfixba should not "
                           "pass")
         warnings.resetwarnings()
-   
+
     def binaryLogicalCheck(self, op, imin=0, imax=None, jmin=0, jmax=None):
         warnings.filterwarnings('error')
         self.seqSetup(imin=imin, imax=imax, jmin=jmin, jmax=jmax)
@@ -814,25 +824,25 @@ class TestSFixBaAsInt(TestCase):
                 op(bi, bj)
             self.assertEqual(type(r1), sfixba)
             self.assertEqual(r1, ref,
-                             "Different results " \
+                             "Different results "
                              "{0} {1} {2} = {3}, {4}".format(bi, op, j,
-                                                        r1, ref))
+                                                             r1, ref))
             try:
                 r2 = op(bi, j)
             except:
                 pass
             else:
-                self.fail("Logical between an sfixba and an int should not " \
+                self.fail("Logical between an sfixba and an int should not "
                           "pass")
             try:
                 r3 = op(i, bj)
             except:
                 pass
             else:
-                self.fail("Logical between an int and an sfixba should not " \
+                self.fail("Logical between an int and an sfixba should not "
                           "pass")
         warnings.resetwarnings()
-   
+
     def augmentedMathAssignCheck(self, op, imin=0, imax=None,
                                  jmin=0, jmax=None):
         warnings.filterwarnings('error')
@@ -867,11 +877,11 @@ class TestSFixBaAsInt(TestCase):
                 self.assertTrue(len(r3) != len(bj))
             except TypeError:
                 self.assertTrue(op in (operator.truediv, operator.itruediv,
-                                    operator.pow, operator.ipow))
+                                       operator.pow, operator.ipow))
         warnings.resetwarnings()
 
     def augmentedTrueDivAssignCheck(self, op, imin=0, imax=None,
-                                 jmin=0, jmax=None):
+                                    jmin=0, jmax=None):
         warnings.filterwarnings('error')
         self.seqSetup(imin=imin, imax=imax, jmin=jmin, jmax=jmax)
         for i, j in zip(self.seqi, self.seqj):
@@ -904,7 +914,7 @@ class TestSFixBaAsInt(TestCase):
                 self.assertTrue(len(r3) != len(bj))
             except TypeError:
                 self.assertTrue(op in (operator.truediv, operator.itruediv,
-                                    operator.pow, operator.ipow))
+                                       operator.pow, operator.ipow))
         warnings.resetwarnings()
 
     def augmentedShiftAssignCheck(self, op, imin=0, imax=None,
@@ -941,7 +951,7 @@ class TestSFixBaAsInt(TestCase):
                 self.assertTrue(len(r3) != len(bj))
             except TypeError:
                 self.assertTrue(op in (operator.truediv, operator.itruediv,
-                                    operator.pow, operator.ipow))
+                                       operator.pow, operator.ipow))
         warnings.resetwarnings()
 
     def augmentedLogicalAssignCheck(self, op, imin=0, imax=None,
@@ -978,7 +988,7 @@ class TestSFixBaAsInt(TestCase):
                 self.assertTrue(len(r3) != len(bj))
             except TypeError:
                 self.assertTrue(op in (operator.truediv, operator.itruediv,
-                                    operator.pow, operator.ipow))
+                                       operator.pow, operator.ipow))
         warnings.resetwarnings()
 
     def unaryCheck(self, op, imin=0, imax=None):
@@ -989,7 +999,7 @@ class TestSFixBaAsInt(TestCase):
             r1 = op(bi)
             self.assertEqual(type(r1), sfixba)
             self.assertEqual(r1, ref)
-   
+
     def conversionCheck(self, op, imin=0, imax=None):
         self.seqSetup(imin=imin, imax=imax)
         for i in self.seqi:
@@ -998,7 +1008,7 @@ class TestSFixBaAsInt(TestCase):
             r1 = op(bi)
             self.assertEqual(type(r1), type(ref))
             self.assertEqual(r1, ref)
-   
+
     def comparisonCheck(self, op, imin=0, imax=None, jmin=0, jmax=None):
         self.seqSetup(imin=imin, imax=imax, jmin=jmin, jmax=jmax)
         for i, j in zip(self.seqi, self.seqj):
@@ -1010,148 +1020,146 @@ class TestSFixBaAsInt(TestCase):
             r1 = op(bi, j)
             r2 = op(i, bj)
             r3 = op(bi, bj)
-            self.assertEqual(r1, op(i, rj), "bi, j, i, rj: " \
+            self.assertEqual(r1, op(i, rj), "bi, j, i, rj: "
                              "{0}, {1}, {2}, {3}".format(bi, j, i, rj))
-            self.assertEqual(r2, op(ri, j), "i, bj, ri, j: " \
+            self.assertEqual(r2, op(ri, j), "i, bj, ri, j: "
                              "{0}, {1}, {2}, {3}".format(i, bj, ri, j))
-            self.assertEqual(r3, ref, "bi, bj, i, j: " \
+            self.assertEqual(r3, ref, "bi, bj, i, j: "
                              "{0}, {1}, {2}, {3}".format(bi, bj, i, j))
-   
+
     def testAdd(self):
         self.binaryMathCheck(operator.add, imin=-512, imax=512,
                              jmin=-512, jmax=512)
-   
+
     def testSub(self):
         self.binaryMathCheck(operator.sub, imin=-512, imax=512,
                              jmin=-512, jmax=512)
-   
+
     def testMul(self):
         self.binaryMathCheck(operator.mul, imin=-512, imax=512,
-                             jmin=-512, jmax=512)  # XXX doesn't work for long i???
-   
+                             jmin=-512, jmax=512)
+
     def testTrueDiv(self):
         self.binaryTrueDivCheck(operator.truediv, imin=-512, imax=512,
-                             jmin=1, jmax=512)
+                                jmin=1, jmax=512)
         self.binaryTrueDivCheck(operator.truediv, imin=-512, imax=512,
-                             jmin=-512, jmax=-1)
-   
+                                jmin=-512, jmax=-1)
+
     def testFloorDiv(self):
         self.binaryMathCheck(operator.floordiv, imin=-512, imax=512,
                              jmin=1, jmax=512)
         self.binaryMathCheck(operator.floordiv, imin=-512, imax=512,
                              jmin=-512, jmax=-1)
-   
+
     def testMod(self):
         self.binaryMathCheck(operator.mod, imin=-512, imax=512,
                              jmin=1, jmax=512)
         self.binaryMathCheck(operator.mod, imin=-512, imax=512,
                              jmin=-512, jmax=-1)
-   
+
     def testPow(self):
         self.binaryMathCheck(operator.pow, imin=-512, imax=-1,
                              jmin=-8, jmax=8)
         self.binaryMathCheck(operator.pow, imin=1, imax=512,
                              jmin=-8, jmax=8)
-   
+
     def testLShift(self):
         self.binaryShiftCheck(operator.lshift, imin=-512, imax=512,
-                                jmin=0, jmax=32)
-   
+                              jmin=0, jmax=32)
+
     def testRShift(self):
         self.binaryShiftCheck(operator.rshift, imin=-512, imax=512,
-                                jmin=0, jmax=32)
-   
+                              jmin=0, jmax=32)
+
     def testAnd(self):
         self.binaryLogicalCheck(operator.and_, imin=-512, imax=512,
                                 jmin=-512, jmax=512)
-   
+
     def testOr(self):
         self.binaryLogicalCheck(operator.or_, imin=-512, imax=512,
                                 jmin=-512, jmax=512)
-   
+
     def testXor(self):
         self.binaryLogicalCheck(operator.xor, imin=-512, imax=512,
                                 jmin=-512, jmax=512)
-   
+
     def testIAdd(self):
         self.augmentedMathAssignCheck(operator.iadd, imin=-512, imax=512,
                                       jmin=-512, jmax=512)
-   
+
     def testISub(self):
         self.augmentedMathAssignCheck(operator.isub, imin=-512, imax=512,
                                       jmin=-512, jmax=512)
-   
+
     def testIMul(self):
         self.augmentedMathAssignCheck(operator.imul, imin=-512, imax=512,
-                                      jmin=-512, jmax=512)  # XXX doesn't work for long i???
-   
+                                      jmin=-512, jmax=512)
+
     def testIFloorDiv(self):
         self.augmentedMathAssignCheck(operator.ifloordiv, imin=-512, imax=512,
                                       jmin=1, jmax=512)
         self.augmentedMathAssignCheck(operator.ifloordiv, imin=-512, imax=512,
                                       jmin=-512, jmax=-1)
-   
+
     def testITrueDiv(self):
-        self.augmentedTrueDivAssignCheck(operator.ifloordiv, imin=-512, imax=512,
-                                      jmin=1, jmax=512)
-        self.augmentedTrueDivAssignCheck(operator.ifloordiv, imin=-512, imax=512,
-                                      jmin=-512, jmax=-1)
-   
+        self.augmentedTrueDivAssignCheck(operator.ifloordiv, imin=-512,
+                                         imax=512, jmin=1, jmax=512)
+        self.augmentedTrueDivAssignCheck(operator.ifloordiv, imin=-512,
+                                         imax=512, jmin=-512, jmax=-1)
+
     def testIMod(self):
         self.augmentedMathAssignCheck(operator.imod, imin=-512, imax=512,
                                       jmin=1, jmax=512)
         self.augmentedMathAssignCheck(operator.imod, imin=-512, imax=512,
                                       jmin=-512, jmax=-1)
-   
+
     def testIPow(self):
         self.augmentedMathAssignCheck(operator.ipow, imin=-512, imax=-1,
                                       jmin=-8, jmax=8)
         self.augmentedMathAssignCheck(operator.ipow, imin=1, imax=512,
                                       jmin=-8, jmax=8)
-   
+
     def testIAnd(self):
         self.augmentedLogicalAssignCheck(operator.iand, imin=-512, imax=512,
                                          jmin=-512, jmax=512)
-   
+
     def testIOr(self):
         self.augmentedLogicalAssignCheck(operator.ior, imin=-512, imax=512,
                                          jmin=-512, jmax=512)
-   
+
     def testIXor(self):
         self.augmentedLogicalAssignCheck(operator.ixor, imin=-512, imax=512,
                                          jmin=-512, jmax=512)
-   
+
     def testILShift(self):
         self.augmentedShiftAssignCheck(operator.ilshift, imin=-512, imax=512,
                                        jmin=0, jmax=32)
-   
+
     def testIRShift(self):
         self.augmentedShiftAssignCheck(operator.irshift, imin=-512, imax=512,
                                        jmin=0, jmax=32)
-   
+
     def testNeg(self):
         self.unaryCheck(operator.neg)
-   
+
     def testPos(self):
         self.unaryCheck(operator.pos)
-   
+
     def testAbs(self):
         self.unaryCheck(operator.abs)
-   
+
     def testInvert(self):
         self.unaryCheck(operator.inv)
-   
+
     def testInt(self):
         self.conversionCheck(int, imax=maxint)
-   
+
     def testLong(self):
         self.conversionCheck(long)
-   
+
     def testFloat(self):
         self.conversionCheck(float)
-   
-    # XXX __complex__ seems redundant ??? (complex() works as such?)
-   
+
     def testOct(self):
         try:
             self.conversionCheck(oct)
@@ -1159,7 +1167,7 @@ class TestSFixBaAsInt(TestCase):
             pass
         else:
             assert False
-   
+
     def testHex(self):
         try:
             self.conversionCheck(hex)
@@ -1167,26 +1175,26 @@ class TestSFixBaAsInt(TestCase):
             pass
         else:
             assert False
-   
+
     def testLt(self):
         self.comparisonCheck(operator.lt)
-   
+
     def testLe(self):
         self.comparisonCheck(operator.le)
-   
+
     def testGt(self):
         self.comparisonCheck(operator.gt)
-   
+
     def testGe(self):
         self.comparisonCheck(operator.ge)
-   
+
     def testEq(self):
         self.comparisonCheck(operator.eq)
-   
+
     def testNe(self):
         self.comparisonCheck(operator.ne)
-   
-  
+
+
 # class TestSFixBaBounds(TestCase):
 #   
 #     def testConstructor(self):
@@ -1315,10 +1323,10 @@ class TestSFixBaAsInt(TestCase):
 #   
 #     def testIRShift(self):
 #         self.checkOp(operator.irshift)
-  
-  
+
+
 class TestSFixBaCopy(TestCase):
-  
+
     def testCopy(self):
         for n in (sfixba(), sfixba(34), sfixba(12), sfixba(45),
                   sfixba(23), sfixba(-35, 7)):
