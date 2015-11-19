@@ -49,6 +49,7 @@ from myhdl._compat import builtins, integer_types, long, string_types, PY2
 from myhdl.numeric._conversion import (numeric_functions_dict,
                                        numeric_attributes_dict)
 from myhdl.numeric._bitarray import bitarray
+from copy import copy
 
 myhdlObjects = myhdl.__dict__.values()
 builtinObjects = builtins.__dict__.values()
@@ -863,18 +864,28 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
         # node.expr.target = self.getObj(arg)
         # arg.target = self.getObj(node.expr)
         # detect specialized case for the test
-        if isinstance(op, ast.Eq) and isinstance(node.left, ast.Name):
+        if isinstance(node.left, ast.Name) and \
+                (isinstance(op, ast.Eq) or
+                 ((isinstance(op, ast.In) and isinstance(arg, ast.Tuple)))):
+            if isinstance(arg, ast.Tuple):
+                args = arg.elts
+            else:
+                args = (arg,)
             # check wether it can be a case
-            val = arg.obj
-            if isinstance(val, bool):
-                val = int(val)  # cast bool to int first
-            if isinstance(val, (EnumItemType, integer_types)):
-                node.case = (node.left, val)
-                if isinstance(arg, ast.Name):
-                    name = arg.id
-                    if (name in self.tree.objlist) and \
-                            (self.tree.symdict[name] == val):
-                        node.case = (node.left, name)
+            cases = []
+            for arg in args:
+                val = arg.obj
+                if isinstance(val, bool):
+                    val = int(val)  # cast bool to int first
+                if isinstance(val, (EnumItemType, integer_types)):
+                    cases.append((node.left, val))
+                    if isinstance(arg, ast.Name):
+                        name = arg.id
+                        if (name in self.tree.objlist) and \
+                                (self.tree.symdict[name] == val):
+                            cases.append((node.left, name))
+            if cases:
+                node.case = cases
             # check whether it can be part of an edge check
             n = node.left.id
             if n in self.tree.sigdict:
@@ -940,7 +951,7 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
             return
         for test, suite in node.tests:
             self.visit(test)
-            if hasattr(test, "case") and isinstance(test.case[1], str):
+            if hasattr(test, "case") and isinstance(test.case[0][1], str):
                 const_names = True
             self.refStack.push()
             self.visitList(suite)
@@ -954,22 +965,22 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
         test1 = node.tests[0][0]
         if not hasattr(test1, 'case'):
             return
-        var1, item1 = test1.case
         # don't infer a case if there's no elsif test
         if not node.tests[1:]:
             return
-        choices = set()
-        choices.add(item1)
+
+        var1, item1 = test1.case[0]
+        choices = set(item for _, item in test1.case)
 
         for test, suite in node.tests[1:]:
             if not hasattr(test, 'case'):
                 return
-            var, item = test.case
-            if var.id != var1.id or type(item) is not type(item1):
-                return
-            if item in choices:
-                return
-            choices.add(item)
+            for var, item in test.case:
+                if var.id != var1.id or type(item) is not type(item1):
+                    return
+                if item in choices:
+                    return
+                choices.add(item)
         node.isCase = True
         node.caseVar = var1
         node.caseItem = item1

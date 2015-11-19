@@ -947,15 +947,26 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
         self.write(")")
         self.indent()
         for test, suite in node.tests:
-            self.writeline()
-            item = test.case[1]
-            if isinstance(item, EnumItemType):
-                self.write(item._toVerilog(dontcare=True))
-            else:
-                if isinstance(item, str):
-                    item = self.tree.symdict[item]
-                self.write(self.IntRepr(item, radix='hex'))
-            self.write(": begin")
+            # Added
+            suf = ","
+            for idx, (_, item) in enumerate(test.case):
+                if isinstance(item, EnumItemType):
+                    itemRepr = item._toVerilog(dontcare=True)
+                else:
+                    if isinstance(item, str):
+                        item = self.tree.symdict[item]
+                    itemRepr = self.IntRepr(item, radix='hex')
+                if idx + 1 >= len(test.case):
+                    suf = ": begin"
+                self.writeline()
+                self.write("%s%s" % (itemRepr, suf))
+            #if isinstance(item, EnumItemType):
+            #    self.write(item._toVerilog(dontcare=True))
+            #else:
+            #    if isinstance(item, str):
+            #        item = self.tree.symdict[item]
+            #    self.write(self.IntRepr(item, radix='hex'))
+            #self.write(": begin")
             self.indent()
             self.visit_stmt(suite)
             self.dedent()

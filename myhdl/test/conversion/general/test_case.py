@@ -2,6 +2,7 @@ from __future__ import absolute_import, print_function
 
 from myhdl import *
 
+
 def map_case4(z, a):
 
     @always_comb
@@ -16,6 +17,7 @@ def map_case4(z, a):
             z.next = 3
 
     return logic
+
 
 def map_case2(z, a):
 
@@ -43,6 +45,7 @@ def map_case3(z, a):
 
     return logic
 
+
 def map_case4_full(z, a):
 
     @always_comb
@@ -54,6 +57,34 @@ def map_case4_full(z, a):
         elif a == 2:
             z.next = 2
         elif a == 3:
+            z.next = 3
+
+    return logic
+
+
+def map_case5(z, a):
+
+    @always_comb
+    def logic():
+        if a == 0:
+            z.next = 0
+        elif a in (1, 2):
+            z.next = 1
+        elif a == 3:
+            z.next = 3
+
+    return logic
+
+
+def map_case6(z, a):
+
+    @always_comb
+    def logic():
+        if a == 0:
+            z.next = 0
+        elif a in (1, 2):
+            z.next = 1
+        else:
             z.next = 3
 
     return logic
@@ -79,12 +110,22 @@ def bench_case(map_case, N):
 def test_case4():
     assert conversion.verify(bench_case, map_case4, 4) == 0
 
+
 def test_case2():
     assert conversion.verify(bench_case, map_case2, 2) == 0
+
 
 def test_case3():
     assert conversion.verify(bench_case, map_case3, 3) == 0
 
+
 def test_case4_full():
     assert conversion.verify(bench_case, map_case4_full, 4) == 0
 
+
+def test_case5():
+    assert conversion.verify(bench_case, map_case5, 4) == 0
+
+
+def test_case6():
+    assert conversion.verify(bench_case, map_case6, 4) == 0

@@ -1171,7 +1171,7 @@ class _ToVHDLConvertor(object):
             _convertGens(entity.architecture, gfile)
             # Write the constans declarations.
             _writeConstants(sfile, entity.architecture)
-            #Writting the processes
+            # Writting the processes
             sfile.write(gfile.getvalue())
             gfile.close()
 
@@ -1476,7 +1476,8 @@ def _checkPort(port):
 def _writeCompUnits(f, entity):
     for component in entity.architecture.components_list:
         if len(component.entity.ports_list) > 0:
-            f.write("    U_%s : %s\n" % (component.name.upper(), component.name))
+            f.write("    U_%s : %s\n" % (component.name.upper(),
+                                         component.name))
             f.write("        port map (")
             c = ''
             for port_name in component.entity.ports_list:
@@ -1499,10 +1500,6 @@ def _writeModuleFooter(f, arch):
 
 def _convertGens(architecture, vfile):
     genlist = [process.generator for process in architecture.process_list]
-    #siglist = [s.signal for s in architecture.sigs_dict.values()
-    #           if isinstance(s.signal, _Signal)]
-    #memlist = [s.signal for s in architecture.sigs_dict.values()
-    #           if isinstance(s.signal, _MemInfo)]
     constdict = dict((const.value.orig_name, const.value)
                      for const in architecture.const_dict.values())
     blockBuf = StringIO()
@@ -2126,12 +2123,33 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
             pre, suf = "to_signed(", ", %s)" % ns
         elif isinstance(n, vhd_sfixed):
             pre, suf = "to_sfixed(", ", %s, %s)" % ns
-        self.write(pre)
-        self.visit(node.left)
         op, right = node.ops[0], node.comparators[0]
-        self.write(" %s " % opmap[type(op)])
-        self.visit(right)
-        self.write(suf)
+        if isinstance(op, ast.In):
+            if isinstance(right, ast.Tuple):
+                operand = " or"
+                items = right.elts
+                for idx, item in enumerate(items):
+                    if idx + 1 >= len(items):
+                        operand = ""
+                    self.write(pre)
+                    self.visit(node.left)
+                    self.write(" %s " % opmap[ast.Eq])
+                    self.visit(item)
+                    self.write(suf)
+                    self.write(operand)
+                    if idx + 1 < len(items):
+                        self.writeline()
+                        self.write("        ")
+            else:
+                raise ToVHDLError("'in' rigth operand not valid. It "
+                                  "must be a tuple: %s" %
+                                  ast.dump(node))
+        else:
+            self.write(pre)
+            self.visit(node.left)
+            self.write(" %s " % opmap[type(op)])
+            self.visit(right)
+            self.write(suf)
 
     def visit_Num(self, node):
         n = node.n
@@ -2316,18 +2334,21 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
         self.write(" is")
         self.indent()
         for i, (test, suite) in enumerate(node.tests):
-            self.writeline()
-            item = test.case[1]
-            if isinstance(item, EnumItemType):
-                itemRepr = item._toVHDL()
-            elif hasattr(obj, '_nrbits'):
-                itemRepr = self.BitRepr(item, obj)
-            else:
-                itemRepr = i
             comment = ""
-            self.write("when ")
-            self.write(itemRepr)
-            self.write(" =>%s" % comment)
+            pre = "when"
+            suf = " |"
+            for idx, (_, item) in enumerate(test.case):
+                if isinstance(item, EnumItemType):
+                    itemRepr = item._toVHDL()
+                elif hasattr(obj, '_nrbits'):
+                    itemRepr = self.BitRepr(item, obj)
+                else:
+                    itemRepr = i
+                if idx + 1 >= len(test.case):
+                    suf = " =>%s" % comment
+                self.writeline()
+                self.write("%s %s%s" % (pre, itemRepr, suf))
+                pre = "    "
             self.indent()
             self.visit_stmt(suite)
             self.dedent()
@@ -4172,7 +4193,36 @@ class _AnnotateTypesVisitor(ast.NodeVisitor, _ConversionMixin):
         self.generic_visit(node)
         left, right = node.left, node.comparators[0]
         if left.vhd is None:
-            print(ast.dump(node))
+            raise ToVHDLError("None cannot be compared: %s" % ast.dump(node))
+        if isinstance(node.ops[0], ast.In):
+            values = node.comparators[0]
+            if isinstance(values, ast.Tuple):
+                for right in values.elts:
+                    if isinstance(left.vhd, vhd_sfixed):
+                        if isinstance(right.vhd, vhd_signed):
+                            right.vhd = vhd_sfixed((right.vhd.size - 1, 0))
+                        elif isinstance(right.vhd, vhd_unsigned):
+                            right.vhd = vhd_sfixed((right.vhd.size, 0))
+                        elif isinstance(right.vhd, vhd_nat):
+                            right.vhd = vhd_int(1)
+                    elif isinstance(right.vhd, vhd_sfixed):
+                        if isinstance(left.vhd, vhd_signed):
+                            left.vhd = vhd_sfixed((left.vhd.size - 1, 0))
+                        elif isinstance(left.vhd, vhd_unsigned):
+                            left.vhd = vhd_sfixed((left.vhd.size, 0))
+                        elif isinstance(left.vhd, vhd_nat):
+                            left.vhd = vhd_int(1)
+                    elif isinstance(left.vhd, vhd_std_logic) or \
+                            isinstance(right.vhd, vhd_std_logic):
+                        left.vhd = right.vhd = vhd_std_logic()
+                    elif isinstance(left.vhd, vhd_unsigned) and maybeNegative(right.vhd):
+                        left.vhd = vhd_signed(left.vhd.size + 1)
+                    elif maybeNegative(left.vhd) and isinstance(right.vhd, vhd_unsigned):
+                        right.vhd = vhd_signed(right.vhd.size + 1)
+                node.vhdOri = copy(node.vhd)
+            else:
+                raise ToVHDLError("In is not a valid operand: %s" %
+                                  ast.dump(node))
         if isinstance(left.vhd, vhd_sfixed):
             if isinstance(right.vhd, vhd_signed):
                 right.vhd = vhd_sfixed((right.vhd.size - 1, 0))
