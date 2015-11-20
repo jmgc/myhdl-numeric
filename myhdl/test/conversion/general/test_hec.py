@@ -1,13 +1,15 @@
 from __future__ import absolute_import, print_function
+import random
+from random import randrange
+from myhdl import intbv, concat, downrange, instance, Signal, delay
+from myhdl.conversion import verify
 
 import os
 path = os.path
-from random import randrange
-
-from myhdl import *
-from myhdl.conversion import verify
+random.seed(0x02)
 
 COSET = 0x55
+
 
 def calculateHecRef(header):
     """ Return hec for an ATM header.
@@ -21,12 +23,13 @@ def calculateHecRef(header):
                          bit ^ hec[1] ^ hec[7],
                          bit ^ hec[0] ^ hec[7],
                          bit ^ hec[7]
-                        )
+                         )
     return hec ^ COSET
+
 
 def calculateHecFunc(header):
     """ Return hec for an ATM header.
-    
+
     Translatable version.
     The hec polynomial is 1 + x + x**2 + x**8.
     """
@@ -41,9 +44,10 @@ def calculateHecFunc(header):
     h ^= COSET
     return h
 
+
 def calculateHecTask(hec, header):
     """ Calculate hec for an ATM header.
-    
+
     Translatable version.
     The hec polynomial is 1 + x + x**2 + x**8.
     """
@@ -57,6 +61,7 @@ def calculateHecTask(hec, header):
                       )
     h ^= COSET
     hec[:] = h
+
 
 def HecCalculatorPlain(hec, header):
     """ Hec calculation module.
@@ -79,6 +84,7 @@ def HecCalculatorPlain(hec, header):
             hec.next = h ^ COSET
     return logic
 
+
 def HecCalculatorFunc(hec, header):
     """ Hec calculation module.
 
@@ -88,6 +94,7 @@ def HecCalculatorFunc(hec, header):
     while 1:
         yield header
         hec.next = calculateHecFunc(header=header)
+
 
 def HecCalculatorTask(hec, header):
     """ Hec calculation module.
@@ -99,7 +106,8 @@ def HecCalculatorTask(hec, header):
         yield header
         calculateHecTask(h, header)
         hec.next = h
-        
+
+
 def HecCalculatorTask2(hec, header):
     """ Hec calculation module.
 
@@ -111,19 +119,17 @@ def HecCalculatorTask2(hec, header):
         calculateHecTask(header=header, hec=h)
         hec.next = h
 
-         
-        
-def HecCalculator_v(name, hec, header):
-    return setupCosimulation(**locals())
+
+# def HecCalculator_v(name, hec, header):
+#     return setupCosimulation(**locals())
 
 
+headers = [0x00000000,
+           0x01234567,
+           0x7ac6f4ca
+           ]
 
-headers = [ 0x00000000,
-            0x01234567,
-            0xbac6f4ca
-          ]
-
-headers.extend([randrange(2**32-1) for i in range(10)])
+headers.extend([randrange(2**31-1) for _ in range(10)])
 headers = tuple(headers)
 
 
@@ -159,6 +165,7 @@ def HecBench(HecCalculator):
 ## def testTask2(self):
 ##     sim = self.bench(HecCalculatorTask2)
 ##     Simulation(sim).run()
+
 
 def testPlain():
     assert verify(HecBench, HecCalculatorPlain) == 0

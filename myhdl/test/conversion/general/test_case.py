@@ -80,9 +80,37 @@ def map_case6(z, a):
 
     @always_comb
     def logic():
-        if a == 0:
+        if a == 1:
             z.next = 0
-        elif a in (1, 2):
+        elif a not in (1, 2):
+            z.next = 1
+        else:
+            z.next = 3
+
+    return logic
+
+
+def map_case7(z, a):
+
+    @always_comb
+    def logic():
+        if a == 1:
+            z.next = 0
+        elif a not in (1, 2):
+            z.next = 1
+        elif a == 2:
+            z.next = 3
+
+    return logic
+
+
+def map_case8(z, a):
+
+    @always_comb
+    def logic():
+        if a == 1:
+            z.next = 0
+        elif a not in (1, 2):
             z.next = 1
         else:
             z.next = 3
@@ -129,3 +157,11 @@ def test_case5():
 
 def test_case6():
     assert conversion.verify(bench_case, map_case6, 4) == 0
+
+
+def test_case7():
+    assert conversion.verify(bench_case, map_case7, 4) == 0
+
+
+def test_case8():
+    assert conversion.verify(bench_case, map_case8, 4) == 0
