@@ -2124,7 +2124,14 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
         elif isinstance(n, vhd_sfixed):
             pre, suf = "to_sfixed(", ", %s, %s)" % ns
         op, right = node.ops[0], node.comparators[0]
-        if isinstance(op, ast.In):
+        if isinstance(op, (ast.In, ast.NotIn)):
+            if isinstance(op, ast.NotIn):
+                not_pre = "%s (" % opmap[ast.Not]
+                not_suf = ")"
+            else:
+                not_pre = ""
+                not_suf = ""
+
             isRomInfo = False
             if isinstance(right, ast.Tuple):
                 items = right.elts
@@ -2139,6 +2146,7 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
                                   "must be a tuple: %s" %
                                   ast.dump(node))
             operand = " or"
+            self.write(not_pre)
             for idx, item in enumerate(items):
                 if idx + 1 >= len(items):
                     operand = ""
@@ -2154,6 +2162,7 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
                 if idx + 1 < len(items):
                     self.writeline()
                     self.write("        ")
+            self.write(not_suf)
         else:
             self.write(pre)
             self.visit(node.left)
@@ -4203,13 +4212,11 @@ class _AnnotateTypesVisitor(ast.NodeVisitor, _ConversionMixin):
 
     def visit_Compare(self, node):
         node.vhd = vhd_boolean()
-        if isinstance(node.ops[0], ast.In):
-            pass
         self.generic_visit(node)
         left, right = node.left, node.comparators[0]
         if left.vhd is None:
             raise ToVHDLError("None cannot be compared: %s" % ast.dump(node))
-        if isinstance(node.ops[0], ast.In):
+        if isinstance(node.ops[0], (ast.In, ast.NotIn)):
             values = node.comparators[0]
             if isinstance(values, ast.Tuple):
                 for right in values.elts:

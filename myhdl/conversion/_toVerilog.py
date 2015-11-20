@@ -815,7 +815,14 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
 
         op, right = node.ops[0], node.comparators[0]
 
-        if isinstance(op, ast.In):
+        if isinstance(op, (ast.In, ast.NotIn)):
+            if isinstance(op, ast.NotIn):
+                not_pre = "%s (" % opmap[ast.Not]
+                not_suf = ")"
+            else:
+                not_pre = ""
+                not_suf = ""
+
             isRom = False
             if isinstance(right, ast.Tuple):
                 items = right.elts
@@ -828,6 +835,7 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
                                      "must be a tuple: %s" %
                                      ast.dump(node))
             operand = " ||"
+            self.write(not_pre)
             for idx, item in enumerate(items):
                 if idx + 1 >= len(items):
                     operand = ""
@@ -844,6 +852,7 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
                 if idx + 1 < len(items):
                     self.writeline()
                     self.write("        ")
+            self.write(not_suf)
         else:
             self.write("(")
             self.visit(node.left)
