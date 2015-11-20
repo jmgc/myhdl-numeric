@@ -817,11 +817,11 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
 
         if isinstance(op, (ast.In, ast.NotIn)):
             if isinstance(op, ast.NotIn):
-                not_pre = "%s (" % opmap[ast.Not]
-                not_suf = ")"
+                in_pre = "%s (" % opmap[ast.Not]
+                in_suf = ")"
             else:
-                not_pre = ""
-                not_suf = ""
+                in_pre = "("
+                in_suf = ")"
 
             isRom = False
             if isinstance(right, ast.Tuple):
@@ -835,7 +835,7 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
                                      "must be a tuple: %s" %
                                      ast.dump(node))
             operand = " ||"
-            self.write(not_pre)
+            self.write(in_pre)
             for idx, item in enumerate(items):
                 if idx + 1 >= len(items):
                     operand = ""
@@ -852,7 +852,7 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
                 if idx + 1 < len(items):
                     self.writeline()
                     self.write("        ")
-            self.write(not_suf)
+            self.write(in_suf)
         else:
             self.write("(")
             self.visit(node.left)
