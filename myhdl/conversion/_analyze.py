@@ -400,10 +400,15 @@ class _Ram(object):
 
 
 class _Rom(object):
-    __slots__ = ['rom']
+    __slots__ = ['elObj', 'rom']
 
     def __init__(self, rom):
         self.rom = rom
+        self.elObj = rom[0]
+
+    @property
+    def depth(self):
+        return len(self.rom)
 
 re_str = re.compile(r"[^%]+")
 re_ConvSpec = re.compile(r"%(?P<justified>[-]?)"
@@ -621,7 +626,9 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
         if isinstance(op, ast.Not):
             node.obj = bool()
         elif isinstance(op, (ast.UAdd, ast.USub, ast.Invert)) and \
-                not isinstance(node.obj, bitarray):
+                not (isinstance(node.obj, bitarray) or
+                     (isinstance(node.obj, _Signal) and
+                      isinstance(node.obj._init, bitarray))):
             node.obj = long(-1)
 
     def visit_Attribute(self, node):
@@ -675,7 +682,10 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
             elif node.attr in numeric_functions_dict:
                 node.obj = numeric_functions_dict[node.attr]
         if isinstance(obj, EnumType):
-            assert hasattr(obj, node.attr), node.attr
+            if not hasattr(obj, node.attr):
+                pass
+            assert hasattr(obj, node.attr), "%s.%s" % \
+                (node.value.id, node.attr)
             node.obj = getattr(obj, node.attr)
             if obj not in _enumTypeSet:
                 _enumTypeSet.add(obj)
