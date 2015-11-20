@@ -4245,9 +4245,12 @@ class _AnnotateTypesVisitor(ast.NodeVisitor, _ConversionMixin):
         elif maybeNegative(l) and \
                 isinstance(r, vhd_unsigned):
             r = vhd_signed(r.size + 1)
+        left.vhd = l
         # Case for the in operator
         if isinstance(right.vhd, vhd_array):
             right.vhd.type = r
+        else:
+            right.vhd = r
 
     def visit_Compare(self, node):
         node.vhd = vhd_boolean()
