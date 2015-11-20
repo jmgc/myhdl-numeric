@@ -2126,11 +2126,11 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
         op, right = node.ops[0], node.comparators[0]
         if isinstance(op, (ast.In, ast.NotIn)):
             if isinstance(op, ast.NotIn):
-                not_pre = "%s (" % opmap[ast.Not]
-                not_suf = ")"
+                in_pre = "%s (" % opmap[ast.Not]
+                in_suf = ")"
             else:
-                not_pre = ""
-                not_suf = ""
+                in_pre = "("
+                in_suf = ")"
 
             isRomInfo = False
             if isinstance(right, ast.Tuple):
@@ -2138,15 +2138,17 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
             elif isinstance(right, ast.Name) and \
                     right.id in self.constdict:
                 c = self.constdict[right.id]
+                n = c.name
                 items = c.mem
-                t = right.vhd.type
+                t_pre, t_suf = self.inferCast(right.vhd.type,
+                                              right.vhdOri.type)
                 isRomInfo = True
             else:
                 raise ToVHDLError("'in' rigth operand not valid. It "
                                   "must be a tuple: %s" %
                                   ast.dump(node))
             operand = " or"
-            self.write(not_pre)
+            self.write(in_pre)
             for idx, item in enumerate(items):
                 if idx + 1 >= len(items):
                     operand = ""
@@ -2154,7 +2156,9 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
                 self.visit(node.left)
                 self.write(" %s " % opmap[ast.Eq])
                 if isRomInfo:
-                    self.write(t.literal(item))
+                    self.write(t_pre)
+                    self.write("%s(%d)" % (n, idx))
+                    self.write(t_suf)
                 else:
                     self.visit(item)
                 self.write(suf)
@@ -2162,7 +2166,7 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
                 if idx + 1 < len(items):
                     self.writeline()
                     self.write("        ")
-            self.write(not_suf)
+            self.write(in_suf)
         else:
             self.write(pre)
             self.visit(node.left)
@@ -4210,6 +4214,41 @@ class _AnnotateTypesVisitor(ast.NodeVisitor, _ConversionMixin):
             node.vhd = node.tree.vhd = inferVhdlObj(node.tree.returnObj)
         node.vhdOri = copy(node.vhd)
 
+    def inferCompareType(self, left, right):
+        l = left.vhd
+        r = right.vhd
+
+        # Case for the in operator
+        if isinstance(r, vhd_array):
+            r = r.type
+
+        if isinstance(l, vhd_sfixed):
+            if isinstance(r, vhd_signed):
+                r = vhd_sfixed((r.size - 1, 0))
+            elif isinstance(r, vhd_unsigned):
+                r = vhd_sfixed((r.size, 0))
+            elif isinstance(r, vhd_nat):
+                r = vhd_int(1)
+        elif isinstance(r, vhd_sfixed):
+            if isinstance(l, vhd_signed):
+                l = vhd_sfixed((l.size - 1, 0))
+            elif isinstance(l, vhd_unsigned):
+                l = vhd_sfixed((l.size, 0))
+            elif isinstance(l, vhd_nat):
+                l = vhd_int(1)
+        elif isinstance(l, vhd_std_logic) or \
+                isinstance(r, vhd_std_logic):
+            l = r = vhd_std_logic()
+        elif isinstance(l, vhd_unsigned) and \
+                maybeNegative(r):
+            l = vhd_signed(l.size + 1)
+        elif maybeNegative(l) and \
+                isinstance(r, vhd_unsigned):
+            r = vhd_signed(r.size + 1)
+        # Case for the in operator
+        if isinstance(right.vhd, vhd_array):
+            right.vhd.type = r
+
     def visit_Compare(self, node):
         node.vhd = vhd_boolean()
         self.generic_visit(node)
@@ -4220,59 +4259,16 @@ class _AnnotateTypesVisitor(ast.NodeVisitor, _ConversionMixin):
             values = node.comparators[0]
             if isinstance(values, ast.Tuple):
                 for right in values.elts:
-                    if isinstance(left.vhd, vhd_sfixed):
-                        if isinstance(right.vhd, vhd_signed):
-                            right.vhd = vhd_sfixed((right.vhd.size - 1, 0))
-                        elif isinstance(right.vhd, vhd_unsigned):
-                            right.vhd = vhd_sfixed((right.vhd.size, 0))
-                        elif isinstance(right.vhd, vhd_nat):
-                            right.vhd = vhd_int(1)
-                    elif isinstance(right.vhd, vhd_sfixed):
-                        if isinstance(left.vhd, vhd_signed):
-                            left.vhd = vhd_sfixed((left.vhd.size - 1, 0))
-                        elif isinstance(left.vhd, vhd_unsigned):
-                            left.vhd = vhd_sfixed((left.vhd.size, 0))
-                        elif isinstance(left.vhd, vhd_nat):
-                            left.vhd = vhd_int(1)
-                    elif isinstance(left.vhd, vhd_std_logic) or \
-                            isinstance(right.vhd, vhd_std_logic):
-                        left.vhd = right.vhd = vhd_std_logic()
-                    elif isinstance(left.vhd, vhd_unsigned) and \
-                            maybeNegative(right.vhd):
-                        left.vhd = vhd_signed(left.vhd.size + 1)
-                    elif maybeNegative(left.vhd) and \
-                            isinstance(right.vhd, vhd_unsigned):
-                        right.vhd = vhd_signed(right.vhd.size + 1)
+                    self.inferCompareType(left, right)
                 node.vhdOri = copy(node.vhd)
                 return
-            elif isinstance(values, ast.Name) and isinstance(values.obj, _Rom):
+            elif isinstance(values, ast.Name) and \
+                    isinstance(values.vhdOri, vhd_array):
                 right = values
             else:
                 raise ToVHDLError("In is not a valid operand: %s" %
                                   ast.dump(node))
-        if isinstance(left.vhd, vhd_sfixed):
-            if isinstance(right.vhd, vhd_signed):
-                right.vhd = vhd_sfixed((right.vhd.size - 1, 0))
-            elif isinstance(right.vhd, vhd_unsigned):
-                right.vhd = vhd_sfixed((right.vhd.size, 0))
-            elif isinstance(right.vhd, vhd_nat):
-                right.vhd = vhd_int(1)
-        elif isinstance(right.vhd, vhd_sfixed):
-            if isinstance(left.vhd, vhd_signed):
-                left.vhd = vhd_sfixed((left.vhd.size - 1, 0))
-            elif isinstance(left.vhd, vhd_unsigned):
-                left.vhd = vhd_sfixed((left.vhd.size, 0))
-            elif isinstance(left.vhd, vhd_nat):
-                left.vhd = vhd_int(1)
-        elif isinstance(left.vhd, vhd_std_logic) or \
-                isinstance(right.vhd, vhd_std_logic):
-            left.vhd = right.vhd = vhd_std_logic()
-        elif isinstance(left.vhd, vhd_unsigned) and \
-                maybeNegative(right.vhd):
-            left.vhd = vhd_signed(left.vhd.size + 1)
-        elif maybeNegative(left.vhd) and \
-                isinstance(right.vhd, vhd_unsigned):
-            right.vhd = vhd_signed(right.vhd.size + 1)
+        self.inferCompareType(left, right)
         node.vhdOri = copy(node.vhd)
 
     def visit_Str(self, node):
