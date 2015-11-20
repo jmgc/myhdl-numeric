@@ -7,6 +7,8 @@ one = 1
 two = 2
 three = 3
 
+values = (1, 2)
+
 
 def map_if4(z, a):
 
@@ -108,6 +110,19 @@ def map_if7(z, a):
     return logic
 
 
+def map_if8(z, a):
+
+    @always_comb
+    def logic():
+        z.next = 3
+        if a == zero:
+            z.next = 0
+        elif a in values:
+            z.next = 1
+
+    return logic
+
+
 def bench_if(map_case, N):
 
     a = Signal(intbv(0)[2:])
@@ -151,3 +166,7 @@ def test_if6():
 
 def test_if7():
     assert conversion.verify(bench_if, map_if7, 4) == 0
+
+
+def test_if8():
+    assert conversion.verify(bench_if, map_if8, 4) == 0

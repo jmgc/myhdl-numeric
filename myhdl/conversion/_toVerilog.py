@@ -812,11 +812,45 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
         self.context = None
         if node.signed:
             self.context = _context.SIGNED
-        self.write("(")
-        self.visit(node.left)
-        self.write(" %s " % opmap[type(node.ops[0])])
-        self.visit(node.comparators[0])
-        self.write(")")
+
+        op, right = node.ops[0], node.comparators[0]
+
+        if isinstance(op, ast.In):
+            isRom = False
+            if isinstance(right, ast.Tuple):
+                items = right.elts
+            elif isinstance(right, ast.Name) and \
+                    isinstance(right.obj, _Rom):
+                items = right.obj.rom
+                isRom = True
+            else:
+                raise ToVerilogError("'in' rigth operand not valid. It "
+                                     "must be a tuple: %s" %
+                                     ast.dump(node))
+            operand = " ||"
+            for idx, item in enumerate(items):
+                if idx + 1 >= len(items):
+                    operand = ""
+                self.write("(")
+                self.visit(node.left)
+                self.write(" %s " % opmap[ast.Eq])
+                if isRom:
+                    itemRepr = self.IntRepr(item, radix='hex')
+                    self.write("%s" % itemRepr)
+                else:
+                    self.visit(item)
+                self.write(")")
+                self.write(operand)
+                if idx + 1 < len(items):
+                    self.writeline()
+                    self.write("        ")
+        else:
+            self.write("(")
+            self.visit(node.left)
+            self.write(" %s " % opmap[type(op)])
+            self.visit(right)
+            self.write(")")
+
         self.context = None
 
     def visit_Num(self, node):
