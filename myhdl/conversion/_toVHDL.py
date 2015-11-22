@@ -206,6 +206,8 @@ class _GenerateHierarchy(object):
 
             self._sanity_checks(intf)
 
+            self._update_assigns(sigs_dict.values())
+
             vhd_ports_dict, vhd_ports_convert = \
                 self._revisePorts(intf, stdLogicPorts)
 
@@ -332,17 +334,32 @@ class _GenerateHierarchy(object):
                     sig = element.signal
                     if isinstance(sig, _MemInfo):
                         name = sig.name
+                        assign = False
                     else:
                         name = sig._name
+                        assign = sig._assign
                     if (not element.read) and (element.direction == "out"):
-                        name = "open"
-                        warnings.warn("%s: %s.%s" % (_error.UnusedPort,
-                                                     component.name,
-                                                     element.name),
-                                      category=ToVHDLWarning
-                                      )
+                        s_dict = dict(intf.argdict)
+                        s_dict.update(sigs_dict)
+                        for n, s in s_dict.items():
+                            if isinstance(s, _Signal) and \
+                                    (s._assign is not None) and \
+                                    name == s._assign._name and s._name:
+                                name = n
+                                break
+                        else:
+                            name = "open"
+                            warnings.warn("%s: %s.%s" % (_error.UnusedPort,
+                                                         component.name,
+                                                         element.name),
+                                          category=ToVHDLWarning
+                                          )
                     elif (not element.driven) and (element.direction == "in"):
-                        name = element.vhd_type.literal(element.internal)
+                        if isinstance(assign, _Signal) and \
+                                assign._name is not None:
+                            name = assign._name
+                        else:
+                            name = element.vhd_type.literal(element.internal)
 
                     component.ports_signals_dict[element.name] = name
 
@@ -451,6 +468,10 @@ class _GenerateHierarchy(object):
                         s._driven = sig._driven
                     if not s._read:
                         s._read = sig._read
+            elif s._assign and s._assign is not None:
+                sig = s._assign
+                s._driven = "wire"
+                sig._read = True
 
         for name, s in intf.argdict.items():
             vhd_obj = inferVhdlObj(s)
@@ -480,7 +501,9 @@ class _GenerateHierarchy(object):
                     sl._setName('VHDL')
             else:
                 final_name = port.name
-            if s._driven:
+            if s._driven and not (isinstance(s, _Signal) and
+                                  isinstance(s._assign, _Signal) and
+                                  s._assign._driven is None):
                 if s._read:
                     if not isinstance(ds, _TristateSignal):
                         warnings.warn("%s: %s.%s" % (_error.OutputPortRead,
@@ -535,6 +558,13 @@ class _GenerateHierarchy(object):
                 if not sig._driven:
                     sig._driven = s._driven
                 sig._read = s._read
+
+    def _update_assigns(self, sigs_list):
+        # Updating the assign signals
+        for sig in sigs_list:
+            if sig._assign and sig._assign._driven is not None:
+                sig._driven = "wire"
+                sig._assign._read = True
 
     def _check_generators(self, generator_list):
         for generator in generator_list:
