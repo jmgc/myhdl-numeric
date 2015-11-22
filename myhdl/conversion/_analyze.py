@@ -1486,7 +1486,6 @@ def isboundmethod(m):
     method_self = hasattr(m, '__self__') and m.__self__ is not None
     return method and method_self
 
-
 def _analyzeTopFunc(top_inst, func, *args, **kwargs):
     tree = _makeAST(func)
     v = _AnalyzeTopFuncVisitor(func, tree, *args, **kwargs)
@@ -1515,6 +1514,9 @@ def _analyzeTopFunc(top_inst, func, *args, **kwargs):
                         attrobj._name = signame
                     v.argdict[signame] = attrobj
                     v.argnames.append(signame)
+                elif not isinstance(attrobj,
+                                    (integer_types, float, EnumItemType)):
+                    objs.append((name + '_' + attr, attrobj))
 
     return v
 
