@@ -188,7 +188,6 @@ def test_two_analyze():
     analyze(m_top_multi_comb, x, y, z)
 
 
-@bug('pending assign', 'vhdl')
 def test_two_verify():
     assert verify(c_testbench_two) == 0
 
