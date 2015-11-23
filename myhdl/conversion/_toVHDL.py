@@ -246,7 +246,7 @@ class _GenerateHierarchy(object):
                 self.mem_types[vhd_obj.toStr(False)] = vhd_obj
                 if isinstance(vhd_obj, vhd_array):
                     if isinstance(vhd_obj.type, vhd_enum):
-                        self.enum_types[vhd_obj.type._type] = vhd_obj
+                        self.enum_types[vhd_obj.type._type] = vhd_obj.type
                     elif isinstance(vhd_obj.type, vhd_sfixed):
                         self.sfixed = True
 
@@ -4078,8 +4078,13 @@ class vhd_array(object):
 
     def toStr(self, constr=True):
         if constr:
-            return "type %s is array(0 to %s) of %s" % \
-                (self._name, self.high, self.type.toStr(True))
+            t = self.type
+            if isinstance(t, vhd_enum):
+                return "type %s is array(0 to %s) of %s" % \
+                    (self._name, self.high, self.type.toStr(False))
+            else:
+                return "type %s is array(0 to %s) of %s" % \
+                    (self._name, self.high, self.type.toStr(True))
         else:
             return self._name
 
