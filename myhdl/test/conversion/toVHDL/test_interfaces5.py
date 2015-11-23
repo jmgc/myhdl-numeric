@@ -1,9 +1,7 @@
 from __future__ import absolute_import, print_function
 
-import sys
-
 from myhdl import Signal, intbv, always_seq, ResetSignal, now, \
-    instance, delay, StopSimulation, Simulation, toVHDL, toVerilog
+    instance, delay, StopSimulation, Simulation, toVHDL
 from myhdl.conversion import analyze, verify
 
 
