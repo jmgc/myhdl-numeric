@@ -728,6 +728,9 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
                 elif isinstance(curObj, type(obj)):
                     self.tree.vardict[n] = obj
                 elif isinstance(obj, integer_types) and \
+                        isinstance(curObj, integer_types):
+                    self.tree.vardict[n] = long(obj)
+                elif isinstance(obj, integer_types) and \
                         isinstance(curObj, bool):
                     self.tree.vardict[n] = obj
                 elif isinstance(obj, bool) and \
