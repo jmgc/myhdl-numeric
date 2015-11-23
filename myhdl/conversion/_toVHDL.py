@@ -17,6 +17,9 @@
 #  License along with this library; if not, write to the Free Software
 #  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 
+# Support for fixed point numbers and multiple entities (c) Jose M. Gomez
+
+
 """ myhdl toVHDL conversion module.
 
 """
@@ -223,7 +226,6 @@ class _GenerateHierarchy(object):
                 if n in mems_dict:
                     mems_dict.pop(n)
 
-
             vhd_signals_dict = dict((s.name, s) for s in vhd_ports_convert)
 
             for s in sigs_dict.values():
@@ -340,7 +342,6 @@ class _GenerateHierarchy(object):
                         assign = sig._assign
                     if (not element.read) and (element.direction == "out"):
                         s_dict = dict(intf.argdict)
-                        s_dict.update(sigs_dict)
                         for n, s in s_dict.items():
                             if isinstance(s, _Signal) and \
                                     (s._assign is not None) and \
