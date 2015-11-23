@@ -154,7 +154,6 @@ def test_five_verify():
 
 
 def test_conversion():
-    toVerilog(c_testbench_five)
     toVHDL(c_testbench_five)
 
 
