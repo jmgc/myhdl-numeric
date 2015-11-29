@@ -114,6 +114,7 @@ warnings.showwarning = showwarning
 
 
 from ._bin import bin
+from ._compat import bit_length
 from ._concat import concat
 from ._intbv import intbv
 from ._modbv import modbv
@@ -132,7 +133,6 @@ from ._always import always
 from ._instance import instance
 from ._enum import enum, EnumType, EnumItemType
 from ._traceSignals import traceSignals
-
 from . import conversion
 from .conversion import toVerilog
 from .conversion import toVHDL
@@ -147,6 +147,7 @@ from ._tristate import Tristate
 
 
 __all__ = ["bin",
+           "bit_length",
            "concat",
            "intbv",
            "modbv",
