@@ -202,6 +202,7 @@ def _analyzeGens(top, absnames):
             v = _AnalyzeBlockVisitor(tree)
             v.visit(tree)
         genlist.append(tree)
+
     return genlist
 
 
@@ -1488,6 +1489,7 @@ def isboundmethod(m):
     method = ismethod(m)
     method_self = hasattr(m, '__self__') and m.__self__ is not None
     return method and method_self
+
 
 def _analyzeTopFunc(top_inst, func, *args, **kwargs):
     tree = _makeAST(func)

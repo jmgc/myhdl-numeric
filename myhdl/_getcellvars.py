@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 import ast
-
 from myhdl._util import _flatten
 
 

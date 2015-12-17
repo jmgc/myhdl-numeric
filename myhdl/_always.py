@@ -74,12 +74,7 @@ class _Always(_Instantiator):
         # handle free variables
         freevars = func.__code__.co_freevars
         if freevars:
-            closure = []
-            for idx, c in enumerate(func.__closure__):
-                try:
-                    closure.append(c.cell_contents)
-                except Exception as e:
-                    raise type(e)("%s: %s" % (freevars[idx], str(e)))
+            closure = (c.cell_contents for c in func.__closure__)
             symdict.update(zip(freevars, closure))
         self.symdict = symdict
 

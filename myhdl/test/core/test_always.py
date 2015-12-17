@@ -139,12 +139,12 @@ class TestInferWaiter:
         inst_s = MyHDLFunc(a, b, c, d, s)
 
         def stimulus():
-            for i in range(1000):
+            for _ in range(1000):
                 yield delay(randrange(1, 10))
                 if randrange(2):
                     a.next = randrange(32)
                 if randrange(2):
-                       b.next = randrange(32)
+                    b.next = randrange(32)
                 c.next = randrange(2)
                 d.next = randrange(2)
             raise StopSimulation
@@ -154,7 +154,8 @@ class TestInferWaiter:
                 yield a, b, c, r, s
                 assert r == s
 
-        return inst_r, _Waiter(inst_s.gen), _Waiter(stimulus()), _Waiter(check())
+        return inst_r, _Waiter(inst_s.gen), _Waiter(stimulus()), \
+            _Waiter(check())
 
     def testSignal1(self):
         sim = Simulation(self.bench(SignalFunc1, _SignalWaiter))
