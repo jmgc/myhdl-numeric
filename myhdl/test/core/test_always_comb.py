@@ -32,7 +32,7 @@ from myhdl.test.helpers import raises_kind
 # random.seed(3) # random, but deterministic
 
 
-QUIET=1
+QUIET = 1
 
 
 def g():
@@ -60,16 +60,8 @@ class TestAlwaysCombCompilation:
         with raises_kind(AlwaysCombError, _error.NrOfArgs):
             always_comb(h)
 
-##     def testScope(self):
-##         try:
-##             always_comb(g)
-##         except AlwaysCombError, e:
-##             self.assertEqual(e.kind, _error.Scope)
-##         else:
-##             self.fail()
-
     def testInfer1(self):
-        a, b, c, d = [Signal(0) for i in range(4)]
+        a, b, c, d = [Signal(0) for _ in range(4)]
         u = 1
 
         def h():
@@ -81,7 +73,7 @@ class TestAlwaysCombCompilation:
         assert i.inputs == expected
 
     def testInfer2(self):
-        a, b, c, d = [Signal(0) for i in range(4)]
+        a, b, c, d = [Signal(0) for _ in range(4)]
         u = 1
 
         def h():
@@ -93,7 +85,7 @@ class TestAlwaysCombCompilation:
         assert i.inputs == expected
 
     def testInfer3(self):
-        a, b, c, d = [Signal(0) for i in range(4)]
+        a, b, c, d = [Signal(0) for _ in range(4)]
         u = 1
 
         def h():
@@ -105,7 +97,7 @@ class TestAlwaysCombCompilation:
         assert i.inputs == expected
 
     def testInfer4(self):
-        a, b, c, d = [Signal(0) for i in range(4)]
+        a, b, c, d = [Signal(0) for _ in range(4)]
         u = 1
 
         def h():
@@ -117,7 +109,7 @@ class TestAlwaysCombCompilation:
         assert i.inputs == expected
 
     def testInfer5(self):
-        a, b, c, d = [Signal(0) for i in range(4)]
+        a, b, c, d = [Signal(0) for _ in range(4)]
 
         def h():
             c.next += 1
@@ -126,7 +118,7 @@ class TestAlwaysCombCompilation:
             g = always_comb(h).gen
 
     def testInfer6(self):
-        a, b, c, d = [Signal(0) for i in range(4)]
+        a, b, c, d = [Signal(0) for _ in range(4)]
 
         def h():
             c.next = a
@@ -135,7 +127,7 @@ class TestAlwaysCombCompilation:
             g = always_comb(h).gen
 
     def testInfer7(self):
-        a, b, c, d = [Signal(0) for i in range(4)]
+        a, b, c, d = [Signal(0) for _ in range(4)]
 
         def h():
             c.next[a:0] = x[b:0]
@@ -145,7 +137,7 @@ class TestAlwaysCombCompilation:
         assert i.inputs == expected
 
     def testInfer8(self):
-        a, b, c, d = [Signal(0) for i in range(4)]
+        a, b, c, d = [Signal(0) for _ in range(4)]
         u = 1
 
         def h():
@@ -157,7 +149,7 @@ class TestAlwaysCombCompilation:
         assert i.inputs == expected
 
     def testInfer9(self):
-        a, b, c, d = [Signal(0) for i in range(4)]
+        a, b, c, d = [Signal(0) for _ in range(4)]
 
         def h():
             c.next[a-1] = x[b-1]
@@ -167,7 +159,7 @@ class TestAlwaysCombCompilation:
         assert i.inputs == expected
 
     def testInfer10(self):
-        a, b, c, d = [Signal(0) for i in range(4)]
+        a, b, c, d = [Signal(0) for _ in range(4)]
 
         def f(x, y, z):
             return 0
@@ -180,7 +172,7 @@ class TestAlwaysCombCompilation:
         assert i.inputs == expected
 
     def testEmbeddedFunction(self):
-        a, b, c, d = [Signal(0) for i in range(4)]
+        a, b, c, d = [Signal(0) for _ in range(4)]
         u = 1
 
         def h():

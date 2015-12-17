@@ -1,5 +1,4 @@
-from myhdl import *
-from myhdl import Signal
+from myhdl import Signal, ResetSignal
 from myhdl._always_seq import AlwaysSeqError, _error, always_seq
 from myhdl.test.helpers import raises_kind
 

@@ -31,7 +31,7 @@ from myhdl.test.helpers import raises_kind
 
 random.seed(1)  # random, but deterministic
 
-QUIET=1
+QUIET = 1
 
 
 class Shared:
@@ -159,7 +159,7 @@ class JoinMix(TestCase):
         d.next = 1
 
     def test3(self):
-        a, b, c, d = [Signal(0) for i in range(4)]
+        a, b, c, d = [Signal(0) for _ in range(4)]
 
         def response():
             yield join(a, b, c, d)
@@ -167,7 +167,7 @@ class JoinMix(TestCase):
         Simulation(self.stimulus(a, b, c, d), response()).run(quiet=QUIET)
 
     def test4(self):
-        a, b, c, d = [Signal(0) for i in range(4)]
+        a, b, c, d = [Signal(0) for _ in range(4)]
 
         def response():
             yield join(a, b), join(c, d)
@@ -175,7 +175,7 @@ class JoinMix(TestCase):
         Simulation(self.stimulus(a, b, c, d), response()).run(quiet=QUIET)
 
     def test5(self):
-        a, b, c, d = [Signal(0) for i in range(4)]
+        a, b, c, d = [Signal(0) for _ in range(4)]
 
         def response():
             yield join(a), b, join(c, d)
@@ -183,7 +183,7 @@ class JoinMix(TestCase):
         Simulation(self.stimulus(a, b, c, d), response()).run(quiet=QUIET)
 
     def test6(self):
-        a, b, c, d = [Signal(0) for i in range(4)]
+        a, b, c, d = [Signal(0) for _ in range(4)]
 
         def response():
             yield join(a, delay(20)), b, join(c, d)
@@ -191,7 +191,7 @@ class JoinMix(TestCase):
         Simulation(self.stimulus(a, b, c, d), response()).run(quiet=QUIET)
 
     def test7(self):
-        a, b, c, d = [Signal(0) for i in range(4)]
+        a, b, c, d = [Signal(0) for _ in range(4)]
 
         def response():
             yield join(a, delay(30)), join(c, d)
@@ -199,7 +199,7 @@ class JoinMix(TestCase):
         Simulation(self.stimulus(a, b, c, d), response()).run(quiet=QUIET)
 
     def test8(self):
-        a, b, c, d = [Signal(0) for i in range(4)]
+        a, b, c, d = [Signal(0) for _ in range(4)]
 
         def response():
             yield join(a, a.negedge)
@@ -207,7 +207,7 @@ class JoinMix(TestCase):
         Simulation(self.stimulus(a, b, c, d), response()).run(quiet=QUIET)
 
     def test9(self):
-        a, b, c, d = [Signal(0) for i in range(4)]
+        a, b, c, d = [Signal(0) for _ in range(4)]
 
         def response():
             yield join(a, a.negedge, c.posedge)
@@ -215,7 +215,7 @@ class JoinMix(TestCase):
         Simulation(self.stimulus(a, b, c, d), response()).run(quiet=QUIET)
 
     def test10(self):
-        a, b, c, d = [Signal(0) for i in range(4)]
+        a, b, c, d = [Signal(0) for _ in range(4)]
 
         def response():
             yield join(a, a)
@@ -223,7 +223,7 @@ class JoinMix(TestCase):
         Simulation(self.stimulus(a, b, c, d), response()).run(quiet=QUIET)
 
     def test11(self):
-        a, b, c, d = [Signal(0) for i in range(4)]
+        a, b, c, d = [Signal(0) for _ in range(4)]
 
         def response():
             yield join(a, b.posedge, b.negedge, a)
@@ -242,12 +242,12 @@ class JoinedGen(TestCase):
         td = 10
 
         def gen(s, n):
-            for i in range(n-1):
+            for _ in range(n-1):
                 yield delay(td)
             s.next = 1
             yield delay(td)
 
-        for i in range(10):
+        for _ in range(10):
             offset = now()
             n0 = randrange(1, 50)
             n1 = randrange(1, 50)
@@ -311,11 +311,11 @@ class YieldZeroDelay(TestCase):
 
         def gen(s, n):
             s.next = 0
-            for i in range(n):
+            for _ in range(n):
                 yield delay(td)
             s.next = 1
 
-        for i in range(100):
+        for _ in range(100):
             offset = now()
             n1 = randrange(2, 10)
             n2 = randrange(n1+1, 20)  # n2 > n1
@@ -347,11 +347,11 @@ class YieldConcurrentGen(TestCase):
 
         def gen(s, n):
             s.next = 0
-            for i in range(n):
+            for _ in range(n):
                 yield delay(td)
             s.next = 1
 
-        for i in range(100):
+        for _ in range(100):
             offset = now()
             n1 = randrange(2, 10)
             n2 = randrange(n1+1, 20)  # n2 > n1
@@ -384,9 +384,9 @@ class YieldGen(TestCase):
         expected = []
         nlists = []
         expectedCnt = 0
-        for i in range(300):
+        for _ in range(300):
             l = []
-            for j in range(randrange(1, 6)):
+            for _ in range(randrange(1, 6)):
                 e = randrange(0, 5)
                 l.append(e)
                 expectedCnt += e
@@ -402,7 +402,7 @@ class YieldGen(TestCase):
 
         def task(nlist):
             n = nlist.pop(0)
-            for i in range(n):
+            for _ in range(n):
                 yield clk.posedge
                 shared.cnt += 1
             assert shared.cnt == expected[shared.i]
@@ -434,7 +434,7 @@ class DeltaCycleOrder(TestCase):
         c = Signal(0)
         d = Signal(0)
         z = Signal(0)
-        delta = [Signal(0) for i in range(4)]
+        delta = [Signal(0) for _ in range(4)]
         inputs = Signal(intbv(0))
         s = [a, b, c, d]
         vectors = [intbv(j) for i in range(8) for j in range(16)]
@@ -516,15 +516,15 @@ class DeltaCycleRace(TestCase):
 
         uprange = range(300)
         msig = Signal(uprange[0])
-        ssig = [Signal(uprange[-1]) for i in range(2)]
-        dsig = [Signal(uprange[0]) for i in range(2)]
+        ssig = [Signal(uprange[-1]) for _ in range(2)]
+        dsig = [Signal(uprange[0]) for _ in range(2)]
         clk = Signal(0)
         deltaClk = Signal(0)
         shared = Shared()
         shared.t = now()
 
         def clkGen():
-            for i in uprange[:-1]:
+            for _ in uprange[:-1]:
                 yield delay(10)
                 clk.next = 1
                 yield delay(10)

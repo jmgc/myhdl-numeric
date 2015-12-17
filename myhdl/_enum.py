@@ -164,8 +164,6 @@ def enum(*names, **kwargs):
             typename = "t_enum_%s" % name
             self.__dict__['_name'] = typename
 
-        _toVHDL = __str__
-
         def _toVHDL(self):
             typename = self.__dict__['_name']
             type_str = "type %s is (\n        " % typename
