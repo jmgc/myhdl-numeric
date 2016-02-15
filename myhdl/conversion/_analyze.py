@@ -558,12 +558,15 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
             node.obj = result
 
     def _bitop_size(self, node, l, r):
-        if isinstance(node.op, ast.BitAnd):
-            node.obj = l & r
-        elif isinstance(node.op, ast.BitOr):
-            node.obj = l | r
-        elif isinstance(node.op, ast.BitXor):
-            node.obj = l ^ r
+        try:
+            if isinstance(node.op, ast.BitAnd):
+                node.obj = l & r
+            elif isinstance(node.op, ast.BitOr):
+                node.obj = l | r
+            elif isinstance(node.op, ast.BitXor):
+                node.obj = l ^ r
+        except TypeError as e:
+            self.raiseError(node, _error.NotSupported, e)
 
     def visit_BinOp(self, node):
         self.visit(node.left)
