@@ -202,6 +202,7 @@ def _analyzeGens(top, absnames):
             v = _AnalyzeBlockVisitor(tree)
             v.visit(tree)
         genlist.append(tree)
+
     return genlist
 
 
@@ -557,12 +558,15 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
             node.obj = result
 
     def _bitop_size(self, node, l, r):
-        if isinstance(node.op, ast.BitAnd):
-            node.obj = l & r
-        elif isinstance(node.op, ast.BitOr):
-            node.obj = l | r
-        elif isinstance(node.op, ast.BitXor):
-            node.obj = l ^ r
+        try:
+            if isinstance(node.op, ast.BitAnd):
+                node.obj = l & r
+            elif isinstance(node.op, ast.BitOr):
+                node.obj = l | r
+            elif isinstance(node.op, ast.BitXor):
+                node.obj = l ^ r
+        except TypeError as e:
+            self.raiseError(node, _error.NotSupported, e)
 
     def visit_BinOp(self, node):
         self.visit(node.left)
@@ -1488,6 +1492,7 @@ def isboundmethod(m):
     method = ismethod(m)
     method_self = hasattr(m, '__self__') and m.__self__ is not None
     return method and method_self
+
 
 def _analyzeTopFunc(top_inst, func, *args, **kwargs):
     tree = _makeAST(func)

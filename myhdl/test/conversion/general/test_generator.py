@@ -10,7 +10,6 @@ M = 2**N
 def temp(enable, clk, a, b, c):
     @always_comb
     def test():
-        c.next = enable
         if enable:
             if clk:
                 a.next = b

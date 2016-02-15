@@ -1,4 +1,3 @@
-import pytest
 from myhdl import instance, Signal, toVerilog, ConversionError
 from myhdl.conversion._misc import _error
 from myhdl.test.helpers import raises_kind
@@ -32,6 +31,6 @@ def testExec():
             while 1:
                 yield a
                 z.next = 1
-                exec "1 + 2" in globals , locals
+                exec "1 + 2" in globals, locals
         return logic
     check(g, z, a)

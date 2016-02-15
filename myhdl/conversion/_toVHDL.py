@@ -119,6 +119,9 @@ class _GenerateHierarchy(object):
 
         entity_list.reverse()
 
+        entity_names = set()
+        name_counter = 0
+
         objects_set = set()
 
         for p_entity in entity_list:
@@ -142,7 +145,12 @@ class _GenerateHierarchy(object):
                 continue
 
             for p_subentity in p_subentities:
-                p_subentity.name = basename + "_" + p_subentity.name
+                new_name = "%s_%s" % (basename, p_subentity.name)
+                if new_name in entity_names:
+                    new_name = "%s_%s" % (new_name, name_counter)
+                    name_counter += 1
+                entity_names.add(new_name)
+                p_subentity.name = new_name
                 subentity = p_v_entity_dict[p_subentity]
                 subentity.basename = basename
                 subentity.name = p_subentity.name
