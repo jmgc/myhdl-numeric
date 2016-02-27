@@ -11,15 +11,18 @@ What is MyHDL-numeric?
 ----------------------
 
 MyHDL-numeric is an enhancement of the [MyHDL](http://www.myhdl.org)
-package which provides support for **fixed-point numbers**.
-This is based on the bit-array class, that
+package which provides support for **multiple VHDL entities**
+([MEP110](http://dev.myhdl.org/meps/mep-110.html))
+and **fixed-point numbers** ([MEP111](http://dev.myhdl.org/meps/mep-111.html)).
+
+The **fixed-point numbers** are based on the bit-array class, that
 provides support for three new types: ``sintba`` (signed integer), ``uintba``
 (unsigned integer) and ``sfixba`` (signed fixed point).
 
 Presently it only supports these new types on VHDL, and makes use of the
-IEEE fixed_pkg available on VHDL-2008. If not, it can also make use of the
-proposed implementation available for VHDL-93, you can find the sources
-under the ``vhdl`` directory
+IEEE fixed_pkg available on VHDL-2008. If not this version is not available,
+it can also make use of the proposed implementation available for VHDL-93,
+you can find the sources under the ``vhdl`` directory
 
 An example of the numeric enhancement can be found under the directory
 ``example/cordic``.
