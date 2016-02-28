@@ -30,7 +30,6 @@ def issue_134(ab_in, ab_out):
     return inverta, invertb
 
 
-@pytest.mark.xfail
 def test_issue_134():
     """ check for port name collision"""
     assert analyze(issue_134, AB(), AB()) == 0
