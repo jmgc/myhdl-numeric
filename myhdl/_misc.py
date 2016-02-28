@@ -30,6 +30,7 @@ from __future__ import absolute_import
 import inspect
 
 from ._Cosimulation import Cosimulation
+from ._instance import _Instantiator
 
 
 def _isGenSeq(obj):
@@ -57,5 +58,3 @@ def instances():
 def downrange(start, stop=0, step=1):
     """ Return a downward range. """
     return range(start-1, stop-1, -step)
-
-from ._instance import _Instantiator
