@@ -53,8 +53,6 @@ from ..numeric._conversion import numeric_functions_dict, \
     numeric_attributes_dict
 from ..numeric._bitarray import bitarray
 
-myhdlObjects = myhdl.__dict__.values()
-builtinObjects = builtins.__dict__.values()
 
 _enumTypeSet = set()
 
@@ -466,6 +464,20 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
         self.globalRefs = set()
         self.access = _access.INPUT
         self.kind = _kind.NORMAL
+        self.myhdlObjects = [val for _, val in
+                             inspect.getmembers(sys.modules["myhdl"],
+                                                inspect.isclass)]
+        modules = inspect.getmembers(sys.modules["myhdl"],
+                                     inspect.ismodule)
+        for _, module in modules:
+            self.myhdlObjects.extend([val for _, val in
+                                      inspect.getmembers(module,
+                                                         inspect.isclass)])
+            self.myhdlObjects.extend([val for _, val in
+                                      inspect.getmembers(module,
+                                                         inspect.isfunction)])
+        self.builtinObjects = builtins.__dict__.values()
+
 
     def _add_size(self, node, l, r):
         result = l + r
@@ -820,11 +832,11 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
                         self.raiseError(node, _error.NotSupported, "print"
                                         " end keyword not support")
             self.visit_Print(node)
-        elif f in myhdlObjects:
+        elif f in self.myhdlObjects:
             pass
         elif f is repr:
             self.raiseError(node, _error.NotSupported, "backquote or repr")
-        elif f in builtinObjects:
+        elif f in self.builtinObjects:
             if f.__name__ == 'exec':
                 self.raiseError(node, _error.NotSupported, "exec function")
             pass

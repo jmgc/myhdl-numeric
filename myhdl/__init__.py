@@ -81,8 +81,14 @@ from .numeric._sfixba import fixmath, sfixba
 
 from ._tristate import Tristate
 
-from ._errors import StopSimulation, ConversionError, SimulationError, \
-    AlwaysError, AlwaysCombError, InstanceError, ExtractHierarchyError
+from ._errors import StopSimulation
+from ._errors import ConversionError
+from ._errors import SimulationError
+from ._errors import AlwaysError
+from ._errors import AlwaysCombError
+from ._errors import InstanceError
+from ._errors import ExtractHierarchyError
+
 from ._version import __version__
 
 __all__ = ["bin",
