@@ -26,7 +26,6 @@ from ._sintba import sintba
 
 from .._compat import long, integer_types, string_types, bit_length
 from .._enum import enum
-from .._misc import downrange
 from .._intbv import intbv
 
 from math import frexp, modf, ldexp
@@ -265,7 +264,7 @@ class sfixba(bitarray):
         else:
             presult = abs(arg)
 
-        for i in downrange(Xresult.high, Xresult.low):
+        for i in range(Xresult.high-1, Xresult.low-1, -1):
             if presult >= ldexp(1.0, i):
                 Xresult[i] = 1
                 presult = presult - ldexp(1.0, i)

@@ -31,25 +31,27 @@ import re
 import ast
 
 import myhdl
-from myhdl import intbv, EnumType, EnumItemType, modbv, concat, \
-    delay, downrange
-from myhdl import ConversionError
-from myhdl._always_comb import _AlwaysComb
-from myhdl._always_seq import _AlwaysSeq
-from myhdl._always import _Always
-from myhdl.conversion._misc import (_error, _access, _kind,
-                                    _ConversionMixin, _Label, _genUniqueSuffix,
-                                    _get_argnames)
-from myhdl._extractHierarchy import _isMem, _getMemInfo, _UserCode
-from myhdl._Signal import _Signal, _WaiterList
-from myhdl._ShadowSignal import _ShadowSignal, _SliceSignal, _TristateDriver
-from myhdl._util import _isTupleOfInts, _flatten, _makeAST, _isTupleOfFloats
-from myhdl._resolverefs import _AttrRefTransformer
-from myhdl._compat import builtins, integer_types, long, string_types, PY2
-from myhdl.numeric._conversion import (numeric_functions_dict,
-                                       numeric_attributes_dict)
-from myhdl.numeric._bitarray import bitarray
-from copy import copy
+from .._intbv import intbv
+from .._enum import EnumType, EnumItemType
+from .._modbv import modbv
+from .._concat import concat
+from .._delay import delay
+from .._misc import downrange
+from .._errors import ConversionError
+from .._always_comb import _AlwaysComb
+from .._always_seq import _AlwaysSeq
+from .._always import _Always
+from ..conversion._misc import _error, _access, _kind, \
+    _ConversionMixin, _Label, _genUniqueSuffix, _get_argnames
+from .._extractHierarchy import _isMem, _getMemInfo, _UserCode
+from .._Signal import _Signal, _WaiterList
+from .._ShadowSignal import _ShadowSignal, _SliceSignal, _TristateDriver
+from .._util import _isTupleOfInts, _flatten, _makeAST, _isTupleOfFloats
+from .._resolverefs import _AttrRefTransformer
+from .._compat import builtins, integer_types, long, string_types, PY2
+from ..numeric._conversion import numeric_functions_dict, \
+    numeric_attributes_dict
+from ..numeric._bitarray import bitarray
 
 myhdlObjects = myhdl.__dict__.values()
 builtinObjects = builtins.__dict__.values()
@@ -1494,7 +1496,7 @@ def isboundmethod(m):
     return method and method_self
 
 
-def _analyzeTopFunc(top_inst, func, *args, **kwargs):
+def _analyzeTopFunc(func, *args, **kwargs):
     tree = _makeAST(func)
     v = _AnalyzeTopFuncVisitor(func, tree, *args, **kwargs)
     v.visit(tree)

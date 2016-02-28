@@ -21,31 +21,31 @@
 from __future__ import absolute_import
 
 
-import sys
-import inspect
 from types import FunctionType
-import ast
 
-from myhdl import AlwaysError, intbv
-from myhdl._util import _isGenFunc, _dedent
-from myhdl._delay import delay
-from myhdl._Signal import _Signal, _WaiterList,_isListOfSigs
-from myhdl._Waiter import _Waiter, _EdgeWaiter, _EdgeTupleWaiter
-from myhdl._always import _Always
-from myhdl._resolverefs import _AttrRefTransformer
-from myhdl._visitors import _SigNameVisitor
+from ._errors import AlwaysError
+from ._intbv import intbv
+from ._util import _isGenFunc
+from ._Signal import _Signal, _WaiterList, _isListOfSigs
+from ._always import _Always
 
 # evacuate this later
 AlwaysSeqError = AlwaysError
 
+
 class _error:
     pass
+
+
 _error.EdgeType = "first argument should be an edge"
 _error.ResetType = "reset argument should be a ResetSignal"
-_error.ArgType = "decorated object should be a classic (non-generator) function"
+_error.ArgType = "decorated object should be a classic" \
+    " (non-generator) function"
 _error.NrOfArgs = "decorated function should not have arguments"
 _error.SigAugAssign = "signal assignment does not support augmented assignment"
-_error.EmbeddedFunction = "embedded functions in always_seq function not supported"
+_error.EmbeddedFunction = "embedded functions in always_seq function" \
+    " not supported"
+
 
 class ResetSignal(_Signal):
     def __init__(self, val, active, async):
@@ -57,7 +57,6 @@ class ResetSignal(_Signal):
         _Signal.__init__(self, bool(val))
         self.active = bool(active)
         self.async = async
-
 
 
 def always_seq(edge, reset):
@@ -101,25 +100,15 @@ class _AlwaysSeq(_Always):
 
         super(_AlwaysSeq, self).__init__(func, senslist)
 
-        # now infer outputs to be reset
-        s = inspect.getsource(func)
-        s = _dedent(s)
-        tree = ast.parse(s)
-        # print ast.dump(tree)
-        v = _AttrRefTransformer(self)
-        v.visit(tree)
-        v = _SigNameVisitor(self.symdict)
-        v.visit(tree)
+        if self.inouts:
+            raise AlwaysSeqError(_error.SigAugAssign, v.inouts)
 
-        if v.results['inout']:
-            raise AlwaysSeqError(_error.SigAugAssign, v.results['inout'])
-
-        if v.results['embedded_func']:
+        if self.embedded_func:
             raise AlwaysSeqError(_error.EmbeddedFunction)
 
         sigregs = self.sigregs = []
         varregs = self.varregs = []
-        for n in v.results['output']:
+        for n in self.outputs:
             reg = self.symdict[n]
             if isinstance(reg, _Signal):
                 sigregs.append(reg)
@@ -137,7 +126,7 @@ class _AlwaysSeq(_Always):
     def reset_vars(self):
         for v in self.varregs:
             # only intbv's for now
-            n, reg, init = v
+            _, reg, init = v
             reg._val = init
 
     def genfunc_reset(self):

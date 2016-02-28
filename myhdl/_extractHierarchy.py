@@ -23,18 +23,19 @@
 from __future__ import absolute_import
 
 import inspect
+import re
 import string
 import sys
 import ast
 
-from myhdl import ExtractHierarchyError, ToVerilogError, ToVHDLError, \
-    EnumItemType
-from myhdl._Signal import _Signal, _isListOfSigs
-from myhdl._compat import integer_types
-from myhdl._getcellvars import _getCellVars
-from myhdl._misc import _isGenSeq
-from myhdl._resolverefs import _resolveRefs
-from myhdl._util import _flatten, _genfunc, _isTupleOfInts, _isTupleOfFloats
+from ._errors import ExtractHierarchyError, ToVerilogError, ToVHDLError
+from ._enum import EnumItemType
+from ._Signal import _Signal, _isListOfSigs
+from ._compat import integer_types
+from ._getcellvars import _getCellVars
+from ._misc import _isGenSeq
+from ._resolverefs import _resolveRefs
+from ._util import _flatten, _genfunc, _isTupleOfInts, _isTupleOfFloats
 
 
 _profileFunc = None
@@ -60,11 +61,11 @@ class _Constant(object):
 
 class _Instance(object):
     __slots__ = ['level', 'obj', 'subs', 'constdict', 'sigdict', 'memdict',
-                 'romdict', 'name', 'func', 'frame', 'argdict',
-                 'objdict']
+                 'romdict', 'name', 'func', 'frame',
+                 ]
 
     def __init__(self, level, obj, subs, constdict, sigdict, memdict,
-                 romdict, func, frame, argdict, objdict=None):
+                 romdict, func, frame):
         self.level = level
         self.obj = obj
         self.subs = subs
@@ -74,10 +75,8 @@ class _Instance(object):
         self.romdict = romdict
         self.func = func
         self.frame = frame
-        self.argdict = argdict
-        if objdict:
-            self.objdict = objdict
 
+        self.name = None
 
 _memInfoMap = {}
 
@@ -417,11 +416,6 @@ class _HierExtr(object):
                     sigdict = {}
                     memdict = {}
                     romdict = {}
-                    argdict = {}
-                    if func:
-                        arglist = inspect.getargspec(func).args
-                    else:
-                        arglist = []
                     symdict = frame.f_globals.copy()
                     symdict.update(frame.f_locals)
                     cellvars = []
@@ -466,10 +460,6 @@ class _HierExtr(object):
                             romdict[n] = m
                             if n in cellvars:
                                 m._used = True
-                        # save any other variable in argdict
-                        if (n in arglist) and (n not in sigdict) and \
-                                (n not in memdict) and (n not in romdict):
-                            argdict[n] = v
 
                     subs = []
                     for n, sub in frame.f_locals.items():
@@ -477,8 +467,7 @@ class _HierExtr(object):
                             if elt is sub:
                                 subs.append((n, sub))
                     inst = _Instance(self.level, arg, subs, constdict,
-                                     sigdict, memdict, romdict, func, frame,
-                                     argdict)
+                                     sigdict, memdict, romdict, func, frame)
                     self.hierarchy.append(inst)
 
                 self.level -= 1

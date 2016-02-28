@@ -23,18 +23,22 @@ from __future__ import absolute_import
 
 from types import FunctionType
 
-from myhdl import AlwaysError
-from myhdl._util import _isGenFunc, _makeAST
-from myhdl._delay import delay
-from myhdl._Signal import _Signal, _WaiterList, posedge, negedge
-from myhdl._Waiter import _Waiter, _SignalWaiter, _SignalTupleWaiter, \
+from ._errors import AlwaysError
+from ._util import _isGenFunc
+from ._delay import delay
+from ._Signal import _Signal, _WaiterList
+from ._Waiter import _Waiter, _SignalWaiter, _SignalTupleWaiter, \
                           _DelayWaiter, _EdgeWaiter, _EdgeTupleWaiter
-from myhdl._instance import _Instantiator
+from ._instance import _Instantiator
+
 
 class _error:
     pass
+
+
 _error.DecArgType = "decorator argument should be a Signal, edge, or delay"
-_error.ArgType = "decorated object should be a classic (non-generator) function"
+_error.ArgType = "decorated object should be a classic" \
+    " (non-generator) function"
 _error.NrOfArgs = "decorated function should not have arguments"
 _error.DecNrOfArgs = "decorator should have arguments"
 
@@ -49,6 +53,7 @@ def always(*args):
             arg.sig._used = True
         elif not isinstance(arg, delay):
             raise AlwaysError(_error.DecArgType)
+
     def _always_decorator(func):
         if not isinstance(func, FunctionType):
             raise AlwaysError(_error.ArgType)
@@ -66,17 +71,10 @@ class _Always(_Instantiator):
         self.func = func
         self.senslist = tuple(senslist)
         super(_Always, self).__init__(self.genfunc)
-        varnames = func.__code__.co_varnames
-        symdict = {}
-        for n, v in func.__globals__.items():
-            if n not in varnames:
-                symdict[n] = v
-        # handle free variables
-        freevars = func.__code__.co_freevars
-        if freevars:
-            closure = (c.cell_contents for c in func.__closure__)
-            symdict.update(zip(freevars, closure))
-        self.symdict = symdict
+
+    @property
+    def funcobj(self):
+        return self.func
 
     def _waiter(self):
         # infer appropriate waiter class
@@ -102,12 +100,7 @@ class _Always(_Instantiator):
                 W = _SignalTupleWaiter
             elif bt is _WaiterList:
                 W = _EdgeTupleWaiter
-
         return W
-
-    @property
-    def ast(self):
-        return _makeAST(self.func)
 
     def genfunc(self):
         senslist = self.senslist

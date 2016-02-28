@@ -26,14 +26,14 @@ from __future__ import absolute_import
 import warnings
 from copy import deepcopy
 
-from myhdl._compat import long
-from myhdl._Signal import _Signal
-from myhdl._Waiter import _SignalWaiter, _SignalTupleWaiter
-from myhdl._intbv import intbv
-from myhdl._simulator import _simulator
-from myhdl._bin import bin
-from myhdl.numeric._bitarray import bitarray
-from myhdl.numeric._uintba import uintba
+from ._compat import long
+from ._Signal import _Signal
+from ._intbv import intbv
+from ._simulator import _simulator
+from ._bin import bin
+from .numeric._bitarray import bitarray
+from .numeric._uintba import uintba
+from ._Waiter import _SignalWaiter, _SignalTupleWaiter
 
 # shadow signals
 
@@ -93,9 +93,11 @@ class _SliceSignal(_ShadowSignal):
                 self._name = "%s(%s)" % (self._sig._name, self._left)
         else:
             if hdl == 'Verilog':
-                self._name = "%s[%s-1:%s]" % (self._sig._name, self._left, self._right)
+                self._name = "%s[%s-1:%s]" % (self._sig._name, self._left,
+                                              self._right)
             else:
-                self._name = "%s((%s-1) downto %s)" % (self._sig._name, self._left, self._right)
+                self._name = "%s((%s-1) downto %s)" % (self._sig._name,
+                                                       self._left, self._right)
 
     def _markRead(self):
         self._read = True
@@ -275,15 +277,6 @@ class BusContentionWarning(UserWarning):
     pass
 
 warnings.filterwarnings('always', r".*", BusContentionWarning)
-
-# def Tristate(val, delay=None):
-#     """ Return a new Tristate(default or delay 0) or DelayedTristate """
-#     if delay is not None:
-#         if delay < 0:
-#             raise TypeError("Signal: delay should be >= 0")
-#         return _DelayedTristate(val, delay)
-#     else:
-#         return _Tristate(val)
 
 
 def TristateSignal(val):

@@ -3,8 +3,8 @@ from __future__ import absolute_import, print_function
 import random
 from myhdl.test.conftest import bug
 from random import randrange
-from myhdl import *
-from myhdl import ConversionError
+from myhdl import ConversionError, instance, always, always_comb, Signal, \
+    intbv, delay, StopSimulation, toVHDL, conversion
 from myhdl.conversion._misc import _error
 import os
 path = os.path
@@ -73,7 +73,7 @@ def inc(count, enable, clock, reset, n):
     count.driven = "reg"
 
     __vhdl__ = \
-"""
+        """
 process (%(clock)s, %(reset)s) begin
     if (%(reset)s = '0') then
         %(count)s <= (others => '0');
@@ -219,6 +219,7 @@ def check(count, enable, clock, reset, n):
         yield reset.posedge
         # assert count == expect
         print(int(count))
+
         while 1:
             yield clock.posedge
             if enable:
