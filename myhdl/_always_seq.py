@@ -101,7 +101,7 @@ class _AlwaysSeq(_Always):
         super(_AlwaysSeq, self).__init__(func, senslist)
 
         if self.inouts:
-            raise AlwaysSeqError(_error.SigAugAssign, v.inouts)
+            raise AlwaysSeqError(_error.SigAugAssign, self.inouts)
 
         if self.embedded_func:
             raise AlwaysSeqError(_error.EmbeddedFunction)
