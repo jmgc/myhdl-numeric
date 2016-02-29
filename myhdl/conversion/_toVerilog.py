@@ -38,24 +38,27 @@ from myhdl._compat import StringIO
 import warnings
 
 import myhdl
-from myhdl import (intbv, modbv, EnumItemType, EnumType, now,
-                   posedge, negedge, concat, delay)
-from myhdl._compat import integer_types, class_types, PY2
-from myhdl import ToVerilogError, ToVerilogWarning
-from myhdl._extractHierarchy import (_HierExtr, _isMem, _getMemInfo, _MemInfo,
-                                     _UserVerilogCode, _userCodeMap)
+from .._intbv import intbv
+from .._modbv import modbv
+from .._enum import EnumItemType, EnumType
+from .._simulator import now
+from .._Signal import posedge, negedge
+from .._concat import concat
+from .._delay import delay
+from .._compat import integer_types, class_types, PY2
+from .._errors import ToVerilogError, ToVerilogWarning
+from .._extractHierarchy import _HierExtr, _isMem, _getMemInfo, _MemInfo, \
+    _UserVerilogCode, _userCodeMap
 
-from myhdl._instance import _Instantiator
-from myhdl.conversion._misc import (_error, _kind, _context,
-                                    _ConversionMixin, _Label, _genUniqueSuffix,
-                                    _isConstant)
-from myhdl.conversion._analyze import (_analyzeSigs, _analyzeGens,
-                                       _analyzeTopFunc,
-                                       _Ram, _Rom)
-from myhdl._Signal import _Signal
+from .._instance import _Instantiator
+from ._misc import _error, _kind, _context, \
+    _ConversionMixin, _Label, _genUniqueSuffix, _isConstant
+from ._analyze import _analyzeSigs, _analyzeGens, _analyzeTopFunc, \
+    _Ram, _Rom
+from .._Signal import _Signal
 
 from collections import Callable
-from myhdl._ShadowSignal import _TristateSignal, _TristateDriver
+from .._ShadowSignal import _TristateSignal, _TristateDriver
 
 _converting = 0
 _profileFunc = None
@@ -159,8 +162,8 @@ class _ToVerilogConvertor(object):
         genlist = _analyzeGens(arglist, h.absnames)
         siglist, memlist = _analyzeSigs(h.hierarchy)
         _annotateTypes(genlist)
-        top_inst = h.hierarchy[0]
-        intf = _analyzeTopFunc(top_inst, func, *args, **kwargs)
+
+        intf = _analyzeTopFunc(func, *args, **kwargs)
         intf.name = name
         doc = _makeDoc(inspect.getdoc(func))
 
@@ -229,14 +232,14 @@ myhdl_header = """\
 
 
 def _writeFileHeader(f, fn, ts):
-    vars = dict(filename=fn,
-                version=myhdl.__version__,
-                date=datetime.today().ctime()
-                )
+    variables = dict(filename=fn,
+                     version=myhdl.__version__,
+                     date=datetime.today().ctime()
+                     )
     if not toVerilog.no_myhdl_header:
-        print(string.Template(myhdl_header).substitute(vars), file=f)
+        print(string.Template(myhdl_header).substitute(variables), file=f)
     if toVerilog.header:
-        print(string.Template(toVerilog.header).substitute(vars), file=f)
+        print(string.Template(toVerilog.header).substitute(variables), file=f)
     print(file=f)
     print("`timescale %s" % ts, file=f)
     print(file=f)
@@ -528,13 +531,13 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
             r = "(-%s)" % r
         return r
 
-    def writeDeclaration(self, obj, name, dir):
-        if dir:
-            dir = dir + ' '
+    def writeDeclaration(self, obj, name, direction):
+        if direction:
+            direction = direction + ' '
         if type(obj) is bool:
-            self.write("%s%s" % (dir, name))
+            self.write("%s%s" % (direction, name))
         elif isinstance(obj, integer_types):
-            if dir == "input ":
+            if direction == "input ":
                 self.write("input %s;" % name)
                 self.writeline()
             self.write("integer %s" % name)
@@ -546,12 +549,12 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
             if isinstance(obj, (intbv, _Signal)):
                 if obj._min is not None and obj._min < 0:
                     s = "signed "
-            self.write("%s%s[%s-1:0] %s" % (dir, s, obj._nrbits, name))
+            self.write("%s%s[%s-1:0] %s" % (direction, s, obj._nrbits, name))
         else:
             raise AssertionError("var %s has unexpected type %s" % (name,
                                                                     type(obj)))
         # initialize regs
-        # if dir == 'reg ' and not isinstance(obj, _Ram):
+        # if direction == 'reg ' and not isinstance(obj, _Ram):
         # disable for cver
         if False:
             if isinstance(obj, EnumItemType):
@@ -1456,7 +1459,7 @@ class _ConvertFunctionVisitor(_ConvertVisitor):
 
     def writeOutputDeclaration(self):
         obj = self.tree.returnObj
-        self.writeDeclaration(obj, self.tree.name, dir='')
+        self.writeDeclaration(obj, self.tree.name, direction='')
 
     def writeInputDeclarations(self):
         for name in self.tree.argnames:
@@ -1499,12 +1502,13 @@ class _ConvertTaskVisitor(_ConvertVisitor):
     def writeInterfaceDeclarations(self):
         for name in self.tree.argnames:
             obj = self.tree.symdict[name]
-            output = name in self.tree.outputs
-            input = name in self.tree.inputs
-            inout = input and output
-            dir = (inout and "inout") or (output and "output") or "input"
+            is_output = name in self.tree.outputs
+            is_input = name in self.tree.inputs
+            inout = is_input and is_output
+            direction = (inout and "inout") or (is_output and "output") or \
+                "input"
             self.writeline()
-            self.writeDeclaration(obj, name, dir)
+            self.writeDeclaration(obj, name, direction)
 
     def visit_FunctionDef(self, node):
         self.write("task %s;" % self.tree.name)

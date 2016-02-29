@@ -11,6 +11,7 @@ def check(*args):
 def test_Backquote():
     a = Signal(bool())
     z = Signal(bool())
+
     def g(z, a):
         @instance
         def logic():
@@ -25,6 +26,7 @@ def test_Backquote():
 def testExec():
     a = Signal(bool())
     z = Signal(bool())
+
     def g(z, a):
         @instance
         def logic():

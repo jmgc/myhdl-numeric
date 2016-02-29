@@ -30,13 +30,10 @@ from __future__ import absolute_import
 from __future__ import print_function
 from __future__ import division
 
-from inspect import currentframe, getouterframes
 from copy import copy, deepcopy
-import operator
-import warnings
 
 from ._compat import integer_types, long
-from ._simulator import _simulator, now
+from ._simulator import _simulator
 from ._intbv import intbv
 from ._bin import bin
 from .numeric._bitarray import bitarray

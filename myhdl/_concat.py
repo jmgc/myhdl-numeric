@@ -28,6 +28,7 @@ from ._Signal import _Signal
 from ._compat import long
 from .numeric._bitarray import bitarray
 
+
 def concat(base, *args):
 
     if isinstance(base, (intbv, bitarray)):
@@ -49,7 +50,7 @@ def concat(base, *args):
         basewidth = len(base)
         val = long(base, 2)
     else:
-        raise TypeError("concat: inappropriate first argument type: %s" \
+        raise TypeError("concat: inappropriate first argument type: %s"
                         % type(base))
 
     width = 0
@@ -70,13 +71,13 @@ def concat(base, *args):
             w = len(arg)
             v = long(arg, 2)
         else:
-            raise TypeError("concat: inappropriate argument type: %s" \
+            raise TypeError("concat: inappropriate argument type: %s"
                             % type(arg))
         if not w:
             raise TypeError("concat: arg on pos %d should have length" % (i+1))
         width += w
         val = val << w | v & (long(1) << w)-1
- 
+
     if basewidth:
         if isinstance(base, bitarray):
             return type(base)(val, basewidth + width, 0)
@@ -84,4 +85,3 @@ def concat(base, *args):
             return intbv(val, _nrbits=basewidth + width)
     else:
         return intbv(val)
-

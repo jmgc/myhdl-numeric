@@ -24,7 +24,7 @@ import random
 from random import randrange
 
 from myhdl import (AlwaysCombError, Signal, Simulation, StopSimulation, delay,
-                   instances, intbv, now)
+                   instances, intbv)
 from myhdl._always_comb import _error, always_comb
 from myhdl._Waiter import _SignalTupleWaiter, _SignalWaiter, _Waiter
 from myhdl.test.helpers import raises_kind
@@ -269,7 +269,7 @@ class TestAlwaysCombSimulation2:
         k = Signal(0)
         z = Signal(0)
         x = Signal(0)
-        vectors = [intbv(j) for i in range(32) for j in range(16)]
+        vectors = [intbv(j) for _ in range(32) for j in range(16)]
         random.shuffle(vectors)
 
         def andFunc():
@@ -277,7 +277,7 @@ class TestAlwaysCombSimulation2:
 
         def andGenFunc():
             while 1:
-                z.next =  a & b & c & d
+                z.next = a & b & c & d
                 yield a, b, c, d
 
         def orFunc():
@@ -376,7 +376,7 @@ class TestInferWaiter:
                 if randrange(2):
                     a.next = randrange(32)
                 if randrange(2):
-                       b.next = randrange(32)
+                    b.next = randrange(32)
                 c.next = randrange(2)
                 d.next = randrange(2)
             raise StopSimulation
@@ -386,7 +386,8 @@ class TestInferWaiter:
                 yield a, b, c, r, s
                 assert r == s
 
-        return inst_r, _Waiter(inst_s.gen), _Waiter(stimulus()), _Waiter(check())
+        return inst_r, _Waiter(inst_s.gen), _Waiter(stimulus()), \
+            _Waiter(check())
 
     def testSignal1(self):
         sim = Simulation(self.bench(SignalGen1, _SignalWaiter))

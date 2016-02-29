@@ -8,12 +8,12 @@ import difflib
 
 from collections import namedtuple
 
-import myhdl
-from myhdl._Simulation import Simulation
-from myhdl.conversion._toVHDL import toVHDL
-from myhdl.conversion._toVerilog import toVerilog
+from .._Simulation import Simulation
+from ._toVHDL import toVHDL
+from ._toVerilog import toVerilog
+from .._version import __version__
 
-_version = myhdl.__version__.replace('.', '')
+_version = __version__.replace('.', '')
 # strip 'dev' for version
 _version = _version.replace('dev', '')
 
@@ -113,7 +113,7 @@ class _VerificationClass(object):
     __slots__ = ("simulator", "_analyzeOnly")
 
     def __init__(self, analyzeOnly=False):
-        self.simulator = "ghdl"
+        self.simulator = None
         self._analyzeOnly = analyzeOnly
 
     def __call__(self, func, *args, **kwargs):

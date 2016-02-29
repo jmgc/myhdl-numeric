@@ -23,14 +23,12 @@
 from __future__ import absolute_import
 from __future__ import print_function
 
-import ast
 import sys
-import os
 import inspect
 
 from tokenize import generate_tokens, untokenize, INDENT
 
-from myhdl._compat import integer_types, StringIO, ast_parse
+from ._compat import integer_types, StringIO, ast_parse
 
 
 def _printExcInfo():

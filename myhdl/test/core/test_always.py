@@ -23,16 +23,14 @@ from __future__ import absolute_import
 from random import randrange
 
 from myhdl import (AlwaysError, Signal, Simulation, StopSimulation, delay,
-                   instances, intbv, now)
+                   intbv)
 from myhdl._always import _error, always
 from myhdl._Waiter import (_DelayWaiter, _EdgeTupleWaiter, _EdgeWaiter,
                            _SignalTupleWaiter, _SignalWaiter, _Waiter)
 from myhdl.test.helpers import raises_kind
 
-# random.seed(3) # random, but deterministic
 
-
-QUIET=1
+QUIET = 1
 
 
 def g():
@@ -131,7 +129,7 @@ class TestInferWaiter:
 
     def bench(self, MyHDLFunc, waiterType):
 
-        a, b, c, d, r, s = [Signal(intbv(0)) for i in range(6)]
+        a, b, c, d, r, s = [Signal(intbv(0)) for _ in range(6)]
 
         inst_r = MyHDLFunc(a, b, c, d, r)
         assert type(inst_r.waiter) == waiterType

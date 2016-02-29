@@ -3,8 +3,8 @@ import sys
 import py
 import pytest
 
-from myhdl.conversion import analyze, verify
-from myhdl.conversion._verify import _simulators
+from ..conversion import analyze, verify
+from ..conversion._verify import _simulators
 
 xfail = pytest.mark.xfail
 

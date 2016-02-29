@@ -25,10 +25,10 @@ import os
 import shlex
 import subprocess
 
-from myhdl._intbv import intbv
-from myhdl import CosimulationError
-from myhdl._simulator import _simulator
-from myhdl._compat import PY2, string_types, to_bytes, to_str, set_inheritable
+from ._intbv import intbv
+from ._errors import CosimulationError
+from ._simulator import _simulator
+from ._compat import PY2, string_types, to_bytes, to_str, set_inheritable
 
 _MAXLINE = 4096
 
