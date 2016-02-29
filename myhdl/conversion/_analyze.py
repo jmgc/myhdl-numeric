@@ -464,20 +464,19 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
         self.globalRefs = set()
         self.access = _access.INPUT
         self.kind = _kind.NORMAL
-        self.myhdlObjects = [val for _, val in
-                             inspect.getmembers(sys.modules["myhdl"],
-                                                inspect.isclass)]
+        self.myhdlObjects = set(val for _, val in
+                                inspect.getmembers(sys.modules["myhdl"],
+                                                   inspect.isclass))
         modules = inspect.getmembers(sys.modules["myhdl"],
                                      inspect.ismodule)
         for _, module in modules:
-            self.myhdlObjects.extend([val for _, val in
+            self.myhdlObjects.update([val for _, val in
                                       inspect.getmembers(module,
                                                          inspect.isclass)])
-            self.myhdlObjects.extend([val for _, val in
+            self.myhdlObjects.update([val for _, val in
                                       inspect.getmembers(module,
                                                          inspect.isfunction)])
         self.builtinObjects = builtins.__dict__.values()
-
 
     def _add_size(self, node, l, r):
         result = l + r
