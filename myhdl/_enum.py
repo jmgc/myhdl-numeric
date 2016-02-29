@@ -89,6 +89,9 @@ def enum(*names, **kwargs):
 
         __str__ = __repr__
 
+        def __int__(self):
+            return self.__index__()
+
         def __hex__(self):
             return hex(self.__index__())
 
@@ -133,9 +136,6 @@ def enum(*names, **kwargs):
 
         def __index__(self):
             return int(self._val, 2)
-
-        def __int__(self):
-            return self.__index__()
 
     class Enum(EnumType):
         def __init__(self, names, codedict, nrbits, encoding):

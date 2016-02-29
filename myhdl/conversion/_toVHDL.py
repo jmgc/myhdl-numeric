@@ -44,39 +44,42 @@ from copy import copy
 import string
 from collections import namedtuple
 
-import myhdl
-
-from myhdl import EnumItemType, EnumType, intbv, modbv, concat, now, \
-    posedge, negedge, delay, downrange, bin
-from myhdl import ToVHDLError, ToVHDLWarning, ConversionError
-from myhdl._extractHierarchy import (_HierExtr, _isMem, _isRom, _getMemInfo,
-                                     _UserVhdlCode, _userCodeMap, _MemInfo,
-                                     _RomInfo, _Constant, _getRomInfo,
-                                     _makeMemInfo, _makeRomInfo)
-from myhdl._instance import _Instantiator
-from myhdl.conversion._misc import (_error, _kind, _context,
-                                    _ConversionMixin, _Label, _genUniqueSuffix,
-                                    _isConstant)
-from myhdl.conversion._analyze import (_analyzeSigs, _analyzeMems,
-                                       _analyzeGens, _analyzeTopFunc,
-                                       _Ram, _Rom, _enumTypeSet)
-from myhdl._Signal import _Signal, _WaiterList, _SliceSignal, _isListOfSigs
-from myhdl._ShadowSignal import ConcatSignal
-from myhdl.conversion._toVHDLPackage import _package
-from myhdl._util import _flatten, _isTupleOfInts, _isTupleOfFloats
-from myhdl._compat import integer_types, class_types, StringIO
-from myhdl._ShadowSignal import _TristateSignal, _TristateDriver
-from myhdl._resolverefs import _suffixer
-from myhdl.numeric._bitarray import bitarray
-from myhdl.numeric._uintba import uintba
-from myhdl.numeric._sintba import sintba
-from myhdl.numeric._sfixba import sfixba
-from myhdl.numeric._conversion import (numeric_types,
-                                       numeric_functions_dict,
-                                       numeric_attributes_dict)
+from .._version import __version__
+from .._enum import EnumItemType, EnumType
+from .._intbv import intbv
+from .._modbv import modbv
+from .._concat import concat
+from .._simulator import now
+from .._Signal import posedge, negedge
+from .._delay import delay
+from .._misc import downrange
+from .._bin import bin
+from .._errors import ToVHDLError, ToVHDLWarning, ConversionError
+from .._extractHierarchy import (_HierExtr, _isMem, _isRom, _getMemInfo,
+                                 _UserVhdlCode, _userCodeMap, _MemInfo,
+                                 _RomInfo, _Constant, _getRomInfo,
+                                 _makeMemInfo, _makeRomInfo)
+from .._instance import _Instantiator
+from ..conversion._misc import _error, _kind, _context, \
+    _ConversionMixin, _Label, _genUniqueSuffix, _isConstant
+from ..conversion._analyze import _analyzeSigs, _analyzeMems, \
+    _analyzeGens, _analyzeTopFunc, _Ram, _Rom, _enumTypeSet
+from .._Signal import _Signal, _WaiterList, _SliceSignal, _isListOfSigs
+from .._ShadowSignal import ConcatSignal
+from ..conversion._toVHDLPackage import _package
+from .._util import _flatten, _isTupleOfInts, _isTupleOfFloats
+from .._compat import integer_types, class_types, StringIO
+from .._ShadowSignal import _TristateSignal, _TristateDriver
+from .._resolverefs import _suffixer
+from ..numeric._bitarray import bitarray
+from ..numeric._uintba import uintba
+from ..numeric._sintba import sintba
+from ..numeric._sfixba import sfixba
+from ..numeric._conversion import numeric_types, numeric_functions_dict, \
+    numeric_attributes_dict
 from collections import Callable
 
-_version = myhdl.__version__.replace('.', '')
+_version = __version__.replace('.', '')
 _shortversion = _version.replace('dev', '')
 _converting = 0
 _profileFunc = None
@@ -132,8 +135,7 @@ class _GenerateHierarchy(object):
 
             p_subentities = p_entity_dict[p_entity]
 
-            if (not p_entity.argdict) and \
-                    getattr(p_entity, 'func', False) is None:
+            if getattr(p_entity, 'func', False) is None:
                 if p_entity not in p_offsprings_dict:
                     raise ToVHDLError(_error.NotSupported, "Top func: %s" %
                                       p_entity.name)
@@ -177,7 +179,7 @@ class _GenerateHierarchy(object):
             elargs = self._instance_args(p_entity)
 
             # Infer interface
-            intf = _analyzeTopFunc(p_entity, p_entity.func, *elargs, **{})
+            intf = _analyzeTopFunc(p_entity.func, *elargs, **{})
             intf.name = p_entity.name
 
             # Updating the components ports
@@ -1280,7 +1282,7 @@ myhdl_header = """\
 
 def _writeFileHeader(f, fn):
     variables = dict(filename=fn,
-                     version=myhdl.__version__,
+                     version=__version__,
                      date=datetime.today().ctime()
                      )
     if toVHDL.header:
@@ -2370,9 +2372,6 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
         self.dedent()
         self.writeline()
         self.write("end loop;")
-# #         if node.breakLabel.isActive:
-# #             self.writeline()
-# #             self.write("end")
         self.labelStack.pop()
         self.labelStack.pop()
 

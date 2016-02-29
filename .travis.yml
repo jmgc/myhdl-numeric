@@ -26,6 +26,7 @@ env:
   - CI_TARGET=ghdl
   - CI_TARGET=numeric
 
+
 script: ./scripts/ci.sh
 
 notifications:

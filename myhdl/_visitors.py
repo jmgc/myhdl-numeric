@@ -1,6 +1,6 @@
 import ast
 
-from myhdl import intbv
+from myhdl._intbv import intbv
 from myhdl._Signal import _Signal, _isListOfSigs
 
 
@@ -8,17 +8,13 @@ class _SigNameVisitor(ast.NodeVisitor):
     def __init__(self, symdict):
         self.toplevel = 1
         self.symdict = symdict
-        self.results = {
-            'input': set(),
-            'output': set(),
-            'inout': set(),
-            'embedded_func': set()
-        }
+        self.inputs = set()
+        self.outputs = set()
+        self.inouts = set()
+        self.embedded_func = None
         self.context = 'input'
 
     def visit_Module(self, node):
-        inputs = self.results['input']
-        outputs = self.results['output']
         for n in node.body:
             self.visit(n)
 
@@ -28,7 +24,7 @@ class _SigNameVisitor(ast.NodeVisitor):
             for n in node.body:
                 self.visit(n)
         else:
-            self.results['embedded_func'] = node.name
+            self.embedded_func = node.name
 
     def visit_If(self, node):
         if not node.orelse:
@@ -38,16 +34,20 @@ class _SigNameVisitor(ast.NodeVisitor):
         self.generic_visit(node)
 
     def visit_Name(self, node):
-        id = node.id
-        if id not in self.symdict:
+        nid = node.id
+        if nid not in self.symdict:
             return
-        s = self.symdict[id]
+        s = self.symdict[nid]
         if isinstance(s, (_Signal, intbv)) or _isListOfSigs(s):
-            if self.context in ('input', 'output', 'inout'):
-                self.results[self.context].add(id)
+            if self.context == 'input':
+                self.inputs.add(nid)
+            elif self.context == 'output':
+                self.outputs.add(nid)
+            elif self.context == 'inout':
+                self.inouts.add(nid)
             else:
                 print(self.context)
-                raise AssertionError("bug in always_comb")
+                raise AssertionError("bug in _SigNameVisitor")
 
     def visit_Assign(self, node):
         self.context = 'output'
@@ -68,22 +68,22 @@ class _SigNameVisitor(ast.NodeVisitor):
         else:
             self.generic_visit(node)
 
-    def visit_Subscript(self, node, access='input'):
+    def visit_Subscript(self, node):
         self.visit(node.value)
         self.context = 'input'
         self.visit(node.slice)
 
-    def visit_AugAssign(self, node, access='input'):
+    def visit_AugAssign(self, node):
         self.context = 'inout'
         self.visit(node.target)
         self.context = 'input'
         self.visit(node.value)
 
     def visit_ClassDef(self, node):
-        pass # skip
+        pass  # skip
 
     def visit_Exec(self, node):
-        pass # skip
+        pass  # skip
 
     def visit_Print(self, node):
-        pass # skip
+        pass  # skip

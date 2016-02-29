@@ -3,11 +3,11 @@ import ast
 import itertools
 from types import FunctionType
 
-from myhdl._util import _flatten
-from myhdl._enum import EnumType
-from myhdl._Signal import SignalType
-from myhdl.numeric._conversion import (numeric_functions_dict,
-                                       numeric_attributes_dict)
+from ._util import _flatten
+from ._enum import EnumType
+from ._Signal import SignalType
+from .numeric._conversion import numeric_functions_dict, \
+    numeric_attributes_dict
 
 
 class Data():
@@ -55,6 +55,10 @@ class _AttrRefTransformer(ast.NodeTransformer):
 
         # Don't handle subscripts for now.
         if not isinstance(node.value, ast.Name):
+            return node
+
+        # Don't handle locals
+        if node.value.id not in self.data.symdict:
             return node
 
         obj = self.data.symdict[node.value.id]

@@ -1,4 +1,3 @@
-from __future__ import absolute_import
 #  This file is part of the myhdl library, a Python package for using
 #  Python as a Hardware Description Language.
 #
@@ -19,10 +18,11 @@ from __future__ import absolute_import
 #  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 
 from __future__ import absolute_import
-import myhdl
+from .._version import __version__
 
-_version = myhdl.__version__.replace('.','')
-_shortversion = _version.replace('dev','')
+_version = __version__.replace('.', '')
+_shortversion = _version.replace('dev', '')
+
 
 def _package(version=None, fixed=False):
     result = """\

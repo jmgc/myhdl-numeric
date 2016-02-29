@@ -22,20 +22,18 @@ from __future__ import absolute_import
 from __future__ import print_function
 
 
-import sys
 import os
 from operator import itemgetter
 from warnings import warn
 from types import GeneratorType
 
-from myhdl import Cosimulation, StopSimulation, _SuspendSimulation
-from myhdl import SimulationError
+from ._Cosimulation import Cosimulation
+from ._errors import StopSimulation, _SuspendSimulation
+from ._errors import SimulationError
 from ._simulator import _simulator
-from myhdl._Waiter import _Waiter, _inferWaiter, _SignalWaiter, \
-    _SignalTupleWaiter
-from myhdl._util import _flatten, _printExcInfo
-from myhdl._instance import _Instantiator
-from myhdl._ShadowSignal import _ShadowSignal
+from ._Waiter import _Waiter, _inferWaiter, _SignalTupleWaiter
+from ._util import _flatten, _printExcInfo
+from ._instance import _Instantiator
 
 
 schedule = _simulator._futureEvents.append

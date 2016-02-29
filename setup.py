@@ -22,7 +22,7 @@ except ImportError:
 
 _version_re = re.compile(r'__version__\s+=\s+(.*)')
 
-with open('myhdl/__init__.py', 'rb') as f:
+with open('myhdl/_version.py', 'rb') as f:
     version = str(ast.literal_eval(_version_re.search(
         f.read().decode('utf-8')).group(1)))
 
@@ -35,13 +35,13 @@ for base, dir, files in os.walk('cosimulation'):
             cosim_data[base].extend(os.path.join(base, f) for f in good)
 
 setup(
-    name="myhdl",
+    name="myhdl-numeric",
     version=version,
-    description="Python as a Hardware Description Language",
+    description="MyHDL including fixed point functionality",
     long_description="See home page.",
-    author="Jan Decaluwe",
-    author_email="jan@jandecaluwe.com",
-    url="http://www.myhdl.org",
+    author="Jose M. Gomez",
+    author_email="jm.gomez@ub.edu",
+    url="https://github.com/jmgc/myhdl-numeric",
       packages=['myhdl', 'myhdl.conversion', 'myhdl.numeric'],
     data_files=[(os.path.join(data_root, k), v) for k, v in cosim_data.items()],
     license="LGPL",

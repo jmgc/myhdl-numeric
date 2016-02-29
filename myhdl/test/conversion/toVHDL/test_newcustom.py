@@ -2,7 +2,8 @@ from __future__ import absolute_import
 import random
 from myhdl.test.conftest import bug
 from random import randrange
-from myhdl import *
+from myhdl import instance, always, always_comb, intbv, Signal, delay, \
+    StopSimulation, toVHDL, conversion
 from myhdl import ConversionError
 from myhdl.conversion._misc import _error
 import os
@@ -71,7 +72,7 @@ def inc(count, enable, clock, reset, n):
     count.driven = "reg"
 
     inc.vhdl_code = \
-"""
+        """
 process ($clock, $reset) begin
     if ($reset = '0') then
         $count <= (others => '0');
@@ -101,7 +102,7 @@ def incErr(count, enable, clock, reset, n):
     count.driven = "reg"
 
     incErr.vhdl_code = \
-"""
+        """
 always @(posedge $clock, negedge $reset) begin
     if ($reset == 0) begin
         $count <= 0;
@@ -128,7 +129,7 @@ def inc_comb(nextCount, count, n):
     nextCount.driven = "wire"
 
     inc_comb.vhdl_code =\
-"""
+        """
 $nextCount <= ($count + 1) mod $n;
 """
 
@@ -148,7 +149,7 @@ def inc_seq(count, nextCount, enable, clock, reset):
     count.driven = True
 
     inc_seq.vhdl_code = \
-"""
+        """
 process ($clock, $reset) begin
     if ($reset = '0') then
         $count <= (others => '0');
@@ -222,8 +223,6 @@ def check(count, enable, clock, reset, n):
             if enable:
                 expect = (expect + 1) % n
             yield delay(1)
-            # print "%d count %s expect %s count_v %s" % (now(), count, expect, count_v)
-            # assert count == expect
             print(int(count))
     return logic
 
