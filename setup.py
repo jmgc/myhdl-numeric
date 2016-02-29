@@ -40,7 +40,7 @@ setup(
     description="MyHDL including fixed point functionality",
     long_description="See home page.",
     author="Jose M. Gomez",
-    author_email="chemoki@gmail.com",
+    author_email="jm.gomez@ub.edu",
     url="https://github.com/jmgc/myhdl-numeric",
       packages=['myhdl', 'myhdl.conversion', 'myhdl.numeric'],
     data_files=[(os.path.join(data_root, k), v) for k, v in cosim_data.items()],
