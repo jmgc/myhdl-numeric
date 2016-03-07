@@ -161,7 +161,7 @@ class _GenerateHierarchy(object):
                 component._clean_signals(1)
 
             p_entity_obj = _flatten(p_entity.obj)
-            # After having determine the signals and other elements, the
+            # After having determined the signals and other elements, the
             # duplicated generators are deleted. It has to be done between
             # generating the signals and analyzing the top function to avoid
             # problems with interfaces.
