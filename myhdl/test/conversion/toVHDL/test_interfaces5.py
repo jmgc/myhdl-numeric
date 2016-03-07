@@ -3,6 +3,7 @@ from __future__ import absolute_import, print_function
 from myhdl import Signal, intbv, always_seq, ResetSignal, now, \
     instance, delay, StopSimulation, Simulation, toVHDL
 from myhdl.conversion import analyze, verify
+from myhdl.test.conftest import bug
 
 
 """
@@ -155,6 +156,32 @@ def test_conversion():
     toVHDL(c_testbench_five)
 
 
+def c_test_six_up_names(reset, clk, intf1, intf2, intf3):
+
+    @always_seq(clk.posedge, reset)
+    def fsm():
+        intf3.sig1.next = intf1.sig1
+        intf3.sig2.next = intf2.sig2
+
+    return fsm
+
+
+def c_test_six_up():
+    clk = Signal(False)
+    reset = ResetSignal(False, True, False)
+    intf1 = Intf1(2)
+    intf3 = Intf1(1)
+
+    dut = c_test_six_up_names(reset, clk, intf1, intf1, intf3)
+
+    return dut
+
+
+@bug("Detection of ports names", "vhdl")
+def test_six_verify():
+    assert verify(c_test_six_up) == 0
+
+
 if __name__ == '__main__':
     print("*** verify example testbench ")
     test_five_testbench()
@@ -164,3 +191,5 @@ if __name__ == '__main__':
     test_conversion()
     print("*** verify testbench conversion and execution")
     test_five_verify()
+    print("*** verify testbench upper level")
+    test_six_verify()
