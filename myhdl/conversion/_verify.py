@@ -55,7 +55,7 @@ def registerSimulator(name=None, hdl=None, analyze=None, elaborate=None,
 registerSimulator(
     name="ghdl",
     hdl="VHDL",
-    analyze="ghdl -a --workdir=work_%(topname)s pck_myhdl_%(version)s.vhd %(topname)s.vhd",
+    analyze="ghdl -a --workdir=work_%(topname)s pck_%(topname)s_myhdl_%(version)s.vhd %(topname)s.vhd",
     elaborate="ghdl -e --workdir=work_%(topname)s -o %(unitname)s %(topname)s",
     simulate="ghdl -r --workdir=work_%(topname)s %(unitname)s",
     languageVersion="93"
@@ -64,7 +64,7 @@ registerSimulator(
 registerSimulator(
     name="nvc",
     hdl="VHDL",
-    analyze="nvc --work=work_%(topname)s_nvc -a pck_myhdl_%(version)s.vhd %(topname)s.vhd",
+    analyze="nvc --work=work_%(topname)s_nvc -a pck_%(topname)s_myhdl_%(version)s.vhd %(topname)s.vhd",
     elaborate="nvc --work=work_%(topname)s_nvc -e %(topname)s",
     simulate="nvc --work=work_%(topname)s_nvc -r %(topname)s"
     )
@@ -82,7 +82,7 @@ registerSimulator(
 registerSimulator(
     name="vcom",
     hdl="VHDL",
-    analyze="vcom -2008 -work work_%(topname)s_vcom pck_myhdl_%(version)s.vhd"
+    analyze="vcom -2008 -work work_%(topname)s_vcom pck_%(topname)s_myhdl_%(version)s.vhd"
         " %(topname)s.vhd",
     simulate='vsim work_%(topname)s_vcom.%(topname)s -quiet -c -do "run -all; quit -f"',
     skiplines=6,

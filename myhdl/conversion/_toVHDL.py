@@ -1146,7 +1146,8 @@ class _ToVHDLConvertor(object):
         compDecls = self.component_declarations
         useClauses = self.use_clauses
 
-        ppath = os.path.join(directory, "pck_myhdl_%s.vhd" % _shortversion)
+        ppath = os.path.join(directory, "pck_%s_myhdl_%s.vhd" %
+                             (name, _shortversion))
         pfile = None
 #        # write MyHDL package always during development, as it may change
 #        pfile = None
