@@ -156,7 +156,7 @@ def test_conversion():
     toVHDL(c_testbench_five)
 
 
-def c_test_six_up_names(reset, clk, intf1, intf2, intf3):
+def c_test_six_intermediate_names(reset, clk, intf1, intf2, intf3):
 
     @always_seq(clk.posedge, reset)
     def fsm():
@@ -172,7 +172,7 @@ def c_test_six_up():
     intf1 = Intf1(2)
     intf3 = Intf1(1)
 
-    dut = c_test_six_up_names(reset, clk, intf1, intf1, intf3)
+    dut = c_test_six_intermediate_names(reset, clk, intf1, intf1, intf3)
 
     return dut
 
@@ -180,6 +180,62 @@ def c_test_six_up():
 @bug("Detection of ports names", "vhdl")
 def test_six_verify():
     assert verify(c_test_six_up) == 0
+
+
+def c_test_seven_intermediate_signals(reset, clk, intf1, intf2, intf3):
+
+    @always_seq(clk.posedge, reset)
+    def fsm():
+        intf3.sig1.next = intf1.sig1
+        intf3.sig2.next = intf2.sig2
+
+    return fsm
+
+
+def c_test_seven_signals():
+    clk = Signal(False)
+    reset = ResetSignal(True, True, False)
+    intf1 = Intf1(1)
+    intf2 = Intf1(1)
+    intf3 = Intf1(1)
+
+    dut = c_test_seven_intermediate_signals(reset, clk, intf1, intf2, intf3)
+
+    @instance
+    def stimulus():
+        reset.next = True
+        intf1.sig1.next = False
+        intf2.sig2.next = False
+        clk.next = False
+        yield delay(10)
+        clk.next = True
+        reset.next = False
+        yield delay(10)
+        clk.next = False
+        intf1.sig1.next = True
+        while not intf3.sig1:
+            yield delay(10)
+            clk.next = True
+            yield delay(10)
+            clk.next = False
+        yield delay(10)
+        clk.next = True
+        yield delay(10)
+        raise StopSimulation
+
+    @always_seq(clk.posedge, reset)
+    def fsm():
+        print(now())
+        print(intf3.sig2)
+
+    return dut, stimulus, fsm
+
+
+@bug("Detection of ports names", "vhdl")
+def test_seven_verify():
+    assert verify(c_test_seven_signals) == 0
+    #sim = Simulation(c_test_seven_signals())
+    #sim.run()
 
 
 if __name__ == '__main__':
@@ -191,5 +247,7 @@ if __name__ == '__main__':
     test_conversion()
     print("*** verify testbench conversion and execution")
     test_five_verify()
-    print("*** verify testbench upper level")
+    print("*** verify testbench intermediate level")
     test_six_verify()
+    print("*** verify testbench intermediate signals")
+    test_seven_verify()
