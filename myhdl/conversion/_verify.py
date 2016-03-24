@@ -222,8 +222,9 @@ class _VerificationClass(object):
         g = difflib.unified_diff(flinesNorm, glinesNorm, fromfile=hdlsim.name,
                                  tofile=hdl)
 
-        MyHDLLog = "MyHDL.log"
-        HDLLog = hdlsim.name + ".log"
+        MyHDLLog = "%s_MyHDL.log" % vals['topname']
+        HDLLog = "%s_%s.log" % (vals['topname'], hdlsim.name)
+        diffLog = "%s_diff.log" % vals['topname']
         try:
             os.remove(MyHDLLog)
             os.remove(HDLLog)
@@ -233,7 +234,7 @@ class _VerificationClass(object):
         s = "".join(g)
         f = open(MyHDLLog, 'w+t')
         g = open(HDLLog, 'w+t')
-        d = open('diff.log', 'w+t')
+        d = open(diffLog, 'w+t')
         f.writelines(flines)
         g.writelines(glines)
         d.write(s)
