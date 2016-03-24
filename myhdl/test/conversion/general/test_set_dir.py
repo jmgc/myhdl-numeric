@@ -62,7 +62,8 @@ if hdl == "VHDL":
             toVHDL(simple_dir_model, din, dout, clock)
 
             assert os.path.exists(
-                os.path.join(tmp_dir, "pck_myhdl_%s.vhd" % _shortversion))
+                os.path.join(tmp_dir, "pck_simple_dir_model_myhdl_%s.vhd" %
+                             _shortversion))
 
         finally:
 
