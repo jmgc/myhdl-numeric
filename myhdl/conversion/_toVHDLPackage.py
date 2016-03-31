@@ -441,5 +441,5 @@ end pck_myhdl_%(version)s;
 
 """
     result %= {'version' : _shortversion}
-    
+
     return result
