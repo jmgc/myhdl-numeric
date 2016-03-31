@@ -316,13 +316,11 @@ class bitarray(object):
 
     # copy methods
     def __copy__(self):
-        result = type(self)(0, high=self._high, low=self._low)
-        result._val = self._val
+        result = type(self)(self)
         return result
 
     def __deepcopy__(self, visit):
-        result = type(self)(0, high=self._high, low=self._low)
-        result._val = self._val
+        result = type(self)(self)
         return result
 
     # iterator method

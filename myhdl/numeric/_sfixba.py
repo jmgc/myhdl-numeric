@@ -34,6 +34,22 @@ import warnings
 
 
 class fixmath(object):
+    """Fixed Point math
+
+    Attributes:
+        overflow: overflow mode. It can be any of the
+          py:const:`fixmath.overflows.saturate` or
+          py:const:`fixmath.overflows.wrap`. The default value is the
+          py:const:`fixmath.overflows` one.
+        rounding: rounding mode. It can be any of the
+          py:const:`fixmath.overflows.round` or
+          py:const:`fixmath.overflows.truncate`. The default value is the
+          py:class:`fixmath.overflows` one.
+        guard_bits: guard bits. An integer that stores the number of guard
+          bits. The default value is the
+          py:class:`fixmath.guard_bits` one.
+    """
+
     overflows = enum('saturate', 'wrap')
     roundings = enum('round', 'truncate')
 
@@ -69,6 +85,38 @@ class fixmath(object):
 
 
 class sfixba(bitarray):
+    """Fixed Point bit array
+
+    Arguments:
+        value: value that will be stored, it can be an integer or a floating
+          point value. If no more arguments are provided, the sfixba will be
+          created with the minimum size needed to store the value.
+        high: number of the integer part bits. The integer bits will start
+          with the 0 index until high-1.
+        low: number of fraction part bits. The fraction bits will start
+          with the index -1 until low.
+        overflow: overflow mode. It can be any of the
+          py:const:`fixmath.overflows.saturate` or
+          py:const:`fixmath.overflows.wrap`. The default value is the
+          py:const:`fixmath.overflows` one.
+        rounding: rounding mode. It can be any of the
+          py:const:`fixmath.overflows.round` or
+          py:const:`fixmath.overflows.truncate`. The default value is the
+          py:class:`fixmath.overflows` one.
+        guard_bits: guard bits. An integer that stores the number of guard
+          bits. The default value is the
+          py:class:`fixmath.guard_bits` one.
+
+    Any of the previous arguments can be substituted by a fixmath object. In
+    which case, the pending arguments will be substituted by the fixmath
+    values.
+
+    Also, any of the previous arguments can be substituted by a sfixba object.
+    In this case, if a previous fixmath object has been provided, the pending
+    sfixba arguments will be substituted by the fixmath object ones, and if
+    they are not available, by the sfixba object ones. In any other case, the
+    pending arguments will be substituted by the sfixba ones.
+    """
 
     def __init__(self, *args, **kwargs):
         value = 0
@@ -159,7 +207,7 @@ class sfixba(bitarray):
         if rounding is None:
             self._rounding = maths.rounding
         else:
-            if hasattr(fixmath.roudings, str(rounding)):
+            if hasattr(fixmath.roundings, str(rounding)):
                 self._rounding = rounding
             else:
                 raise TypeError("Unknown overflow type")
