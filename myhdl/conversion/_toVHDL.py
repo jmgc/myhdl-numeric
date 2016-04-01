@@ -16,8 +16,8 @@
 #  You should have received a copy of the GNU Lesser General Public
 #  License along with this library; if not, write to the Free Software
 #  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
-
-# Support for fixed point numbers and multiple entities (c) Jose M. Gomez
+#
+#  Support for fixed point numbers and multiple entities (c) Jose M. Gomez
 
 
 """ myhdl toVHDL conversion module.
@@ -74,7 +74,7 @@ from .._resolverefs import _suffixer
 from ..numeric._bitarray import bitarray
 from ..numeric._uintba import uintba
 from ..numeric._sintba import sintba
-from ..numeric._sfixba import sfixba
+from ..numeric._sfixba import sfixba, fixmath
 from ..numeric._conversion import numeric_types, numeric_functions_dict, \
     numeric_attributes_dict
 from collections import Callable
@@ -1720,21 +1720,22 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
                         (vhd.size[1] != ori.size[1]):
                     if vhd.trunc or ori.trunc:
                         pre, suf = "t_f2f(", ", %s, %s)" % \
-                                (vhd.size[0], vhd.size[1])
+                            (vhd.size[0], vhd.size[1])
                     else:
-                        pre, suf = "c_f2f(", ", %s, %s)" % \
-                                (vhd.size[0], vhd.size[1])
+                        pre, suf = "c_f2f(", ", %s, %s, %s, %s)" % \
+                            (vhd.size[0], vhd.size[1],
+                             vhd.overflow, vhd.rounding)
             elif isinstance(ori, vhd_unsigned):
                 if vhd.trunc or ori.trunc:
-                    pre, suf = "c_u2f(", ", %s, %s)" % (vhd.size[0],
-                                                        vhd.size[1])
+                    pre, suf = "c_u2f(", ", %s, %s, %s, %s)" % \
+                        (vhd.size[0], vhd.size[1], vhd.overflow, vhd.rounding)
                 else:
-                    pre, suf = "t_u2f(", ", %s, %s)" % (vhd.size[0],
-                                                        vhd.size[1])
+                    pre, suf = "t_u2f(", ", %s, %s)" % \
+                        (vhd.size[0], vhd.size[1])
             elif isinstance(ori, vhd_signed):
                 if vhd.trunc or ori.trunc:
-                    pre, suf = "c_s2f(", ", %s, %s)" % (vhd.size[0],
-                                                        vhd.size[1])
+                    pre, suf = "c_s2f(", ", %s, %s, %s, %s)" % \
+                        (vhd.size[0], vhd.size[1], vhd.overflow, vhd.rounding)
                 else:
                     pre, suf = "t_s2f(", ", %s, %s)" % (vhd.size[0],
                                                         vhd.size[1])
@@ -1748,7 +1749,8 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
                 pre, suf = "to_sfixed(", ", %s, %s)" % (vhd.size[0],
                                                         vhd.size[1])
             else:
-                pre, suf = "c_i2f(", ", %s, %s)" % (vhd.size[0], vhd.size[1])
+                pre, suf = "c_i2f(", ", %s, %s, %s, %s)" % \
+                    (vhd.size[0], vhd.size[1], vhd.overflow, vhd.rounding)
         elif isinstance(vhd, vhd_boolean):
             if not isinstance(ori, vhd_boolean):
                 pre, suf = "bool(", ")"
@@ -2565,9 +2567,13 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
                         else:
                             s = 'signed\'("%s")' % bin(obj, node.vhd.size)
                     elif isinstance(node.vhd, vhd_sfixed):
-                        s = 'resize(to_sfixed("%s", %s, 0), %s, %s)' % \
-                                    (name, node.vhd.size[0],
-                                     node.vhd.size[0], node.vhd.size[1])
+                        high = node.vhd.size[0]
+                        if high <= 0:
+                            high = 0
+                        s = 'resize(to_sfixed(%s, %s, 0), %s, %s, %s, %s)' % \
+                            (name, high,
+                             node.vhd.size[0], node.vhd.size[1],
+                             node.vhd.overflow, node.vhd.rounding)
                         constdict[n].used = True
                 else:
                     if isinstance(node.vhd, vhd_int):
@@ -3541,8 +3547,8 @@ class vhd_vector(vhd_type):
             result = type(self)(high)
         else:
             return NotImplemented
-        self.trunc = True
-        other.trunc = True
+        # self.trunc = True
+        # other.trunc = True
         result.trunc = True
         return result
 
@@ -3840,7 +3846,9 @@ class vhd_signed(vhd_vector):
 
 
 class vhd_sfixed(vhd_type):
-    def __init__(self, size=(0, 0)):
+    def __init__(self, size=(0, 0),
+                 fixed_wrap=False, fixed_truncate=False, guard_bits=3):
+        # The initial values are based on the Vhdl Fixed Point standard.
         vhd_type.__init__(self, size)
         if size[0] < 0:
             high = "n%d" % (-size[0])
@@ -3857,6 +3865,9 @@ class vhd_sfixed(vhd_type):
             low = "0"
 
         self._name = "sfixed_%s_%s" % (high, low)
+        self.overflow = "fixed_wrap" if fixed_wrap else "fixed_saturate"
+        self.rounding = "fixed_truncate" if fixed_truncate else "fixed_round"
+        self._guard_bits = guard_bits
 
     def literal(self, value):
         return '"%s"' % bin(sfixba(value, self.size[0] + 1, self.size[1]),
@@ -4156,7 +4167,18 @@ def inferVhdlObj(obj):
         low = getattr(obj, 'low', False)
         # vhd_sfixed represents the vhdl element, so the sizes are
         # represented in the same format.
-        vhd = vhd_sfixed(size=(high - 1, low))
+        fixed_truncate = getattr(obj, 'rounding', fixmath.roundings.round)
+        fixed_wrap = getattr(obj, 'overflow', fixmath.overflows.saturate)
+        fixed_guard_bits = getattr(obj, 'guard_bits', 3)
+
+        vhd = vhd_sfixed(size=(high - 1, low),
+                         fixed_truncate=
+                         fixed_truncate == fixmath.roundings.truncate,
+                         fixed_wrap=
+                         fixed_wrap == fixmath.overflows.wrap,
+                         guard_bits=
+                         fixed_guard_bits
+                         )
     elif issubclass(vhd, vhd_std_logic):
         vhd = vhd()
     elif issubclass(vhd, vhd_enum):
