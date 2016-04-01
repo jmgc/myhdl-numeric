@@ -2714,8 +2714,9 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
             self.write(post)
             return
         pre, suf = self.inferCast(node.vhd, node.vhdOri)
-        if isinstance(node.value.vhd, (vhd_signed, vhd_sfixed)) and \
-                isinstance(node.ctx, ast.Load):
+        if isinstance(node.value.vhd, vhd_signed) and \
+                isinstance(node.ctx, ast.Load) and \
+                node.value.vhd.from_intbv:
             pre = pre + "unsigned("
             suf = ")" + suf
         self.write(pre)
@@ -3215,6 +3216,7 @@ class vhd_type(object):
         self._name = ''
         self.size = size
         self.trunc = False
+        self.from_intbv = False
 
     def __str__(self):
         return self._name
@@ -4162,6 +4164,9 @@ def inferVhdlObj(obj):
         return vhd
     elif issubclass(vhd, (vhd_unsigned, vhd_signed)):
         vhd = vhd(size=len(obj))
+        if (isinstance(obj, _Signal) and obj._type is intbv) or \
+                isinstance(obj, intbv):
+            vhd.from_intbv = True
     elif issubclass(vhd, vhd_sfixed):
         high = getattr(obj, 'high', False)
         low = getattr(obj, 'low', False)
@@ -4506,13 +4511,14 @@ class _AnnotateTypesVisitor(ast.NodeVisitor, _ConversionMixin):
         if node.slice.upper:
             node.slice.upper.vhd = vhd_int()
             upper = self.getVal(node.slice.upper)
-        if isinstance(node.ctx, ast.Store):
+        if node.value.vhd.from_intbv and not isinstance(node.ctx, ast.Store):
+            node.vhd = vhd_unsigned(lower - upper)
+        else:
             if issubclass(t, vhd_sfixed):
                 node.vhd = t((lower - upper - 1, 0))
             else:
                 node.vhd = t(lower - upper)
-        else:
-            node.vhd = vhd_unsigned(lower - upper)
+
         node.vhdOri = copy(node.vhd)
 
     def accessIndex(self, node):
