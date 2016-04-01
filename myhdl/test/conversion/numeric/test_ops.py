@@ -383,11 +383,12 @@ def unaryOps(
              Invert,
              UnaryAdd,
              UnarySub,
-             arg):
+             arg,
+             clk):
     @instance
     def logic():
         while 1:
-            yield arg
+            yield clk.posedge
             Not_kw.next = not arg
             Invert.next = ~arg
             # unary operators not supported ?
@@ -403,6 +404,7 @@ def unaryBench(m):
 
     seqM = tuple([randrange(m.min, m.max) for i in range(NRTESTS)])
 
+    clk = Signal(False)
     arg = Signal(m)
     Not_kw = Signal(bool(0))
     Invert = Signal(m)
@@ -413,19 +415,24 @@ def unaryBench(m):
                         Invert,
                         UnaryAdd,
                         UnarySub,
-                        arg)
+                        arg,
+                        clk)
 
     @instance
     def stimulus():
+        clk.next = False
         for i in range(NRTESTS):
+            yield delay(10)
+            clk.next = not clk
             arg.next[:] = seqM[i]
             yield delay(10)
+            clk.next = not clk
         # raise StopSimulation
 
     @instance
     def check():
         while 1:
-            yield arg
+            yield clk.posedge
             yield delay(1)
             print("arg: ", arg)
             print("bool not: ", int(Not_kw))
