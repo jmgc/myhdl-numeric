@@ -103,13 +103,33 @@ package pck_myhdl_%(version)s is
 
     function c_l2f (arg: std_logic; high: integer; low: integer) return sfixed;
 
-    function c_i2f (arg: integer; high: integer; low: integer) return sfixed;
+    function c_i2f (arg: integer;
+                    high: integer;
+                    low: integer;
+                    overflow_style : fixed_overflow_style_type := fixed_overflow_style;
+                    round_style    : fixed_round_style_type    := fixed_round_style
+                    ) return sfixed;
 
-    function c_u2f (arg: unsigned; high: integer; low: integer) return sfixed;
+    function c_u2f (arg: unsigned;
+                    high: integer;
+                    low: integer;
+                    overflow_style : fixed_overflow_style_type := fixed_overflow_style;
+                    round_style    : fixed_round_style_type    := fixed_round_style
+                    ) return sfixed;
 
-    function c_s2f (arg: signed; high: integer; low: integer) return sfixed;
+    function c_s2f (arg: signed;
+                    high: integer;
+                    low: integer;
+                    overflow_style : fixed_overflow_style_type := fixed_overflow_style;
+                    round_style    : fixed_round_style_type    := fixed_round_style
+                    ) return sfixed;
 
-    function c_f2f (arg: sfixed; high: integer; low: integer) return sfixed;
+    function c_f2f (arg: sfixed;
+                    high: integer;
+                    low: integer;
+                    overflow_style : fixed_overflow_style_type := fixed_overflow_style;
+                    round_style    : fixed_round_style_type    := fixed_round_style
+                    ) return sfixed;
 
     function c_f2u (arg: sfixed; size: integer) return unsigned;
 
@@ -346,11 +366,16 @@ package body pck_myhdl_%(version)s is
         return result;
     end function c_l2f;
 
-    function c_i2f (arg: integer; high: integer; low: integer) return sfixed is
+    function c_i2f (arg: integer;
+                    high: integer;
+                    low: integer;
+                    overflow_style : fixed_overflow_style_type := fixed_overflow_style;
+                    round_style    : fixed_round_style_type    := fixed_round_style
+                    ) return sfixed is
         variable tmp: sfixed(maximum(high, 1) downto 0);
     begin
         tmp := to_sfixed(arg, tmp'left, 0);
-        return resize(tmp, high, low);
+        return resize(tmp, high, low, overflow_style, round_style);
     end function c_i2f;
 
     function c_f2u (arg: sfixed; size: integer) return unsigned is
@@ -363,19 +388,34 @@ package body pck_myhdl_%(version)s is
         return to_signed(arg, size);
     end function c_f2s;
 
-    function c_f2f (arg: sfixed; high: integer; low: integer) return sfixed is
+    function c_f2f (arg: sfixed;
+                    high: integer;
+                    low: integer;
+                    overflow_style : fixed_overflow_style_type := fixed_overflow_style;
+                    round_style    : fixed_round_style_type    := fixed_round_style
+                    ) return sfixed is
     begin
-        return resize(arg, high, low);
+        return resize(arg, high, low, overflow_style, round_style);
     end function c_f2f;
 
-    function c_u2f (arg: unsigned; high: integer; low: integer) return sfixed is
+    function c_u2f (arg: unsigned;
+                    high: integer;
+                    low: integer;
+                    overflow_style : fixed_overflow_style_type := fixed_overflow_style;
+                    round_style    : fixed_round_style_type    := fixed_round_style
+                    ) return sfixed is
     begin
-        return resize(to_sfixed(to_ufixed(arg)), high, low);
+        return resize(to_sfixed(to_ufixed(arg)), high, low, overflow_style, round_style);
     end function c_u2f;
 
-    function c_s2f (arg: signed; high: integer; low: integer) return sfixed is
+    function c_s2f (arg: signed;
+                    high: integer;
+                    low: integer;
+                    overflow_style : fixed_overflow_style_type := fixed_overflow_style;
+                    round_style    : fixed_round_style_type    := fixed_round_style
+                    ) return sfixed is
     begin
-        return resize(to_sfixed(arg), high, low);
+        return resize(to_sfixed(arg), high, low, overflow_style, round_style);
     end function c_s2f;
 
     function t_u2f (arg: unsigned; high: integer; low: integer) return sfixed is
@@ -441,5 +481,5 @@ end pck_myhdl_%(version)s;
 
 """
     result %= {'version' : _shortversion}
-    
+
     return result
