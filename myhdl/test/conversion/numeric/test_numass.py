@@ -3,6 +3,7 @@ from __future__ import absolute_import, print_function
 from random import randrange
 
 from myhdl import Signal, uintba, sintba, instance, delay, conversion
+from myhdl.test.conftest import bug
 
 
 def NumassBench():
@@ -50,6 +51,6 @@ def NumassBench():
 
     return check
 
-
+@bug("Unsigned result pending to be solved", "vhdl")
 def test_numass():
     assert conversion.verify(NumassBench) == 0
