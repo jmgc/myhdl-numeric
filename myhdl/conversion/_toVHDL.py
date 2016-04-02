@@ -2719,6 +2719,10 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
                 node.value.vhd.from_intbv:
             pre = pre + "unsigned("
             suf = ")" + suf
+        elif isinstance(node.value.vhd, vhd_sfixed) and \
+                isinstance(node.ctx, ast.Load):
+            pre = pre + "slice("
+            suf = ")" + suf
         self.write(pre)
         self.visit(node.value)
         lower, upper = node.slice.lower, node.slice.upper

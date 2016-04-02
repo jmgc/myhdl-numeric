@@ -154,7 +154,9 @@ package pck_myhdl_%(version)s is
 
     function c_str2f (value: std_logic_vector) return sfixed;
 
-    function tern_op(cond: boolean; if_true: sfixed; if_false: sfixed) return sfixed;
+    function tern_op (cond: boolean; if_true: sfixed; if_false: sfixed) return sfixed;
+
+    function slice (arg: sfixed) return signed;
 """
     result += """
 end pck_myhdl_%(version)s;
@@ -474,6 +476,13 @@ package body pck_myhdl_%(version)s is
             return if_false;
         end if;
     end function tern_op;
+
+    function slice (arg: sfixed) return signed is
+        variable result : sfixed (arg'length -1 downto 0) ;
+    begin
+        result := arg;
+        return signed(result);
+    end function slice;
 
 """
     result += """
