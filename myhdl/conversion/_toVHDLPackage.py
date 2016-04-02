@@ -156,7 +156,7 @@ package pck_myhdl_%(version)s is
 
     function tern_op (cond: boolean; if_true: sfixed; if_false: sfixed) return sfixed;
 
-    function slice (arg: sfixed) return signed;
+    function slice (arg: sfixed) return sfixed;
 """
     result += """
 end pck_myhdl_%(version)s;
@@ -477,11 +477,11 @@ package body pck_myhdl_%(version)s is
         end if;
     end function tern_op;
 
-    function slice (arg: sfixed) return signed is
+    function slice (arg: sfixed) return sfixed is
         variable result : sfixed (arg'length -1 downto 0) ;
     begin
         result := arg;
-        return signed(result);
+        return sfixed(signed(result));
     end function slice;
 
 """
@@ -489,6 +489,6 @@ package body pck_myhdl_%(version)s is
 end pck_myhdl_%(version)s;
 
 """
-    result %= {'version' : _shortversion}
+    result %= {'version': _shortversion}
 
     return result
