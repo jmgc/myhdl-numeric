@@ -1991,7 +1991,11 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
         if self.SigAss:
             self.write(' <= ')
             if hasattr(lhs, "id") and lhs.id in self.tree.vardict:
-                raise ToVHDLError("Variable treated as signal: %s" % lhs.id)
+                msg = "Variable treated as signal (%s)" % lhs.id
+                if isinstance(self.SigAss, str):
+                    msg += ", or incorrect attribute used for signal (%s)" % \
+                        self.SigAss
+                raise ToVHDLError(msg)
             self.SigAss = False
         else:
             self.write(' := ')
