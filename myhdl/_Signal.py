@@ -213,6 +213,8 @@ class _Signal(object):
                 self._val = None
             elif isinstance(val, (intbv, bitarray)):
                 self._val._val = next._val
+            elif isinstance(val, bool):
+                self._val = bool(next)
             elif isinstance(val, (integer_types, EnumItemType)):
                 self._val = next
             else:
