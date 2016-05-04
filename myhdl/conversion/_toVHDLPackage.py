@@ -381,8 +381,17 @@ package body pck_myhdl_%(version)s is
     end function c_i2f;
 
     function c_f2u (arg: sfixed; size: integer) return unsigned is
+        constant left_index  : INTEGER := arg'high;
+        constant right_index : INTEGER := arg'low;
+        variable xarg        : UNRESOLVED_sfixed(left_index+1 downto right_index);
+        variable result      : UNRESOLVED_ufixed(left_index downto right_index);
     begin
-        return to_unsigned(to_ufixed(arg), size);
+        if arg'length < 1 then
+          return to_unsigned(result, size);
+        end if;
+        xarg   := abs(arg);
+        result := UNRESOLVED_ufixed (xarg (left_index downto right_index));
+        return to_unsigned(result, size);
     end function c_f2u;
 
     function c_f2s (arg: sfixed; size: integer) return signed is
@@ -436,8 +445,17 @@ package body pck_myhdl_%(version)s is
     end function t_f2f;
 
     function t_f2u (arg: sfixed; size: integer) return unsigned is
+        constant left_index  : INTEGER := arg'high;
+        constant right_index : INTEGER := arg'low;
+        variable xarg        : UNRESOLVED_sfixed(left_index+1 downto right_index);
+        variable result      : UNRESOLVED_ufixed(left_index downto right_index);
     begin
-        return to_unsigned(to_ufixed(arg), size, fixed_wrap, fixed_truncate);
+        if arg'length < 1 then
+          return to_unsigned(result, size);
+        end if;
+        xarg   := abs(arg);
+        result := UNRESOLVED_ufixed (xarg (left_index downto right_index));
+        return to_unsigned(result, size, fixed_wrap, fixed_truncate);
     end function t_f2u;
 
     function t_f2s (arg: sfixed; size: integer) return signed is

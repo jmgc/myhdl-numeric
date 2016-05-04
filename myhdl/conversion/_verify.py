@@ -55,10 +55,10 @@ def registerSimulator(name=None, hdl=None, analyze=None, elaborate=None,
 registerSimulator(
     name="ghdl",
     hdl="VHDL",
-    analyze="ghdl -a --workdir=work_%(topname)s pck_%(topname)s_myhdl_%(version)s.vhd %(topname)s.vhd",
-    elaborate="ghdl -e --workdir=work_%(topname)s -o %(unitname)s %(topname)s",
+    analyze="ghdl -a --std=08 --workdir=work_%(topname)s pck_%(topname)s_myhdl_%(version)s.vhd %(topname)s.vhd",
+    elaborate="ghdl -e --std=08 --workdir=work_%(topname)s -o %(unitname)s %(topname)s",
     simulate="ghdl -r --workdir=work_%(topname)s %(unitname)s",
-    languageVersion="93"
+    languageVersion="2008"
     )
 
 registerSimulator(
