@@ -143,7 +143,7 @@ def bench_TristateSignal():
     return check
 
 
-@bug("Tristate pending", "vhdl")
+#@bug("Tristate pending", "vhdl")
 def test_TristateSignal():
     assert conversion.verify(bench_TristateSignal) == 0
 
