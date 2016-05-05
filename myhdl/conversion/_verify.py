@@ -55,10 +55,10 @@ def registerSimulator(name=None, hdl=None, analyze=None, elaborate=None,
 registerSimulator(
     name="ghdl",
     hdl="VHDL",
-    analyze="ghdl -a --workdir=work_%(topname)s pck_%(topname)s_myhdl_%(version)s.vhd %(topname)s.vhd",
-    elaborate="ghdl -e --workdir=work_%(topname)s -o %(unitname)s %(topname)s",
+    analyze="ghdl -a --std=08 --workdir=work_%(topname)s pck_%(topname)s_myhdl_%(version)s.vhd %(topname)s.vhd",
+    elaborate="ghdl -e --std=08 --workdir=work_%(topname)s -o %(unitname)s %(topname)s",
     simulate="ghdl -r --workdir=work_%(topname)s %(unitname)s",
-    languageVersion="93"
+    languageVersion="2008"
     )
 
 registerSimulator(
@@ -212,6 +212,7 @@ class _VerificationClass(object):
         if ignore:
             for p in ignore:
                 glines = [line for line in glines if not line.startswith(p)]
+        glines = [line.replace('\0', '') for line in glines]
         # limit diff window to the size of the MyHDL output
         # this is a hack to remove an eventual simulator postamble
         if len(glines) > len(flines):
