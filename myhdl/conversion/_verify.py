@@ -212,6 +212,7 @@ class _VerificationClass(object):
         if ignore:
             for p in ignore:
                 glines = [line for line in glines if not line.startswith(p)]
+        glines = [line.replace('\0', '') for line in glines]
         # limit diff window to the size of the MyHDL output
         # this is a hack to remove an eventual simulator postamble
         if len(glines) > len(flines):
