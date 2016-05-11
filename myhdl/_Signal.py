@@ -338,9 +338,9 @@ class _Signal(object):
     def _setNextBitArray(self, val):
         try:
             self._next = self._type(val, self._init)
-        except:
-            raise TypeError("Not valid type for %s: %s" %
-                            (type(self._init), type(val)))
+        except Exception as excpt:
+            raise TypeError("Not valid type for %s: %s\n%s" %
+                            (type(self._init), type(val), excpt))
 
     def _setNextNonmutable(self, val):
         if not isinstance(val, self._type):
