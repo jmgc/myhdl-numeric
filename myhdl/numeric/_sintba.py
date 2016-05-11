@@ -427,7 +427,7 @@ class sintba(bitarray):
     # representation
     def __repr__(self):
         return type(self).__name__ + \
-                "({0:x}, high={1})".format(self._val, self._high)
+                "({0:#x}, high={1})".format(self._val, self._high)
 
     def resize(self, *args):
         length = len(args)
