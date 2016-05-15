@@ -3880,7 +3880,8 @@ class vhd_sfixed(vhd_type):
         self._guard_bits = guard_bits
 
     def literal(self, value):
-        return '"%s"' % bin(sfixba(value, self.size[0] + 1, self.size[1]),
+        return '"%s"' % bin(sfixba(value, self.size[0] + 1,
+                                   self.size[1]).scalb(-self.size[1]),
                             self.size[0] - self.size[1] + 1)
 
     def toStr(self, constr=True):

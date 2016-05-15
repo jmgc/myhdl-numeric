@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
-from myhdl import Signal, uintba, sintba, sfixba, always_comb, conversion
+from myhdl import Signal, uintba, sintba, sfixba, always_comb, \
+    instance, delay, conversion
 
 
 def constants(t, v, u, x, y, z, a, s):
@@ -35,3 +36,20 @@ s = g = [Signal(sfixba(0, 7, -15)) for _ in range(8)]
 
 def test_constants():
     assert conversion.analyze(constants, t, v, u, x, y, z, a, s) == 0
+
+
+def sfixba_constant():
+    v = 511.5
+    h = Signal(sfixba(v))
+
+    @instance
+    def logic():
+        yield delay(10)
+        assert h == v
+        print(h)
+
+    return logic
+
+
+def test_sfixba_constant():
+    assert conversion.verify(sfixba_constant) == 0
