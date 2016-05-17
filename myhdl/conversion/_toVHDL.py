@@ -1300,6 +1300,7 @@ def _writeCustomPackage(f, name, hierarchy, fixed_point=False):
     if fixed_point:
         print("use IEEE.fixed_float_types.all;", file=f)
         print("use IEEE.fixed_pkg.all;", file=f)
+        print("use IEEE.math_real.all;", file=f)
     print(file=f)
     print("package %s is" % name, file=f)
     print(file=f)
@@ -1339,6 +1340,7 @@ def _writeModuleHeader(f, pckName, lib, useClauses, version="93",
     if fixed_point:
         print("use IEEE.fixed_float_types.all;", file=f)
         print("use IEEE.fixed_pkg.all;", file=f)
+        print("use IEEE.math_real.all;", file=f)
     print("use std.textio.all;", file=f)
     print(file=f)
     if lib != "work":
