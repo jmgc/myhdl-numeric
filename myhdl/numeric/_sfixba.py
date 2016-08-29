@@ -347,16 +347,17 @@ class sfixba(bitarray):
         mask = ((1 << (f_high - f_low)) - 1)
         if isinf(arg):
             if arg > 0.0:
-                i_value = mask >> 1
+                i_value = 1
             else:
-                i_value = mask
+                i_value = -1
+            return (True, bitarray(i_value, f_high, f_low))
         else:
             i_value = long(ldexp(arg, -f_low)) & mask
-        return bitarray(i_value, f_high, f_low)
+            return (False, bitarray(i_value, f_high, f_low))
 
     def _from_float(self, value, high, low):
         if high is None or low is None:
-            ba_value = self._convert_float(value)
+            inf, ba_value = self._convert_float(value)
             if high is None:
                 high = ba_value.high
             if low is None:
@@ -368,15 +369,23 @@ class sfixba(bitarray):
                               "point number {0}".format(value),
                               RuntimeWarning, stacklevel=2)
 
-            self._resize(ba_value, self.overflow, self.rounding)
+            if inf:
+                if value > 0.0:
+                    self._val = self.max - 1
+                else:
+                    self._val = self.min
+            else:
+                self._resize(ba_value, self.overflow, self.rounding)
         else:
-            ba_value = self._convert_float(value)
+            inf, ba_value = self._convert_float(value)
             self._handle_limits(high, low, len(ba_value))
-            self._resize(ba_value, self._overflow, self._rounding)
-#             result = self._convert_float_limits(value, high, low)
-#             self._val = result._val
-#             self._high = high
-#             self._low = low
+            if inf:
+                if value > 0.0:
+                    self._val = self.max - 1
+                else:
+                    self._val = self.min
+            else:
+                self._resize(ba_value, self.overflow, self.rounding)
 
         self._wrap()
 
