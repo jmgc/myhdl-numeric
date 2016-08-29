@@ -28,7 +28,7 @@ from .._compat import long, integer_types, string_types, bit_length
 from .._enum import enum
 from .._intbv import intbv
 
-from math import frexp, modf, ldexp
+from math import frexp, modf, ldexp, isinf, copysign
 from copy import copy
 import warnings
 
@@ -343,7 +343,15 @@ class sfixba(bitarray):
             f_low -= 1
 
         f_high += 1  # Sign bit
-        i_value = long(ldexp(arg, -f_low)) & ((1 << (f_high - f_low)) - 1)
+
+        mask = ((1 << (f_high - f_low)) - 1)
+        if isinf(arg):
+            if arg > 0.0:
+                i_value = mask >> 1
+            else:
+                i_value = mask
+        else:
+            i_value = long(ldexp(arg, -f_low)) & mask
         return bitarray(i_value, f_high, f_low)
 
     def _from_float(self, value, high, low):
