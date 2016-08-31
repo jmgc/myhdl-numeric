@@ -3363,7 +3363,7 @@ class vhd_real(vhd_type):
         return str(float(value))
 
     def _direct(self, other):
-        if isinstance(other, vhd_real):
+        if isinstance(other, (vhd_real, vhd_int)):
             return vhd_real()
         else:
             return NotImplemented

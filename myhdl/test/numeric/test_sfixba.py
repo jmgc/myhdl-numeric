@@ -214,6 +214,55 @@ class TestSFixBaInit(TestCase):
         self.assertEqual(value.max, 1, "Wrong maximum value")
         self.assertEqual(value.min, -1, "Wrong minimum value")
 
+    def testNFloatValue(self):
+        warnings.filterwarnings('error')
+        value = sfixba(-0.333984375)
+        self.assertEqual(value._val, -171, "Wrong value %d" % value._val)
+        self.assertEqual(value.high, 0, "Wrong high value %d" % value.high)
+        self.assertEqual(value.low, -9, "Wrong low value %d" % value.low)
+        self.assertEqual(value.max, 256, "Wrong maximum value %d" % value.max)
+        self.assertEqual(value.min, -256, "Wrong minimum value %d" % value.min)
+        self.assertEqual(float(value), -0.333984375, "Wrong minimum value %d" %
+                         float(value))
+
+    def testFloatPInfValue(self):
+        warnings.filterwarnings('error')
+        value = sfixba(float('inf'))
+        self.assertEqual(value._val, 1, "Wrong value %d" % value._val)
+        self.assertEqual(value.high, 1, "Wrong high value %d" % value.high)
+        self.assertEqual(value.low, -1, "Wrong low value %d" % value.low)
+        self.assertEqual(value.max, 2, "Wrong maximum value %d" % value.max)
+        self.assertEqual(value.min, -2, "Wrong minimum value %d" % value.min)
+
+    def testFloatNInfValue(self):
+        warnings.filterwarnings('error')
+        value = sfixba(-float('inf'))
+        self.assertEqual(value._val, -2, "Wrong value %d" % value._val)
+        self.assertEqual(value.high, 1, "Wrong high value %d" % value.high)
+        self.assertEqual(value.low, -1, "Wrong low value %d" % value.low)
+        self.assertEqual(value.max, 2, "Wrong maximum value %d" % value.max)
+        self.assertEqual(value.min, -2, "Wrong minimum value %d" % value.min)
+
+    def testFloatPInfValueMargin(self):
+        warnings.filterwarnings('error')
+        value = sfixba(float('inf'), 3, -5)
+        self.assertEqual(value._val, 127, "Wrong value %d" % value._val)
+        self.assertEqual(value.high, 3, "Wrong high value %d" % value.high)
+        self.assertEqual(value.low, -5, "Wrong low value %d" % value.low)
+        self.assertEqual(value.max, 128, "Wrong maximum value %d" % value.max)
+        self.assertEqual(value.min, -128, "Wrong minimum value %d" % value.min)
+
+    def testFloatNInfValueMargin(self):
+        warnings.filterwarnings('error')
+        value = sfixba(-float('inf'), 7, -8)
+        self.assertEqual(value._val, -16384, "Wrong value %d" % value._val)
+        self.assertEqual(value.high, 7, "Wrong high value %d" % value.high)
+        self.assertEqual(value.low, -8, "Wrong low value %d" % value.low)
+        self.assertEqual(value.max, 16384,
+                         "Wrong maximum value %d" % value.max)
+        self.assertEqual(value.min, -16384,
+                         "Wrong minimum value %d" % value.min)
+
     def testPFloatValue(self):
         warnings.filterwarnings('error')
         value = sfixba(5.)
