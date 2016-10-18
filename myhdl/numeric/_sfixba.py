@@ -483,9 +483,14 @@ class sfixba(bitarray):
             if right_index >= arghigh:  # return sign expansion
                 if val[arghigh - 1]:
                     result[:] = -1
-                needs_rounding = ((rounding_style ==
-                                   fixmath.roundings.round) and
-                                  (right_index == arghigh))
+                if rounding_style == fixmath.roundings.round:
+                    if right_index == arghigh:
+                        needs_rounding = True
+                    else:
+                        needs_rounding = False
+                        result[:] = 0
+                else:
+                    needs_rounding = False
             elif left_index <= arglow:  # return overflow
                 if overflow_style == fixmath.overflows.saturate:
                     reduced = (invec.or_reduce())

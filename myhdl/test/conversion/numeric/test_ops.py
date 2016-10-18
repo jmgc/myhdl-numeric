@@ -594,7 +594,7 @@ class Test(unittest.TestCase):
                    'multi': True,
                    'unary': True,
                    }
-    sim = False
+    sim = True
 
     def vectors(self):
         self.lefts = (uintba(0, 8),

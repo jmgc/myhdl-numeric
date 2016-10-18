@@ -91,10 +91,11 @@ def resize(value, value_format):
         str_tmp = '{0:.4f}'.format(tmp)
         d = Decimal(str_tmp).quantize(0, rounding=ROUND_HALF_EVEN)
         rtmp = float(d)
-        if (rtmp == 0.0) and tmp < 0 and tmp > -0.25:
-            val = ldexp(-1.0, value_format.low)
-        else:
-            val = ldexp(rtmp, value_format.low)
+        #if (rtmp == 0.0) and tmp < 0 and tmp > -0.25:
+        #    val = ldexp(-1.0, value_format.low)
+        #else:
+        #    val = ldexp(rtmp, value_format.low)
+        val = ldexp(rtmp, value_format.low)
     elif value_format.rounding == fixmath.roundings.truncate:
         tmp = ldexp(val, -value_format.low)
         tmp = float(floor(tmp))
