@@ -344,6 +344,33 @@ package body pck_myhdl_%(version)s is
 """
     if fixed:
         result += """
+
+    function my_resize (
+        arg                     : UNRESOLVED_sfixed;          -- input
+        constant left_index     : INTEGER;  -- integer portion
+        constant right_index    : INTEGER;  -- size of fraction
+        constant overflow_style : fixed_overflow_style_type := fixed_overflow_style;
+        constant round_style    : fixed_round_style_type    := fixed_round_style)
+        return UNRESOLVED_sfixed
+    is
+        constant arghigh : INTEGER := arg'high;
+        constant arglow  : INTEGER := arg'low;
+        variable result  : UNRESOLVED_sfixed(left_index downto right_index) :=
+            (others => '0');
+        variable reduced        : STD_ULOGIC;
+        variable needs_rounding : BOOLEAN := false;           -- rounding
+    begin  -- resize
+        if (right_index > arghigh) and   -- return top zeros
+            (round_style = fixed_round) and
+            (right_index /= arghigh+1) then
+            result := (others => '0');
+        else
+            result := resize(arg, left_index, right_index, overflow_style,
+                             round_style);
+        end if;
+        return result;
+    end function my_resize;
+
     function bool (arg: sfixed) return boolean is
     begin
         return arg /= 0;
@@ -353,8 +380,8 @@ package body pck_myhdl_%(version)s is
         constant left_index:    integer := maximum(arg'left, 1); 
         variable result:    sfixed(left_index downto 0);
     begin
-        result := resize(arg, result'left, result'right, fixed_overflow_style,
-                        fixed_truncate);
+        result := my_resize(arg, result'left, result'right, fixed_overflow_style,
+                            fixed_truncate);
         return result;
     end function floor;
 
@@ -377,7 +404,7 @@ package body pck_myhdl_%(version)s is
         variable tmp: sfixed(maximum(high, 1) downto 0);
     begin
         tmp := to_sfixed(arg, tmp'left, 0);
-        return resize(tmp, high, low, overflow_style, round_style);
+        return my_resize(tmp, high, low, overflow_style, round_style);
     end function c_i2f;
 
     function c_f2u (arg: sfixed; size: integer) return unsigned is
@@ -406,7 +433,7 @@ package body pck_myhdl_%(version)s is
                     round_style    : fixed_round_style_type    := fixed_round_style
                     ) return sfixed is
     begin
-        return resize(arg, high, low, overflow_style, round_style);
+        return my_resize(arg, high, low, overflow_style, round_style);
     end function c_f2f;
 
     function c_u2f (arg: unsigned;
@@ -416,7 +443,7 @@ package body pck_myhdl_%(version)s is
                     round_style    : fixed_round_style_type    := fixed_round_style
                     ) return sfixed is
     begin
-        return resize(to_sfixed(to_ufixed(arg)), high, low, overflow_style, round_style);
+        return my_resize(to_sfixed(to_ufixed(arg)), high, low, overflow_style, round_style);
     end function c_u2f;
 
     function c_s2f (arg: signed;
@@ -426,7 +453,7 @@ package body pck_myhdl_%(version)s is
                     round_style    : fixed_round_style_type    := fixed_round_style
                     ) return sfixed is
     begin
-        return resize(to_sfixed(arg), high, low, overflow_style, round_style);
+        return my_resize(to_sfixed(arg), high, low, overflow_style, round_style);
     end function c_s2f;
 
     function t_u2f (arg: unsigned; high: integer; low: integer) return sfixed is
@@ -441,7 +468,7 @@ package body pck_myhdl_%(version)s is
 
     function t_f2f (arg: sfixed; high: integer; low: integer) return sfixed is
     begin
-        return resize(arg, high + 1, low, fixed_wrap, fixed_truncate)(high downto low);
+        return my_resize(arg, high + 1, low, fixed_wrap, fixed_truncate)(high downto low);
     end function t_f2f;
 
     function t_f2u (arg: sfixed; size: integer) return unsigned is

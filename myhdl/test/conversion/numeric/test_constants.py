@@ -1,7 +1,7 @@
 from __future__ import absolute_import, print_function
 
 from myhdl import Signal, uintba, sintba, sfixba, always_comb, \
-    instance, delay, conversion
+    instance, delay, conversion, fixmath
 
 
 def constants(t, v, u, x, y, z, a, s):
@@ -56,16 +56,23 @@ def test_sfixba_constant():
 
 
 def sfixba_resize():
-    v = Signal(sfixba(-0.125))
-    h = Signal(sfixba(0, 8, 0))
+    fmath = fixmath(fixmath.overflows.saturate, fixmath.roundings.round)
+    v = Signal(sfixba(-0.00048828125, 17, -16, fmath))
+    w = Signal(sfixba(-0.00048828125, fmath))
+    h = Signal(sfixba(0, 8, -8, fmath))
 
     @instance
     def logic():
         yield delay(10)
         h.next = v
         yield delay(10)
-        assert h == -1
-        print("%s, %s", h, v)
+        assert h == 0
+        print("%s, %s" % (h, v))
+        yield delay(10)
+        h.next = w
+        yield delay(10)
+        assert h == 0
+        print("%s, %s" % (h, w))
 
     return logic
 
