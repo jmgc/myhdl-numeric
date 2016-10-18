@@ -481,8 +481,8 @@ class sfixba(bitarray):
         else:
             invec = bitarray(val)
             if right_index >= arghigh:  # return sign expansion
-                if invec[arghigh - 1]:
-                    result[:] = -1 & ((1 << len(result)) - 1)
+                if val[arghigh - 1]:
+                    result[:] = -1
                 needs_rounding = ((rounding_style ==
                                    fixmath.roundings.round) and
                                   (right_index == arghigh))

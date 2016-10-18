@@ -1,4 +1,4 @@
-from __future__ import absolute_import
+from __future__ import absolute_import, print_function
 
 from myhdl import Signal, uintba, sintba, sfixba, always_comb, \
     instance, delay, conversion
@@ -53,3 +53,22 @@ def sfixba_constant():
 
 def test_sfixba_constant():
     assert conversion.verify(sfixba_constant) == 0
+
+
+def sfixba_resize():
+    v = Signal(sfixba(-0.125))
+    h = Signal(sfixba(0, 8, 0))
+
+    @instance
+    def logic():
+        yield delay(10)
+        h.next = v
+        yield delay(10)
+        assert h == -1
+        print("%s, %s", h, v)
+
+    return logic
+
+
+def test_sfixba_resize():
+    assert conversion.verify(sfixba_resize) == 0
