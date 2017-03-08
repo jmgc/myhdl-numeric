@@ -2286,7 +2286,7 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
         typemark = 'string'
         if isinstance(node.vhd, vhd_unsigned):
             typemark = 'unsigned'
-        self.write("%s'(\"%s\")" % (typemark, node.s.replace('"', '""')))
+        self.write("%s'(\"%s\")" % (typemark, str(node.s).replace('"', '""')))
 
     def visit_Continue(self, node, *args):
         self.write("next;")
