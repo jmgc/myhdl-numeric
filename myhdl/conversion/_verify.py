@@ -112,7 +112,7 @@ registerSimulator(
              '-coverage -voptargs="+cover=bcfst"',
     skiplines=6,
     skipchars=2,
-    ignore=("# **", "# //", "#    Time:", "# run -all"),
+    ignore=("# **", "# //", "#    Time:", "# coverage", "#  run -all"),
     languageVersion="2008"
     )
 
