@@ -357,8 +357,6 @@ package body pck_myhdl_%(version)s is
         constant arglow  : INTEGER := arg'low;
         variable result  : UNRESOLVED_sfixed(left_index downto right_index) :=
             (others => '0');
-        variable reduced        : STD_ULOGIC;
-        variable needs_rounding : BOOLEAN := false;           -- rounding
     begin  -- resize
         if (right_index > arghigh) and   -- return top zeros
             (round_style = fixed_round) and
