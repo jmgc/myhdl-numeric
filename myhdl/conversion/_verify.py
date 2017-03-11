@@ -108,7 +108,7 @@ registerSimulator(
     analyze="vcom -2008 -work work_%(topname)s_vcom pck_%(topname)s_myhdl_%(version)s.vhd"
         " %(topname)s.vhd",
     simulate='vsim work_%(topname)s_vcom.%(topname)s -quiet -c -do'
-             '"coverage save -onexit %(topname).ucdb; run -all; quit -f"'
+             '"coverage save -onexit %(topname)s.ucdb; run -all; quit -f"'
              '-coverage -voptargs="+cover=bcfst"',
     skiplines=6,
     skipchars=2,
