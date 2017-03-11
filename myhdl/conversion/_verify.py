@@ -108,7 +108,7 @@ registerSimulator(
     analyze="vcom -2008 -work work_%(topname)s_vcom pck_%(topname)s_myhdl_%(version)s.vhd"
         " %(topname)s.vhd",
     simulate='vsim work_%(topname)s_vcom.%(topname)s -quiet -c -do'
-             '"coverage save -onexit %(topname)s.ucdb; run -all; quit -f"'
+             ' "coverage save -onexit %(topname)s.ucdb; run -all; quit -f" '
              '-coverage -voptargs="+cover=bcfst"',
     skiplines=6,
     skipchars=2,
@@ -182,7 +182,7 @@ class _VerificationClass(object):
         if hdl == "VHDL":
             if not os.path.exists("work_%(topname)s" % vals):
                 os.mkdir("work_%(topname)s" % vals)
-        if hdlsim.name in ('vlog', 'vcom'):
+        if hdlsim.name in ('vlog', 'vcom', 'vcom-coverage'):
             if not os.path.exists("work_vsim"):
                 try:
                     subprocess.call("vlib work_%(topname)s_vlog" % vals, shell=True)
