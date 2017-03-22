@@ -61,17 +61,6 @@ registerSimulator(
     languageVersion="2008"
     )
 
-# registerSimulator(
-#     name="ghdl-coverage",
-#     hdl="VHDL",
-#     analyze="ghdl -a --std=08 --workdir=work_%(topname)s -Wc,-ftest-coverage -Wc,-fprofile-arcs"
-#         " pck_%(topname)s_myhdl_%(version)s.vhd %(topname)s.vhd",
-#     elaborate="ghdl -e --std=08 --workdir=work_%(topname)s -Wl,"
-#         "-L`which ghdl`/../lib/gcc/x86_64-apple-darwin13.0.0/4.8.2/"
-#         " -Wl,-lgcov -o %(unitname)s %(topname)s",
-#     simulate="ghdl -r --workdir=work_%(topname)s %(unitname)s --vcd=%(unitname)s.gcov.vcd"
-#     )
-
 registerSimulator(
     name="nvc",
     hdl="VHDL",
@@ -99,20 +88,6 @@ registerSimulator(
     skiplines=6,
     skipchars=2,
     ignore=("# **", "# //", "#    Time:", "# run -all"),
-    languageVersion="2008"
-    )
-
-registerSimulator(
-    name="vcom-coverage",
-    hdl="VHDL",
-    analyze="vcom -2008 -work work_%(topname)s_vcom pck_%(topname)s_myhdl_%(version)s.vhd"
-        " %(topname)s.vhd",
-    simulate='vsim work_%(topname)s_vcom.%(topname)s -quiet -c -do'
-             ' "coverage save -onexit %(topname)s.ucdb; run -all; quit -f" '
-             '-coverage -voptargs="+cover=bcfst"',
-    skiplines=6,
-    skipchars=2,
-    ignore=("# **", "# //", "#    Time:", "# coverage", "#  run -all"),
     languageVersion="2008"
     )
 

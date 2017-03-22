@@ -77,6 +77,7 @@ package pck_myhdl_%(version)s is
 
     function tern_op(cond: boolean; if_true: signed; if_false: signed) return signed;
 
+    procedure finish_simulation;
 """
     result += """
     function c_l2u (arg: std_logic; size: integer) return unsigned;
@@ -341,7 +342,22 @@ package body pck_myhdl_%(version)s is
         tmp := resize(arg, t_size);
         return tmp(o_left downto 0);
     end function c_s2s;
+
+    procedure finish_simulation is
+    begin
 """
+    if version != "93":
+        result += """
+        assert False report "End of Simulation" severity Failure;
+"""
+    else:
+        result += """
+        finish(2);
+"""
+    result += """
+    end procedure finish_simulation;
+"""
+
     if fixed:
         result += """
 
