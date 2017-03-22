@@ -1341,6 +1341,8 @@ def _writeModuleHeader(f, pckName, lib, useClauses, version="93",
         print("use IEEE.fixed_float_types.all;", file=f)
         print("use IEEE.fixed_pkg.all;", file=f)
         print("use IEEE.math_real.all;", file=f)
+    if version != "93":
+        print("use std.env.all;", file=f)
     print("use std.textio.all;", file=f)
     print(file=f)
     if lib != "work":
@@ -2682,7 +2684,7 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
         self.write("writeline(output, print);")
 
     def visit_Raise(self, node):
-        self.write('assert False report "End of Simulation" severity Failure;')
+        self.write('finish_simulation;')
 
     def visit_Return(self, node):
         pass
