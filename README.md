@@ -20,9 +20,11 @@ provides support for three new types: ``sintba`` (signed integer), ``uintba``
 (unsigned integer) and ``sfixba`` (signed fixed point).
 
 Presently it only supports these new types on VHDL, and makes use of the
-IEEE fixed_pkg available on VHDL-2008. If not this version is not available,
-it can also make use of the proposed implementation available for VHDL-93,
-you can find the sources under the ``vhdl`` directory
+IEEE fixed_pkg available on VHDL-2008. If this version is not available,
+it can also make use of the proposed implementation available for VHDL-93.
+You can find the sources under the ``vhdl`` directory. The implementation
+also takes into account the correction presented in
+[DOI: 10.13140/RG.2.2.33860.42884](https://dx.doi.org/10.13140/RG.2.2.33860.42884).
 
 An example of the numeric enhancement can be found under the directory
 ``example/cordic``.
