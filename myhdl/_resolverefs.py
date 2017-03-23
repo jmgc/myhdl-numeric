@@ -29,9 +29,10 @@ def _resolveRefs(symdict, arg):
 
 
 def _suffixer(name, used_names):
+    lower_used_names = [used_name.lower() for used_name in used_names]
     suffixed_names = (name+'_renamed{0}'.format(i) for i in itertools.count())
     new_names = itertools.chain([name], suffixed_names)
-    return next(s for s in new_names if s not in used_names)
+    return next(s for s in new_names if s not in lower_used_names)
 
 
 class _AttrRefTransformer(ast.NodeTransformer):
