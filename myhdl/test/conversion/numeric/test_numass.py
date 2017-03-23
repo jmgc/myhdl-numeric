@@ -101,19 +101,20 @@ def array_input_2(reset, clk, value=None):
 def array_testbench():
     clk = Signal(True)
     reset = ResetSignal(True, True, False)
+    value = 10
 
     @instance
     def clockGen():
         reset.next = True
         clk.next = False
-        yield delay(10)
+        yield delay(value)
         reset.next = False
         clk.next = not clk
-        yield delay(10)
+        yield delay(value)
         clk.next = not clk
-        yield delay(10)
+        yield delay(value)
         clk.next = not clk
-        yield delay(10)
+        yield delay(value)
         clk.next = not clk
         raise StopSimulation
 
