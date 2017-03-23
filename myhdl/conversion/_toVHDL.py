@@ -374,15 +374,15 @@ class _GenerateHierarchy(object):
                             # it must be done by a helping signal
                             if isinstance(element.vhd_type, vhd_array):
                                 array_name = element.name
-                                array_name = _suffixer(array_name, architecture.sigs_list)
+                                used_names = architecture.sigs_list + \
+                                    architecture.const_dict.keys()
+                                print(used_names)
+                                array_name = _suffixer(array_name, used_names)
                                 array_signal = vhd_signal(array_name, element.signal,
                                                           element.vhd_type, entity, architecture)
                                 array_signal.assign = element.assign
                                 array_signal.signal_conversion = copy(element.signal_conversion)
                                 array_signal.signal_conversion[0].target = array_name
-                                print(element.signal)
-                                print(element.signal_conversion[0].source)
-                                print(element.signal_conversion[0].target)
                                 architecture.sigs_list.append(array_name)
                                 architecture.sigs_dict[array_name] = array_signal
                                 name = array_signal.name
