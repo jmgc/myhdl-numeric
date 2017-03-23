@@ -370,7 +370,24 @@ class _GenerateHierarchy(object):
                                 assign._name is not None:
                             name = assign._name
                         else:
-                            name = element.vhd_type.literal(element.internal)
+                            # If the port is an array and has to be intialized to a value,
+                            # it must be done by a helping signal
+                            if isinstance(element.vhd_type, vhd_array):
+                                array_name = element.name
+                                used_names = architecture.sigs_list + \
+                                    list(architecture.const_dict.keys())
+                                print(used_names)
+                                array_name = _suffixer(array_name, used_names)
+                                array_signal = vhd_signal(array_name, element.signal,
+                                                          element.vhd_type, entity, architecture)
+                                array_signal.assign = element.assign
+                                array_signal.signal_conversion = copy(element.signal_conversion)
+                                array_signal.signal_conversion[0].target = array_name
+                                architecture.sigs_list.append(array_name)
+                                architecture.sigs_dict[array_name] = array_signal
+                                name = array_signal.name
+                            else:
+                                name = element.vhd_type.literal(element.internal)
 
                     component.ports_signals_dict[element.name] = name
 
@@ -661,15 +678,18 @@ class vhd_assign(object):
             if self.target_slice is not None or \
                     self.source_slice is not None:
                 raise ToVHDLError("Slice not available in array assignment.")
-            lines = []
-            initial_string = "%s <= (" % target
-            indent_string = ' ' * len(initial_string)
-            offset_string = ",\n%s" % indent_string
-            for l in source:
-                lines.append("%s%s" % (initial_string, l))
-                initial_string = offset_string
-            lines.append("\n%s);\n" % indent_string)
-            return "".join(lines)
+            if len(source) > 1:
+                lines = []
+                initial_string = "%s <= (" % target
+                indent_string = ' ' * len(initial_string)
+                offset_string = ",\n%s" % indent_string
+                for l in source:
+                    lines.append("%s%s" % (initial_string, l))
+                    initial_string = offset_string
+                lines.append("\n%s);\n" % indent_string)
+                return "".join(lines)
+            else:
+                return "%s <= (others => %s);" % (target, source[0])
         else:
             if self.source_slice is not None:
                 source = "%s%s" % (source, self.source_slice.toStr())
