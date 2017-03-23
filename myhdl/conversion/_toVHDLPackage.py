@@ -40,7 +40,9 @@ use ieee.numeric_std_additions.all;
 use ieee.fixed_float_types.all;
 use ieee.fixed_pkg.all;
 """
-    result += """ 
+    result += """
+use std.env.all;
+
 package pck_myhdl_%(version)s is
 
     attribute enum_encoding: string;
@@ -346,7 +348,7 @@ package body pck_myhdl_%(version)s is
     procedure finish_simulation is
     begin
 """
-    if version != "93":
+    if version == "93":
         result += """
         assert False report "End of Simulation" severity Failure;
 """
