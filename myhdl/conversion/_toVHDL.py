@@ -375,7 +375,7 @@ class _GenerateHierarchy(object):
                             if isinstance(element.vhd_type, vhd_array):
                                 array_name = element.name
                                 used_names = architecture.sigs_list + \
-                                    architecture.const_dict.keys()
+                                    list(architecture.const_dict.keys())
                                 print(used_names)
                                 array_name = _suffixer(array_name, used_names)
                                 array_signal = vhd_signal(array_name, element.signal,
