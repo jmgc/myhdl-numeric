@@ -128,3 +128,4 @@ def array_testbench():
 def test_array_input():
     assert conversion.verify(array_testbench) == 0
 
+

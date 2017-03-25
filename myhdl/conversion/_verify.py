@@ -55,7 +55,7 @@ def registerSimulator(name=None, hdl=None, analyze=None, elaborate=None,
 registerSimulator(
     name="ghdl",
     hdl="VHDL",
-    analyze="ghdl -a --std=08 --workdir=work_%(topname)s pck_%(topname)s_myhdl_%(version)s.vhd %(topname)s.vhd",
+    analyze="ghdl -a --std=08 --workdir=work_%(topname)s %(file_name)s",
     elaborate="ghdl -e --std=08 --workdir=work_%(topname)s -o %(unitname)s %(topname)s",
     simulate="ghdl -r --workdir=work_%(topname)s %(unitname)s",
     languageVersion="2008"
@@ -82,8 +82,7 @@ registerSimulator(
 registerSimulator(
     name="vcom",
     hdl="VHDL",
-    analyze="vcom -2008 -work work_%(topname)s_vcom pck_%(topname)s_myhdl_%(version)s.vhd"
-        " %(topname)s.vhd",
+    analyze="vcom -2008 -work work_%(topname)s_vcom %(file_name)s",
     simulate='vsim work_%(topname)s_vcom.%(topname)s -quiet -c -do "run -all; quit -f"',
     skiplines=6,
     skipchars=2,
@@ -109,11 +108,12 @@ registerSimulator(
 
 class _VerificationClass(object):
 
-    __slots__ = ("simulator", "_analyzeOnly")
+    __slots__ = ("simulator", "_analyze_only", "one_file")
 
-    def __init__(self, analyzeOnly=False):
+    def __init__(self, analyze_only=False):
         self.simulator = None
-        self._analyzeOnly = analyzeOnly
+        self._analyze_only = analyze_only
+        self.one_file = True
 
     def __call__(self, func, *args, **kwargs):
 
@@ -127,6 +127,7 @@ class _VerificationClass(object):
             name = toVerilog.name
         elif hdl == 'VHDL' and toVHDL.name is not None:
             name = toVHDL.name
+            toVHDL.one_file = self.one_file
         else:
             name = func.__name__
 
@@ -135,7 +136,6 @@ class _VerificationClass(object):
         vals['unitname'] = name.lower()
         vals['version'] = _version
 
-        analyze = hdlsim.analyze % vals
         elaborate = hdlsim.elaborate
         if elaborate is not None:
             elaborate = elaborate % vals
@@ -147,9 +147,9 @@ class _VerificationClass(object):
 
         if hdl == "VHDL":
             if languageVersion is not None:
-                kwargs['VHDLVersion'] = languageVersion
+                toVHDL.version = languageVersion
             else:
-                kwargs['VHDLVersion'] = "93"
+                toVHDL.version = 2008
             inst = toVHDL(func, *args, **kwargs)
         else:
             inst = toVerilog(func, *args, **kwargs)
@@ -157,7 +157,7 @@ class _VerificationClass(object):
         if hdl == "VHDL":
             if not os.path.exists("work_%(topname)s" % vals):
                 os.mkdir("work_%(topname)s" % vals)
-        if hdlsim.name in ('vlog', 'vcom', 'vcom-coverage'):
+        if hdlsim.name in ('vlog', 'vcom'):
             if not os.path.exists("work_vsim"):
                 try:
                     subprocess.call("vlib work_%(topname)s_vlog" % vals, shell=True)
@@ -167,12 +167,23 @@ class _VerificationClass(object):
                 except:
                     pass
 
-        ret = subprocess.call(analyze, shell=True)
-        if ret != 0:
-            print("Analysis failed", file=sys.stderr)
-            return ret
+        if hdl == "VHDL":
+            file_names = toVHDL.vhdl_files
+            for file_name in file_names:
+                vals["file_name"] = file_name
+                analyze = hdlsim.analyze % vals
+                ret = subprocess.call(analyze , shell=True)
+                if ret != 0:
+                    print("Analysis failed", file=sys.stderr)
+                    return ret
+        else:
+            analyze = hdlsim.analyze % vals
+            ret = subprocess.call(analyze, shell=True)
+            if ret != 0:
+                print("Analysis failed", file=sys.stderr)
+                return ret
 
-        if self._analyzeOnly:
+        if self._analyze_only:
             print("Analysis succeeded", file=sys.stderr)
             return 0
 
@@ -252,5 +263,5 @@ class _VerificationClass(object):
         return 0
 
 
-verify = _VerificationClass(analyzeOnly=False)
-analyze = _VerificationClass(analyzeOnly=True)
+verify = _VerificationClass(analyze_only=False)
+analyze = _VerificationClass(analyze_only=True)
