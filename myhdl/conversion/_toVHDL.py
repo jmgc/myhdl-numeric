@@ -1265,7 +1265,7 @@ class _ToVHDLConvertor(object):
 
         complete_files.extend(entities_files)
 
-        self.vhdl_files.clear()
+        self.vhdl_files[:] = []
 
         if pfile:
             self.vhdl_files.append(ppath)
