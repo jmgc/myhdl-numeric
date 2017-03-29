@@ -108,12 +108,11 @@ registerSimulator(
 
 class _VerificationClass(object):
 
-    __slots__ = ("simulator", "_analyze_only", "one_file")
+    __slots__ = ("simulator", "_analyze_only")
 
     def __init__(self, analyze_only=False):
         self.simulator = None
         self._analyze_only = analyze_only
-        self.one_file = True
 
     def __call__(self, func, *args, **kwargs):
 
@@ -127,7 +126,6 @@ class _VerificationClass(object):
             name = toVerilog.name
         elif hdl == 'VHDL' and toVHDL.name is not None:
             name = toVHDL.name
-            toVHDL.one_file = self.one_file
         else:
             name = func.__name__
 
@@ -203,7 +201,7 @@ class _VerificationClass(object):
             return 1
 
         if elaborate is not None:
-            # print(elaborate)
+            print(elaborate)
             ret = subprocess.call(elaborate, shell=True)
             if ret != 0:
                 print("Elaboration failed", file=sys.stderr)
