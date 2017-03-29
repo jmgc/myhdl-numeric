@@ -1168,7 +1168,10 @@ class _ToVHDLConvertor(object):
             directory = ''
             if one_file is False:
                 directory = os.path.join(directory, name)
-                os.mkdir(directory)
+                try:
+                    os.mkdirs(directory)
+                except:
+                    pass
         else:
             directory = self.directory
 
