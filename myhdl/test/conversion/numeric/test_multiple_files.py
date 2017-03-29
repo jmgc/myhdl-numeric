@@ -68,3 +68,29 @@ def test_array_input():
     conversion.toVHDL.one_file = one_file
     conversion.toVHDL.directory = None
     rmtree(tmp_dir)
+
+def test_existing_dir():
+    file_name = "existing"
+    dir_name = file_name + "_dir"
+    if os.path.isfile(dir_name):
+        os.remove(dir_name)
+    elif os.path.exists(dir_name):
+        rmtree(dir_name)
+    os.mkdir(dir_name)
+    conversion.toVHDL.name = file_name
+    one_file = conversion.toVHDL.one_file
+    conversion.toVHDL.one_file = False
+    try:
+        conversion.toVHDL(array_testbench)
+    except:
+        pass
+    else:
+        assert False, "The directory has not been detected"
+    assert (not os.path.isfile(dir_name)) and os.path.exists(dir_name)
+    rmtree(dir_name)
+    assert conversion.verify(array_testbench) == 0
+    assert (not os.path.isfile(dir_name)) and os.path.exists(dir_name)
+    assert os.path.exists(conversion.toVHDL.vhdl_files[1])
+    conversion.toVHDL.one_file = one_file
+    conversion.toVHDL.name = None
+    rmtree(dir_name)
