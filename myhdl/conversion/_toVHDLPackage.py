@@ -347,16 +347,7 @@ package body pck_myhdl_%(version)s is
 
     procedure finish_simulation is
     begin
-"""
-    if version == "93":
-        result += """
         assert False report "End of Simulation" severity Failure;
-"""
-    else:
-        result += """
-        finish(2);
-"""
-    result += """
     end procedure finish_simulation;
 """
 
