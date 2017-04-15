@@ -26,10 +26,12 @@ from ._sfixba import sfixba
 
 numeric_types = (bitarray, sintba, uintba, sfixba)
 
-numeric_functions_dict = {'resize': bitarray.resize,
-                          'scalb': sfixba.scalb,
-                          'floor': sfixba.floor,
-                          'abs': sfixba.abs,
+numeric_functions_dict = {bitarray.resize: 'resize',
+                          sintba.resize: 'resize',
+                          sfixba.scalb: 'scalb',
+                          sfixba.floor: 'floor',
+                          sfixba.abs: 'abs',
+                          sfixba.resize: 'my_resize',
                           }
 
 numeric_attributes_dict = {'max': int,

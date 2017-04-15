@@ -694,10 +694,16 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
                 node.obj = intbv.signed
         if isinstance(obj, bitarray) or \
                 (isinstance(obj, _Signal) and isinstance(obj._init, bitarray)):
-            if node.attr in numeric_attributes_dict.keys():
+            if node.attr in numeric_attributes_dict:
                 node.obj = getattr(obj, node.attr)
-            elif node.attr in numeric_functions_dict:
-                node.obj = numeric_functions_dict[node.attr]
+            elif node.attr in numeric_functions_dict.values():
+                local_values = locals()
+                global_values = globals()
+                value = type(obj)
+                if isinstance(obj, _Signal):
+                    value = type(obj._init)
+                method = getattr(value, node.attr)
+                node.obj = method
         if isinstance(obj, EnumType):
             if not hasattr(obj, node.attr):
                 pass
@@ -792,7 +798,7 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
         argsAreInputs = True
         if type(f) is type and issubclass(f, (intbv, bitarray)):
             node.obj = self.getVal(node)
-        elif f in numeric_functions_dict.values():
+        elif f in numeric_functions_dict:
             # Add the object as the first argument.
             node.obj = self.getVal(node)
             node.args.insert(0, node.func.value)
@@ -877,6 +883,7 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
                 if n in tree.inputs:
                     self.visit(arg)
         elif type(f) is MethodType:
+            fname = f.__name__
             self.raiseError(node, _error.NotSupported, "method call: '%s'" %
                             fname)
         else:
