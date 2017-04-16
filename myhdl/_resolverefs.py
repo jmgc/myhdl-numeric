@@ -51,7 +51,7 @@ class _AttrRefTransformer(ast.NodeTransformer):
             return node
         elif node.attr in numeric_attributes_dict:
             return node
-        elif node.attr in numeric_functions_dict:
+        elif node.attr in numeric_functions_dict.values():
             return node
 
         # Don't handle subscripts for now.

@@ -4,6 +4,7 @@ from __future__ import print_function
 from myhdl import instance, Signal, intbv, delay
 from myhdl.conversion import verify
 import random
+import pytest
 from random import randrange
 random.seed(2)
 
@@ -163,13 +164,14 @@ def binaryBench(m, n):
     return binops, stimulus, check
 
 
-def checkBinary(m, n):
+@pytest.mark.parametrize("m, n", [
+    (4, 4,),
+    (5, 3),
+    (2, 6),
+    (8, 7)
+])
+def testBinary(m, n):
     assert verify(binaryBench, m, n) == 0
-
-
-def testBinary():
-    for m, n in ((4, 4,), (5, 3), (2, 6), (8, 7)):
-        yield checkBinary, m, n
 
 
 def multiOps(
@@ -246,13 +248,14 @@ def multiBench(m, n, p):
     return multiops, stimulus, check
 
 
-def checkMultiOps(m, n, p):
+@pytest.mark.parametrize("m, n, p", [
+    (4, 4, 4,),
+    (5, 3, 2),
+    (3, 4, 6),
+    (3, 7, 4)
+])
+def testMultiOps(m, n, p):
     assert verify(multiBench, m, n, p) == 0
-
-
-def testMultiOps():
-    for m, n, p in ((4, 4, 4,), (5, 3, 2), (3, 4, 6), (3, 7, 4)):
-        yield checkMultiOps, m, n, p
 
 
 def unaryOps(
@@ -311,13 +314,12 @@ def unaryBench(m):
     return unaryops, stimulus, check
 
 
-def checkUnaryOps(m):
+@pytest.mark.parametrize("m", [
+    4,
+    7,
+])
+def testUnaryOps(m):
     assert verify(unaryBench, m) == 0
-
-
-def testUnaryOps():
-    for m in (4, 7):
-        yield checkUnaryOps, m
 
 
 def augmOps(Bitand,
@@ -448,11 +450,11 @@ def augmBench(m, n):
 
     return augmops, stimulus, check
 
-
-def checkAugmOps(m, n):
+@pytest.mark.parametrize("m, n", [
+    (4, 4,),
+    (5, 3),
+    (2, 6),
+    (8, 7),
+])
+def testAugmOps(m, n):
     assert verify(augmBench, m, n) == 0
-
-
-def testAugmOps():
-    for m, n in ((4, 4,), (5, 3), (2, 6), (8, 7)):
-        yield checkAugmOps, m, n

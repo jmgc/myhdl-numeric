@@ -9,6 +9,7 @@ import unittest
 import os
 import random
 from random import randrange
+import pytest
 path = os.path
 random.seed(2)
 
@@ -293,7 +294,7 @@ def multiOps(
               argm, argn, argp):
     @instance
     def logic():
-        while 1:
+        while True:
             yield argm, argn, argp
             Bitand.next = argm & argn & argp
             Bitor.next = argm | argn | argp
@@ -586,177 +587,123 @@ def augmBench(l, r):
     return augmops, stimulus, check
 
 
-class Test(unittest.TestCase):
-    select_test = {'augmented': True,
-                   'binary': True,
-                   'division': True,
-                   'resize': True,
-                   'multi': True,
-                   'unary': True,
-                   }
-    sim = True
+def vectors():
+    lefts = (uintba(0, 8),
+             sintba(0, 6),
+             sintba(0, 3),
+             sfixba(0, 2, -4),
+             sfixba(0, 5, 2),
+             )
+    rights = (uintba(1, 4),
+              sintba(1, 4),
+              sintba(1, 5),
+              sfixba(1, 4, 0),
+              sfixba(1, 7, 3),
+              )
+    return [(left, right)
+            for left in lefts
+            for right in rights
+            ]
 
-    def vectors(self):
-        self.lefts = (uintba(0, 8),
-                      sintba(0, 6),
-                      sintba(0, 3),
-                      sfixba(0, 2, -4),
-                      sfixba(0, 5, 2),
-                      )
-        self.rights = (uintba(1, 4),
-                       sintba(1, 4),
-                       sintba(1, 5),
-                       sfixba(1, 4, 0),
-                       sfixba(1, 7, 3),
-                       )
 
-    def div_vectors(self):
-        self.lefts = (sfixba(0, 9, -4),
-                      sfixba(0, 5, -3),
-                      sfixba(0, 5, 1),
-                      )
-        self.rights = (sfixba(1, 4, 0),
-                       sfixba(1, 7, 3),
-                       sfixba(1, 3, -3),
-                       )
+def div_vectors():
+    lefts = (sfixba(0, 9, -4),
+             sfixba(0, 5, -3),
+             sfixba(0, 5, 1),
+             )
+    rights = (sfixba(1, 4, 0),
+              sfixba(1, 7, 3),
+              sfixba(1, 3, -3),
+              )
+    return [(left, right)
+            for left in lefts
+            for right in rights
+            ]
 
-    def multi_vectors(self):
-        self.mv = (uintba(0, 3),
-                   sintba(0, 3),
-                   sfixba(0, 5, 2),
-                   )
-        self.nv = (uintba(0, 4),
-                   sintba(0, 4),
-                   sfixba(0, 3, -3),
-                   )
-        self.pv = (uintba(1, 3),
-                   sintba(1, 4),
-                   sfixba(1, 7, 4),
-                   )
 
-    if select_test['augmented']:
-        if sim:
-            def test_AugmentedSim(self):
-                self.vectors()
-                for left in self.lefts:
-                    for right in self.rights:
-                        # tb_fsm = traceSignals(delayBufferTestBench)
-                        # sim = Simulation(tb_fsm)
-                        toVHDL(augmBench, left, right)
-                        sim = Simulation(augmBench(left, right))
-                        sim.run()
-        else:
-            def test_AugmentedVer(self):
-                self.vectors()
-                for left in self.lefts:
-                    for right in self.rights:
-                        self.assertEqual(conversion.verify(augmBench,
-                                                           left, right), 0,
-                                         "Format: {0}, {1}".
-                                         format(repr(left), repr(right)))
+def resize_vectors():
+    return [(delta, i , j)
+            for delta in range(-5, 0)
+            for i in range(0, 8)
+            for j in range(delta, i - 1)
+            ]
 
-    if select_test['binary']:
-        if sim:
-            def test_BinarySim(self):
-                self.vectors()
-                for left in self.lefts:
-                    for right in self.rights:
-                        # tb_fsm = traceSignals(delayBufferTestBench)
-                        # sim = Simulation(tb_fsm)
-                        toVHDL(binaryBench, left, right)
-                        sim = Simulation(binaryBench(left, right))
-                        sim.run()
-        else:
-            def test_BinaryVer(self):
-                self.vectors()
-                for left in self.lefts:
-                    for right in self.rights:
-                        self.assertEqual(conversion.verify(binaryBench,
-                                                           left, right), 0,
-                                         "Format: {0}, {1}".
-                                         format(repr(left), repr(right)))
 
-    if select_test['division']:
-        if sim:
-            def test_DivisionSim(self):
-                self.div_vectors()
-                for left in self.lefts:
-                    for right in self.rights:
-                        # tb_fsm = traceSignals(divBench)
-                        # sim = Simulation(tb_fsm)
-                        toVHDL(divBench, left, right)
-                        sim = Simulation(divBench(left, right))
-                        sim.run()
-        else:
-            def test_DivisionVer(self):
-                self.div_vectors()
-                for left in self.lefts:
-                    for right in self.rights:
-                        self.assertEqual(conversion.verify(divBench,
-                                                           left, right), 0,
-                                         "Format: {0}, {1}".
-                                         format(repr(left), repr(right)))
+def multi_vectors():
+    mv = (uintba(0, 3),
+          sintba(0, 3),
+          sfixba(0, 5, 2),
+          )
+    nv = (uintba(0, 4),
+          sintba(0, 4),
+          sfixba(0, 3, -3),
+          )
+    pv = (uintba(1, 3),
+          sintba(1, 4),
+          sfixba(1, 7, 4),
+          )
+    return [(m, n, p)
+            for m in mv
+            for n in nv
+            for p in pv
+            ]
 
-    if select_test['resize']:
-        if sim:
-            def testResizeSim(self):
-                for delta in range(-5, 0):
-                    for i in range(0, 8):
-                        for j in range(delta, i - 1):
-                            # tb_fsm = traceSignals(resizeCheck)
-                            # sim = Simulation(tb_fsm)
-                            toVHDL(resizeCheck, delta, i, j)
-                            sim = Simulation(resizeCheck(delta, i, j))
-                            sim.run()
-        else:
-            def testResizeVer(self):
-                for delta in range(-5, 0):
-                    for i in range(0, 8):
-                        for j in range(delta, i - 1):
-                            self.assertEqual(conversion.verify(resizeCheck,
-                                                               delta, i, j), 0,
-                                             "Format: {0}, {1}".format(delta,
-                                                                       i, j))
+def vector():
+    return (uintba(0, 8),
+            sintba(0, 6),
+            sintba(0, 3),
+            sfixba(0, 2, -4),
+            sfixba(0, 5, 2),
+            )
 
-    if select_test['multi']:
-        if sim:
-            def testMultiSim(self):
-                self.multi_vectors()
-                for m in self.mv:
-                    for n in self.mv:
-                        for p in self.pv:
-                            # tb_fsm = traceSignals(multiOpsBench)
-                            # sim = Simulation(tb_fsm)
-                            toVHDL(multiBench, m, n, p)
-                            sim = Simulation(multiBench(m, n, p))
-                            sim.run()
-        else:
-            def testMultiVer(self):
-                self.multi_vectors()
-                for m in self.mv:
-                    for n in self.mv:
-                        for p in self.pv:
-                            self.assertEqual(conversion.verify(multiBench,
-                                                               m, n, p), 0,
-                                             "Format: {0}, {1}, {2}".
-                                             format(repr(m), repr(n), repr(p)))
 
-    if select_test['unary']:
-        if sim:
-            def testUnarySim(self):
-                self.vectors()
-                for m in self.lefts:
-                    # tb_fsm = traceSignals(multiOpsBench)
-                    # sim = Simulation(tb_fsm)
-                    toVHDL(unaryBench, m)
-                    sim = Simulation(unaryBench(m))
-                    sim.run()
-        else:
-            def testUnaryVer(self):
-                self.vectors()
-                for m in self.lefts:
-                    self.assertEqual(conversion.verify(unaryBench, m), 0,
-                                     "Format: {0}".format(repr(m)))
+class _GenId(object):
+    _id = 0
 
-if __name__ == "__main__":
-    unittest.main()
+    def __call__(self):
+        newId, self._id = self._id, self._id + 1
+        return str(newId)
+
+genId = _GenId()
+
+
+@pytest.mark.parametrize("left, right", vectors())
+def test_AugmentedVer(left, right):
+    toVHDL.name = "AugmentedVer_" + genId()
+    assert conversion.verify(augmBench, left, right) == 0
+    toVHDL.name = None
+
+
+@pytest.mark.parametrize("left, right", vectors())
+def test_BinaryVer(left, right):
+    toVHDL.name = "BinaryVer_" + genId()
+    assert conversion.verify(binaryBench,left, right) == 0
+    toVHDL.name = None
+
+
+@pytest.mark.parametrize("left, right", div_vectors())
+def test_DivisionVer(left, right):
+    toVHDL.name = "DivisionVer_" + genId()
+    assert conversion.verify(divBench, left, right) == 0
+    toVHDL.name = None
+
+
+@pytest.mark.parametrize("delta, i, j", resize_vectors())
+def testResizeVer(delta, i, j):
+    toVHDL.name = "ResizeVer_" + genId()
+    assert conversion.verify(resizeCheck, delta, i, j) == 0
+    toVHDL.name = None
+
+
+@pytest.mark.parametrize("m, n, p", multi_vectors())
+def testMultiVer(m, n, p):
+    toVHDL.name = "MultiVer_" + genId()
+    assert conversion.verify(multiBench, m, n, p) == 0
+    toVHDL.name = None
+
+
+@pytest.mark.parametrize("left", vector())
+def testUnaryVer(left):
+    toVHDL.name = "UnaryVer_" + genId()
+    assert conversion.verify(unaryBench, left) == 0
+    toVHDL.name = None

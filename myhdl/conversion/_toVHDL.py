@@ -275,8 +275,7 @@ class _GenerateHierarchy(object):
                                                      vhd_obj,
                                                      False)
                 if isinstance(vhd_obj, vhd_enum):
-                    suf = _genUniqueSuffix.next()
-                    vhd_obj._type._setName(const._name + suf)
+                    vhd_obj._type._setName(const._name)
                     self.enum_types[vhd_obj._type] = vhd_obj
 
             for name, rom in p_entity.romdict.items():
@@ -291,8 +290,7 @@ class _GenerateHierarchy(object):
                 self.rom_types[vhd_obj.toStr(False)] = vhd_obj
                 if isinstance(vhd_obj, vhd_array):
                     if isinstance(vhd_obj.type, vhd_enum):
-                        suf = _genUniqueSuffix.next()
-                        vhd_obj.type._type._setName(rom.name + suf)
+                        vhd_obj.type._type._setName(rom.name)
                         self.enum_types[vhd_obj.type._type] = vhd_obj
 
             components_list.sort(key=lambda x: x.name)
@@ -1364,7 +1362,10 @@ def _writeCustomPackage(f, name, hierarchy, fixed_point=False):
     print(file=f)
     if hierarchy.enum_types:
         sortedList = list(hierarchy.enum_types.values())
-        sortedList.sort(key=lambda x: x._name)
+        sortedList.sort(key=lambda x: x._name.join(x._type._names))
+        for t in sortedList:
+            suf = _genUniqueSuffix.next()
+            t._name = t._name + suf
         for t in sortedList:
             print("%s" % t.toStr(True), file=f)
             print(file=f)
@@ -1787,18 +1788,18 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
                              vhd.overflow, vhd.rounding)
             elif isinstance(ori, vhd_unsigned):
                 if vhd.trunc or ori.trunc:
-                    pre, suf = "c_u2f(", ", %s, %s, %s, %s)" % \
-                        (vhd.size[0], vhd.size[1], vhd.overflow, vhd.rounding)
-                else:
                     pre, suf = "t_u2f(", ", %s, %s)" % \
                         (vhd.size[0], vhd.size[1])
+                else:
+                    pre, suf = "c_u2f(", ", %s, %s, %s, %s)" % \
+                               (vhd.size[0], vhd.size[1], vhd.overflow, vhd.rounding)
             elif isinstance(ori, vhd_signed):
                 if vhd.trunc or ori.trunc:
-                    pre, suf = "c_s2f(", ", %s, %s, %s, %s)" % \
-                        (vhd.size[0], vhd.size[1], vhd.overflow, vhd.rounding)
-                else:
                     pre, suf = "t_s2f(", ", %s, %s)" % (vhd.size[0],
                                                         vhd.size[1])
+                else:
+                    pre, suf = "c_s2f(", ", %s, %s, %s, %s)" % \
+                        (vhd.size[0], vhd.size[1], vhd.overflow, vhd.rounding)
             elif isinstance(ori, vhd_std_logic):
                 pre, suf = "c_l2f(", ", %s, %s)" % (vhd.size[0],
                                                     vhd.size[1])
@@ -2193,9 +2194,9 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
         elif hasattr(node, 'tree'):
             pre, suf = self.inferCast(node.vhd, node.tree.vhd)
             fname = node.tree.name
-        elif f in numeric_functions_dict.values():
+        elif f in numeric_functions_dict:
             pre, suf = self.inferCast(node.vhd, node.vhdOri)
-            fname = f.__name__
+            fname = numeric_functions_dict[f]
         else:
             pre, suf = self.inferCast(node.vhd, node.vhdOri)
         if node.args:
@@ -2304,7 +2305,7 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
                     v = "0"
                 else:
                     v = bin(n, node.vhd.size[0] + 1)
-                self.write('resize(c_str2f("%s"), %s, %s)' %
+                self.write('my_resize(c_str2f("%s"), %s, %s)' %
                            (v, node.vhd.size[0], node.vhd.size[1]))
             else:
                 self.write('to_sfixed(%s, %s, %s)' %
@@ -2634,7 +2635,7 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
                         high = node.vhd.size[0]
                         if high <= 0:
                             high = 0
-                        s = 'resize(to_sfixed(%s, %s, 0), %s, %s, %s, %s)' % \
+                        s = 'my_resize(to_sfixed(%s, %s, 0), %s, %s, %s, %s)' % \
                             (name, high,
                              node.vhd.size[0], node.vhd.size[1],
                              node.vhd.overflow, node.vhd.rounding)
@@ -2677,8 +2678,8 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
                                                        node.vhd.size[1])
             elif isinstance(obj, _Signal):
                 s = str(obj)
-                ori = inferVhdlObj(obj)
-                pre, suf = self.inferCast(node.vhd, ori)
+                #ori = inferVhdlObj(obj)
+                pre, suf = self.inferCast(node.vhd, node.vhdOri)
                 s = "%s%s%s" % (pre, s, suf)
                 obj.used = True
             elif _isMem(obj):
@@ -3617,8 +3618,6 @@ class vhd_vector(vhd_type):
             result = type(self)(high)
         else:
             return NotImplemented
-        # self.trunc = True
-        # other.trunc = True
         result.trunc = True
         return result
 
@@ -4039,7 +4038,7 @@ class vhd_sfixed(vhd_type):
         high = None
         low = None
         if isinstance(other, vhd_unsigned):
-            high = max(other.size, self.size[0])
+            high = max(other.size - 1, self.size[0])
             low = min(0, self.size[1])
         elif isinstance(other, vhd_signed):
             high = max(other.size - 1, self.size[0])

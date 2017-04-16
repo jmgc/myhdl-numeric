@@ -3,6 +3,7 @@ from __future__ import absolute_import, print_function
 from myhdl import instance, Signal, intbv, delay, StopSimulation
 from myhdl.conversion import verify
 from random import randrange
+import pytest
 
 NRTESTS = 10
 
@@ -126,21 +127,17 @@ def binaryBench(Ll, Ml, Lr, Mr):
     return binops, stimulus, check
 
 
-def checkBinaryOps(Ll, Ml, Lr, Mr):
+@pytest.mark.parametrize("Ll, Ml, Lr, Mr", [
+    (-254, 236, 0, 4),
+    (-128, 128, -128, 128),
+    (-53, 25, -23, 123),
+    (-23, 145, -66, 12),
+    (23, 34, -34, -16),
+    (-54, -20, 45, 73),
+    (-25, -12, -123, -66),
+])
+def testBinaryOps(Ll, Ml, Lr, Mr):
     assert verify(binaryBench, Ll, Ml, Lr, Mr) == 0
-
-
-def testBinaryOps():
-    for Ll, Ml, Lr, Mr in (
-                            (-254, 236, 0, 4),
-                            (-128, 128, -128, 128),
-                            (-53, 25, -23, 123),
-                            (-23, 145, -66, 12),
-                            (23, 34, -34, -16),
-                            (-54, -20, 45, 73),
-                            (-25, -12, -123, -66),
-                           ):
-        yield checkBinaryOps, Ll, Ml, Lr, Mr
 
 
 def unaryOps(BoolNot,
@@ -192,13 +189,12 @@ def unaryBench(m):
     return unaryops, stimulus, check
 
 
-def checkUnaryOps(m):
+@pytest.mark.parametrize("m", [
+    4,
+    7,
+])
+def testUnaryOps(m):
     assert verify(unaryBench, m) == 0
-
-
-def testUnaryOps():
-    for m in (4, 7):
-        yield checkUnaryOps, m
 
 
 def augmOps(LeftShift,
@@ -289,21 +285,17 @@ def augmBench(Ll, Ml, Lr, Mr):
     return augmops,  stimulus, check
 
 
-def checkAugmOps(Ll, Ml, Lr, Mr):
+@pytest.mark.parametrize("Ll, Ml, Lr, Mr", [
+    (-254, 236, 0, 4),
+    (-128, 128, -128, 128),
+    (-53, 25, -23, 123),
+    (-23, 145, -66, 12),
+    (23, 34, -34, -16),
+    (-54, -20, 45, 73),
+    (-25, -12, -123, -66),
+])
+def testAugmOps(Ll, Ml, Lr, Mr):
     assert verify(augmBench, Ll, Ml, Lr, Mr) == 0
-
-
-def testAugmOps():
-    for Ll, Ml, Lr, Mr in (
-                            (-254, 236, 0, 4),
-                            (-128, 128, -128, 128),
-                            (-53, 25, -23, 123),
-                            (-23, 145, -66, 12),
-                            (23, 34, -34, -16),
-                            (-54, -20, 45, 73),
-                            (-25, -12, -123, -66),
-                           ):
-        yield checkAugmOps, Ll, Ml, Lr, Mr
 
 
 def expressions(a, b, clk):
