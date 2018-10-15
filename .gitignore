@@ -39,3 +39,4 @@ myhdl/**/*.vhd
 example/cordic/.ipynb_checkpoints
 .cache
 .DS_Store
+.idea/
