@@ -28,7 +28,7 @@ def testbench():
     count = Signal(modbv(0)[m:])
     enable = Signal(bool(0))
     clock  = Signal(bool(0))
-    reset = ResetSignal(0, active=0, async=True)
+    reset = ResetSignal(0, active=0, asynchronous=True)
 
     inc_1 = Inc(count, enable, clock, reset)
 
@@ -71,7 +71,7 @@ m = 8
 count = Signal(modbv(0)[m:])
 enable = Signal(bool(0))
 clock  = Signal(bool(0))
-reset = ResetSignal(0, active=0, async=True)
+reset = ResetSignal(0, active=0, asynchronous=True)
 
 inc_inst = Inc(count, enable, clock, reset)
 inc_inst = toVerilog(Inc, count, enable, clock, reset)

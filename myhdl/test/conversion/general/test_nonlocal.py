@@ -13,7 +13,7 @@ def NonlocalBench():
     qout = Signal(intbv(ONE)[8:])
     init = Signal(bool(0))
     clk = Signal(bool(0))
-    reset = ResetSignal(0, active=1, async=True)
+    reset = ResetSignal(0, active=1, asynchronous=True)
 
     q = intbv(ONE)[8:]
 
