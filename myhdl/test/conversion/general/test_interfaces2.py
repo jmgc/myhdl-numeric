@@ -77,7 +77,7 @@ def name_conflict_after_replace(clock, reset, a, a_x):
 
 def test_name_conflict_after_replace():
     clock = Signal(False)
-    reset = ResetSignal(0, active=0, async=False)
+    reset = ResetSignal(0, active=0, asynchronous=False)
     a = Intf()
     a_x = Signal(intbv(0)[len(a.x):])
     assert analyze(name_conflict_after_replace, clock, reset, a, a_x) == 0
@@ -85,7 +85,7 @@ def test_name_conflict_after_replace():
 
 def c_testbench():
     clock = Signal(bool(0))
-    reset = ResetSignal(0, active=0, async=False)
+    reset = ResetSignal(0, active=0, asynchronous=False)
     a, b, c = (Intf(), Intf(), Intf())
 
     tb_dut = m_test_intf(clock, reset, a, b, c)
@@ -117,7 +117,7 @@ def c_testbench():
 
 def test_name_conflicts_analyze():
     clock = Signal(bool(0))
-    reset = ResetSignal(0, active=0, async=False)
+    reset = ResetSignal(0, active=0, asynchronous=False)
     a, b, c = (Intf(), Intf(), Intf())
     analyze(m_test_intf, clock, reset, a, b, c)
 

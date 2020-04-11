@@ -38,7 +38,7 @@ def m_two_level(clock, reset, ia, ib):
 
 def c_testbench_one():
     clock = Signal(bool(0))
-    reset = ResetSignal(0, active=0, async=True)
+    reset = ResetSignal(0, active=0, asynchronous=True)
     ia = MyIntf()
     ib = MyIntf()
 
@@ -70,7 +70,7 @@ def c_testbench_one():
 
 def c_testbench_two():
     clock = Signal(bool(0))
-    reset = ResetSignal(0, active=0, async=True)
+    reset = ResetSignal(0, active=0, asynchronous=True)
     ia = MyIntf()
     ib = MyIntf()
 
@@ -102,7 +102,7 @@ def c_testbench_two():
 
 def test_one_level_analyze():
     clock = Signal(bool(0))
-    reset = ResetSignal(0, active=0, async=True)
+    reset = ResetSignal(0, active=0, asynchronous=True)
     ia = MyIntf()
     ib = MyIntf()
     analyze(m_one_level, clock, reset, ia, ib)
@@ -114,7 +114,7 @@ def test_one_level_verify():
 
 def test_two_level_analyze():
     clock = Signal(bool(0))
-    reset = ResetSignal(0, active=0, async=True)
+    reset = ResetSignal(0, active=0, asynchronous=True)
     ia = MyIntf()
     ib = MyIntf()
     analyze(m_two_level, clock, reset, ia, ib)

@@ -48,7 +48,7 @@ _error.EmbeddedFunction = "embedded functions in always_seq function" \
 
 
 class ResetSignal(_Signal):
-    def __init__(self, val, active, async):
+    def __init__(self, val, active, asynchronous):
         """ Construct a ResetSignal.
 
         This is to be used in conjunction with the always_seq decorator,
@@ -56,7 +56,7 @@ class ResetSignal(_Signal):
         """
         _Signal.__init__(self, bool(val))
         self.active = bool(active)
-        self.async = async
+        self.asynchronous = asynchronous
 
 
 def always_seq(edge, reset):
@@ -89,8 +89,8 @@ class _AlwaysSeq(_Always):
         if reset is not None:
             self.genfunc = self.genfunc_reset
             active = self.reset.active
-            async = self.reset.async
-            if async:
+            asynchronous = self.reset.asynchronous
+            if asynchronous:
                 if active:
                     senslist.append(reset.posedge)
                 else:
