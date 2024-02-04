@@ -77,7 +77,7 @@ from ..numeric._sintba import sintba
 from ..numeric._sfixba import sfixba, fixmath
 from ..numeric._conversion import numeric_types, numeric_functions_dict, \
     numeric_attributes_dict
-from collections import Callable
+from collections.abc import Callable
 
 _version = __version__.replace('.', '')
 _shortversion = _version.replace('dev', '')
@@ -1528,8 +1528,9 @@ def _writeSigDecls(f, architecture):
                                           signal.vhd_type.toStr(False)),
                   file=f)
         else:
-            print("    signal %s: %s;" % (signal.name,
-                                          signal.vhd_type.toStr(True)),
+            print("    signal %s: %s := %s;" % (signal.name,
+                                                signal.vhd_type.toStr(True),
+                                                signal.vhd_type.literal(signal.internal)),
                   file=f)
         if signal.signal_conversion:
             architecture.signal_conversions.extend(signal.signal_conversion)
@@ -2551,7 +2552,7 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
 
     def getName(self, node):
         constdict = self.tree.constdict
-        if (not PY2) and isinstance(node, ast.NameConstant):
+        if isinstance(node, ast.NameConstant):
             n = str(node.value)
         else:
             n = node.id
@@ -2821,7 +2822,12 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
         self.visit(node.value)
         self.write("(")
         # assert len(node.subs) == 1
-        self.visit(node.slice.value)
+        if isinstance(node.slice, ast.Name):
+            self.visit(node.slice)
+        elif isinstance(node.slice, ast.Constant):
+            self.visit(node.slice)
+        else:
+            self.visit(node.slice.value)
         self.write(")")
         self.write(suf)
 
@@ -4592,7 +4598,12 @@ class _AnnotateTypesVisitor(ast.NodeVisitor, _ConversionMixin):
     def accessIndex(self, node):
         self.generic_visit(node)
         node.vhd = vhd_std_logic()  # XXX default
-        node.slice.value.vhd = vhd_int()
+        if isinstance(node.slice, ast.Name):
+            self.visit(node.slice)
+        elif isinstance(node.slice, ast.Constant):
+            self.visit(node.slice)
+        else:
+            node.slice.value.vhd = vhd_int()
         obj = node.value.obj
         if isinstance(obj, list):
             assert len(obj)

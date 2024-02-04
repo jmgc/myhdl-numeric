@@ -111,7 +111,7 @@ class _VerificationClass(object):
     __slots__ = ("simulator", "_analyze_only")
 
     def __init__(self, analyze_only=False):
-        self.simulator = None
+        self.simulator = 'ghdl'
         self._analyze_only = analyze_only
 
     def __call__(self, func, *args, **kwargs):

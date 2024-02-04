@@ -32,6 +32,8 @@ def binaryOps(Bitand,
             # Keep left shifts smaller than 2** 31 for VHDL's to_integer
             if left < 256 and right < 22 and right >= 0:
                 LeftShift.next = left << right
+            else:
+                LeftShift.next = 0
             Mul.next = left * right
             Sub.next = left - right
             Sum.next = left + right
@@ -217,6 +219,8 @@ def augmOps(LeftShift,
                 var2[:] = left
                 var2 <<= right
                 LeftShift.next = var2
+            else:
+                LeftShift.next = 0
             var[:] = left
             var *= right
             Mul.next = var
@@ -225,7 +229,8 @@ def augmOps(LeftShift,
             if right >= 0:
                 var >>= right
                 RightShift.next = var
-
+            else:
+                RightShift.next = 0
             var[:] = left
             var -= right
             Sub.next = var

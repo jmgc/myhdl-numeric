@@ -57,7 +57,7 @@ from ._analyze import _analyzeSigs, _analyzeGens, _analyzeTopFunc, \
     _Ram, _Rom
 from .._Signal import _Signal
 
-from collections import Callable
+from collections.abc import Callable
 from .._ShadowSignal import _TristateSignal, _TristateDriver
 
 _converting = 0
