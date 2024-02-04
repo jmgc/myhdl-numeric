@@ -1254,6 +1254,8 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
             self.visit(node.slice)
         elif isinstance(node.slice, ast.Constant):
             self.visit(node.slice)
+        elif isinstance(node.slice, ast.BinOp):
+            self.visit(node.slice)
         else:
             self.visit(node.slice.value)
         if isinstance(node.value.obj, _Ram):

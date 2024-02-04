@@ -1586,7 +1586,7 @@ def _writeCompUnits(f, entity):
             c = ''
             for port_name in component.entity.ports_list:
                 f.write(c)
-                c = ",\n                  "
+                c = ",\n                "
                 name = component.ports_signals_dict[port_name]
                 f.write("%s => %s" % (port_name, name))
             f.write("\n                  );\n")
@@ -2820,14 +2820,21 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
         pre, suf = self.inferCast(node.vhd, node.vhdOri)
         self.write(pre)
         self.visit(node.value)
+
         self.write("(")
         # assert len(node.subs) == 1
+        if not isinstance(node.slice.vhd, (vhd_int, vhd_nat)):
+            self.write("to_integer(")
         if isinstance(node.slice, ast.Name):
             self.visit(node.slice)
         elif isinstance(node.slice, ast.Constant):
             self.visit(node.slice)
+        elif isinstance(node.slice, ast.BinOp):
+            self.visit(node.slice)
         else:
             self.visit(node.slice.value)
+        if not isinstance(node.slice.vhd, (vhd_int, vhd_nat)):
+            self.write(")")
         self.write(")")
         self.write(suf)
 
@@ -3711,7 +3718,10 @@ class vhd_unsigned(vhd_vector):
         self._name = 'unsigned_%s' % size
 
     def literal(self, value):
-        return '"%s"' % bin(value, self.size)
+        if value is None:
+            return "(others => 'Z')"
+        else:
+            return '"%s"' % bin(value, self.size)
 
     def toStr(self, constr=True):
         if constr:
@@ -3827,7 +3837,10 @@ class vhd_signed(vhd_vector):
         self._name = 'signed_%s' % size
 
     def literal(self, value):
-        return '"%s"' % bin(value, self.size)
+        if value is None:
+            return "(others => 'Z')"
+        else:
+            return '"%s"' % bin(value, self.size)
 
     def toStr(self, constr=True):
         if constr:
@@ -4601,6 +4614,8 @@ class _AnnotateTypesVisitor(ast.NodeVisitor, _ConversionMixin):
         if isinstance(node.slice, ast.Name):
             self.visit(node.slice)
         elif isinstance(node.slice, ast.Constant):
+            self.visit(node.slice)
+        elif isinstance(node.slice, ast.BinOp):
             self.visit(node.slice)
         else:
             node.slice.value.vhd = vhd_int()

@@ -1236,7 +1236,14 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
         self.visit(node.value)
         self.write("[")
         # assert len(node.subs) == 1
-        self.visit(node.slice.value)
+        if isinstance(node.slice, ast.Name):
+            self.visit(node.slice)
+        elif isinstance(node.slice, ast.Num):
+            self.visit(node.slice)
+        elif isinstance(node.slice, ast.BinOp):
+            self.visit(node.slice)
+        else:
+            self.visit(node.slice.value)
         self.write("]")
         if addSignBit:
             self.write("})")
