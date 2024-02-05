@@ -141,32 +141,47 @@ def bench_if(map_case, N):
 
 
 def test_if4():
+    toVHDL.name = 'test_if4'
     assert conversion.verify(bench_if, map_if4, 4) == 0
-
+    toVHDL.name = None
 
 def test_if2():
+    toVHDL.name = 'test_if2'
     assert conversion.verify(bench_if, map_if2, 2) == 0
+    toVHDL.name = None
 
 
 def test_if3():
+    toVHDL.name = 'test_if3'
     assert conversion.verify(bench_if, map_if3, 3) == 0
+    toVHDL.name = None
 
 
 def test_if4_full():
+    toVHDL.name = 'test_if4_full'
     assert conversion.verify(bench_if, map_if4_full, 4) == 0
+    toVHDL.name = None
 
 
 def test_if5():
+    toVHDL.name = 'test_if5'
     assert conversion.verify(bench_if, map_if5, 4) == 0
+    toVHDL.name = None
 
 
 def test_if6():
+    toVHDL.name = 'test_if6'
     assert conversion.verify(bench_if, map_if6, 4) == 0
+    toVHDL.name = None
 
 
 def test_if7():
+    toVHDL.name = 'test_if7'
     assert conversion.verify(bench_if, map_if7, 4) == 0
+    toVHDL.name = None
 
 
 def test_if8():
+    toVHDL.name = 'test_if8'
     assert conversion.verify(bench_if, map_if8, 4) == 0
+    toVHDL.name = None
