@@ -51,6 +51,16 @@ class TestUIntBaInit(TestCase):
     def testDefaultValue(self):
         self.assertEqual(uintba(), 0)
 
+    def testValue(self):
+        x = uintba(0, 5)
+        y = int(x.max) - 1
+        x = uintba(y, x.high)
+        self.assertTrue(isinstance(x, uintba))
+        self.assertEqual(y, x)
+        y += 1
+        x = uintba(y, x.high)
+        self.assertTrue(isinstance(x, uintba))
+        self.assertNotEqual(x, y)
 
 def getItem(s, i):
     ext = '0' * (i - len(s) + 1)

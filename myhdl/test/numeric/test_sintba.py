@@ -67,7 +67,7 @@ def resize(val, format):
 
 def divide(l, r):
     neg_quot = False
-    
+
     if r < 0:
         r = -r
         neg_quot = True
@@ -76,17 +76,38 @@ def divide(l, r):
         neg_quot = not neg_quot
 
     division = l // r
-    
+
     if neg_quot:
         division = -division
 
     return division
+
 
 class TestIntBaInit(TestCase):
     def testDefaultValue(self):
         warnings.filterwarnings('error')
         self.assertEqual(sintba(), 0)
         warnings.resetwarnings()
+
+    def testValue(self):
+        x = sintba(0, 5)
+        y = int(x.max) - 1
+        x = sintba(y, x.high)
+        self.assertTrue(isinstance(x, sintba))
+        self.assertEqual(y, x)
+        y += 1
+        x = sintba(y, x.high)
+        self.assertTrue(isinstance(x, sintba))
+        self.assertNotEqual(x, y)
+        y = int(x.min)
+        x = sintba(y, x.high)
+        self.assertTrue(isinstance(x, sintba))
+        self.assertEqual(y, x)
+        y -= 1
+        x = sintba(y, x.high)
+        self.assertTrue(isinstance(x, sintba))
+        self.assertNotEqual(x, y)
+
 
 def getItem(s, i):
     ext = '0' * (i - len(s) + 1)

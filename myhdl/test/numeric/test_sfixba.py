@@ -335,6 +335,27 @@ class TestSFixBaInit(TestCase):
                                                                  float(data),
                                                                  check, j, k))
 
+    def testValue(self):
+        x = sfixba(0, 5, -5)
+        scale = 2 ** x.low
+        y = (float(x.max) - 1) * scale
+        x = sfixba(y, x.high, x.low)
+        self.assertTrue(isinstance(x, sfixba))
+        self.assertEqual(y, x)
+        y += scale
+        x = sfixba(y, x.high, x.low)
+        self.assertTrue(isinstance(x, sfixba))
+        self.assertNotEqual(x, sfixba(y))
+        y = float(x.min) * scale
+        x = sfixba(y, x.high, x.low)
+        self.assertTrue(isinstance(x, sfixba))
+        self.assertEqual(y, x)
+        y -= scale
+        x = sfixba(y, x.high, x.low)
+        self.assertTrue(isinstance(x, sfixba))
+        self.assertNotEqual(x, sfixba(y))
+
+
     def testResize(self):
         for delta in range(-5, 0):
             for i in range(0, 8):
@@ -1246,7 +1267,7 @@ class TestSFixBaAsInt(TestCase):
 
 
 # class TestSFixBaBounds(TestCase):
-#   
+#
 #     def testConstructor(self):
 #         warnings.filterwarnings('error')
 #         self.assertEqual(sintba(40, high=54), 40)
@@ -1264,7 +1285,7 @@ class TestSFixBaAsInt(TestCase):
 #         else:
 #             self.fail()
 #         warnings.resetwarnings()
-#   
+#
 #     def testSliceAssign(self):
 #         warnings.filterwarnings('error')
 #         a = sfixba(high=10, low=0)
@@ -1284,7 +1305,7 @@ class TestSFixBaAsInt(TestCase):
 #         a = sfixba(5, 14, 0)
 #         for v in (0, 2 ** 8 - 1, 100, -1000, 4096):
 #             a[:] = v
-#   
+#
 #     def checkBounds(self, i, j, op, resized=True):
 #         warnings.filterwarnings('error')
 #         a = sfixba(i)
@@ -1334,43 +1355,43 @@ class TestSFixBaAsInt(TestCase):
 #         else: # a == i
 #             b = sfixba(i)
 #             op(b, long(j))
-#   
+#
 #     def checkOp(self, op, resized=True):
 #         warnings.filterwarnings('error')
 #         for i in (0, 1, 2, 16, 129, 1025):
 #             for j in (0, 1, 2, 9, 123, 2340):
 #                 self.checkBounds(i, j, op, resized)
-#   
+#
 #     def testIAdd(self):
 #         self.checkOp(operator.iadd)
-#   
+#
 #     def testISub(self):
 #         self.checkOp(operator.isub)
-#   
+#
 #     def testIMul(self):
 #         self.checkOp(operator.imul)
-#   
+#
 #     def testIFloorDiv(self):
 #         self.checkOp(operator.ifloordiv)
-#   
+#
 #     def testIMod(self):
 #         self.checkOp(operator.imod)
-#   
+#
 #     def testIPow(self):
 #         self.assertRaises(TypeError, self.checkOp, operator.ipow)
-#   
+#
 #     def testIAnd(self):
 #         self.checkOp(operator.iand, resized=False)
-#   
+#
 # #    def testIOr(self):
 # #        self.checkOp(operator.ior)
-#   
+#
 # #    def testIXor(self):
 # #        self.checkOp(operator.ixor)
-#   
+#
 #     def testILShift(self):
 #         self.checkOp(operator.ilshift)
-#   
+#
 #     def testIRShift(self):
 #         self.checkOp(operator.irshift)
 
