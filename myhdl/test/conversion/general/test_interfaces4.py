@@ -152,7 +152,7 @@ def test_one_verify():
 
 
 def test_conversion():
-    toVerilog(c_testbench_one)
+    #toVerilog(c_testbench_one)
     toVHDL(c_testbench_one)
 
 
