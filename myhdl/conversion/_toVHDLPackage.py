@@ -441,9 +441,11 @@ package body pck_myhdl_%(version)s is
                     overflow_style : fixed_overflow_style_type := fixed_overflow_style;
                     round_style    : fixed_round_style_type    := fixed_round_style
                     ) return sfixed is
+        variable inttemp: signed(maximum(high, 1) downto 0);
         variable tmp: sfixed(maximum(high, 1) downto 0);
     begin
-        tmp := to_sfixed(arg, tmp'left, 0);
+        inttemp := to_signed(arg, inttemp'high + 1)(inttemp'high downto 0);
+        tmp := to_sfixed(inttemp);
         return my_resize(tmp, high, low, overflow_style, round_style);
     end function c_i2f;
 
