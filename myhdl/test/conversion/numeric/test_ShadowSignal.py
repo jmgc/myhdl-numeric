@@ -32,7 +32,6 @@ def test_SliceSignal():
 
 
 def bench_ConcatSignal():
-
     a = Signal(uintba(0, 5))
     b = Signal(bool(0))
     c = Signal(uintba(0, 3))
@@ -40,10 +39,10 @@ def bench_ConcatSignal():
 
     s = ConcatSignal(a, b, c, d)
 
-    I_max = 2**len(a)
-    J_max = 2**len(b)
-    K_max = 2**len(c)
-    M_max = 2**len(d)
+    I_max = 2 ** len(a)
+    J_max = 2 ** len(b)
+    K_max = 2 ** len(c)
+    M_max = 2 ** len(d)
 
     @instance
     def check():
@@ -66,7 +65,6 @@ def test_ConcatSignal():
 
 
 def bench_ConcatSignalWithConsts():
-
     a = Signal(uintba(0, 5))
     b = Signal(bool(0))
     c = Signal(uintba(0, 3))
@@ -81,10 +79,10 @@ def bench_ConcatSignalWithConsts():
 
     s = ConcatSignal(c1, a, c2, b, c3, c, c4, d, c5, e)
 
-    I_max = 2**len(a)
-    J_max = 2**len(b)
-    K_max = 2**len(c)
-    M_max = 2**len(d)
+    I_max = 2 ** len(a)
+    J_max = 2 ** len(b)
+    K_max = 2 ** len(c)
+    M_max = 2 ** len(d)
 
     @instance
     def check():
@@ -92,7 +90,7 @@ def bench_ConcatSignalWithConsts():
             for j in range(J_max):
                 for k in range(K_max):
                     for m in range(M_max):
-                        for n in range(2**len(e)):
+                        for n in range(2 ** len(e)):
                             a.next = i
                             b.next = j
                             c.next = k
@@ -143,13 +141,12 @@ def bench_TristateSignal():
     return check
 
 
-#@bug("Tristate pending", "vhdl")
+# @bug("Tristate pending", "vhdl")
 def test_TristateSignal():
     assert conversion.verify(bench_TristateSignal) == 0
 
 
 def permute(x, a, mapping):
-
     p = [a(m) for m in mapping]
 
     q = ConcatSignal(*p)
@@ -162,7 +159,6 @@ def permute(x, a, mapping):
 
 
 def bench_permute(conv=False):
-
     x = Signal(uintba(0, 3))
     a = Signal(sfixba(0, 4, -2))
     mapping = (0, 2, 1)
@@ -174,7 +170,7 @@ def bench_permute(conv=False):
 
     @instance
     def stimulus():
-        for i in range(2**len(x)):
+        for i in range(2 ** len(x)):
             a.next = i
             yield delay(10)
             print("%d %d" % (x, a))
@@ -188,6 +184,7 @@ def bench_permute(conv=False):
 
 def test_permute():
     assert conversion.verify(bench_permute) == 0
+
 
 bench_permute(toVHDL)
 bench_permute(toVerilog)
