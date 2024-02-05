@@ -164,7 +164,7 @@ def permute(x, a, mapping):
 def bench_permute(conv=False):
 
     x = Signal(uintba(0, 3))
-    a = Signal(sfixba(0, 3, -2))
+    a = Signal(sfixba(0, 4, -2))
     mapping = (0, 2, 1)
 
     if conv:
@@ -174,7 +174,7 @@ def bench_permute(conv=False):
 
     @instance
     def stimulus():
-        for i in range(2**len(a)):
+        for i in range(2**len(x)):
             a.next = i
             yield delay(10)
             print("%d %d" % (x, a))
