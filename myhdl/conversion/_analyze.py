@@ -53,7 +53,6 @@ from ..numeric._conversion import numeric_functions_dict, \
     numeric_attributes_dict
 from ..numeric._bitarray import bitarray
 
-
 _enumTypeSet = set()
 
 
@@ -90,9 +89,9 @@ def _analyzeSigs(hierarchy, hdl='Verilog', initlevel=0):
         memdict = inst.memdict
         delta = curlevel - level
         curlevel = level
-        assert(delta >= -1)
+        assert (delta >= -1)
         if delta > -1:  # same or higher level
-            prefixes = prefixes[:curlevel-1]
+            prefixes = prefixes[:curlevel - 1]
         # skip processing and prefixing in context without signals
         if not (sigdict or memdict):
             prefixes.append("")
@@ -207,7 +206,6 @@ def _analyzeGens(top, absnames):
 
 
 class _FirstPassVisitor(ast.NodeVisitor, _ConversionMixin):
-
     """First pass visitor.
 
     Prune unsupported contructs, and add some useful attributes.
@@ -259,10 +257,10 @@ class _FirstPassVisitor(ast.NodeVisitor, _ConversionMixin):
     def visit_ListComp(self, node):
         if len(node.generators) > 1:
             self.raiseError(node, _error.NotSupported, "multiple for"
-                            " statements in list comprehension")
+                                                       " statements in list comprehension")
         if node.generators[0].ifs:
             self.raiseError(node, _error.NotSupported, "if statement in list"
-                            " comprehension")
+                                                       " comprehension")
         self.generic_visit(node)
 
     def visit_List(self, node):
@@ -300,7 +298,7 @@ class _FirstPassVisitor(ast.NodeVisitor, _ConversionMixin):
 
         if starargs:
             self.raiseError(node, _error.NotSupported, "extra positional"
-                            " arguments")
+                                                       " arguments")
         if kwargs:
             self.raiseError(node, _error.NotSupported, "extra named arguments")
         self.generic_visit(node)
@@ -313,10 +311,10 @@ class _FirstPassVisitor(ast.NodeVisitor, _ConversionMixin):
     def visit_FunctionDef(self, node):
         if node.args.vararg or node.args.kwarg:
             self.raiseError(node, _error.NotSupported, "extra positional or"
-                            " named arguments")
+                                                       " named arguments")
         if not self.toplevel:
             self.raiseError(node, _error.NotSupported, "embedded function"
-                            " definition")
+                                                       " definition")
         self.toplevel = False
         node.argnames = _get_argnames(node)
         # don't visit decorator lists - they can support more than other calls
@@ -361,10 +359,10 @@ class _FirstPassVisitor(ast.NodeVisitor, _ConversionMixin):
     def visit_Print(self, node):
         if node.dest is not None:
             self.raiseError(node, _error.NotSupported, "printing to a file"
-                            " with >> syntax")
+                                                       " with >> syntax")
         if not node.nl:
             self.raiseError(node, _error.NotSupported, "printing without"
-                            " newline")
+                                                       " newline")
 
 
 def getNrBits(obj):
@@ -411,6 +409,7 @@ class _Rom(object):
     def depth(self):
         return len(self.rom)
 
+
 re_str = re.compile(r"[^%]+")
 re_ConvSpec = re.compile(r"%(?P<justified>[-]?)"
                          "(?P<width>[0-9]*)(?P<conv>[sd])")
@@ -427,6 +426,7 @@ class ConvSpec(object):
             self.width = int(kwargs['width'])
         if kwargs['conv'] == 'd':
             self.conv = int
+
 
 defaultConvSpec = ConvSpec(**re_ConvSpec.match(r"%s").groupdict())
 
@@ -603,7 +603,7 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
                     self._truediv_size(node, l, r)
                 except NotImplementedError:
                     self.raiseError(node, _error.NotSupported, "true division"
-                                    " - consider '//'")
+                                                               " - consider '//'")
             elif isinstance(node.op, ast.Mod):
                 if isinstance(l, string_types):
                     node.obj = long(-1)
@@ -633,7 +633,7 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
         for n in node.values:
             if not hasType(n.obj, bool):
                 self.raiseError(node, _error.NotSupported, "non-boolean"
-                                " argument in logical operator")
+                                                           " argument in logical operator")
         node.obj = bool()
 
     def visit_UnaryOp(self, node):
@@ -708,12 +708,12 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
             if not hasattr(obj, node.attr):
                 pass
             assert hasattr(obj, node.attr), "%s.%s" % \
-                (node.value.id, node.attr)
+                                            (node.value.id, node.attr)
             node.obj = getattr(obj, node.attr)
             if obj not in _enumTypeSet:
                 _enumTypeSet.add(obj)
                 suf = _genUniqueSuffix.next()
-                obj._setName(n+suf)
+                obj._setName(n + suf)
         if node.obj is None:  # attribute lookup failed
             self.raiseError(node, _error.UnsupportedAttribute, node.attr)
 
@@ -832,10 +832,10 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
                 for keyword in node.keywords:
                     if keyword.arg == 'file':
                         self.raiseError(node, _error.NotSupported, "print to"
-                                        " file with file= syntax")
+                                                                   " file with file= syntax")
                     elif keyword.arg == 'end':
                         self.raiseError(node, _error.NotSupported, "print"
-                                        " end keyword not support")
+                                                                   " end keyword not support")
             self.visit_Print(node)
         elif f in self.myhdlObjects:
             pass
@@ -872,7 +872,7 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
             tree.argnames = argnames = _get_argnames(tree.body[0])
             # extend argument list with keyword arguments on the correct
             # position
-            node.args.extend([None]*len(node.keywords))
+            node.args.extend([None] * len(node.keywords))
             for kw in node.keywords:
                 node.args[argnames.index(kw.arg)] = kw.value
             for n, arg in zip(argnames, node.args):
@@ -1077,8 +1077,8 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
                 node.obj = obj
         else:
             if n in ("__verilog__", "__vhdl__"):
-                    self.raiseError(node, _error.NotSupported,
-                                    "%s in generator function" % n)
+                self.raiseError(node, _error.NotSupported,
+                                "%s in generator function" % n)
             if n in self.globalRefs:
                 self.raiseError(node, _error.UnboundLocal, n)
             self.refStack.add(n)
@@ -1139,7 +1139,7 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
                     pass
                 else:
                     assert False, "unexpected mem access %s %s" % \
-                        (n, self.access)
+                                  (n, self.access)
                 self.tree.hasLos = True
             elif isinstance(node.obj, integer_types):
                 node.value = node.obj
@@ -1169,7 +1169,7 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
             node_args = node.args
         for n in node_args:
             if isinstance(n, ast.BinOp) and isinstance(n.op, ast.Mod) and \
-               isinstance(n.left, ast.Str):
+                    isinstance(n.left, ast.Str):
                 if isinstance(n.right, ast.Tuple):
                     a.extend(n.right.elts)
                 else:
@@ -1250,11 +1250,7 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
     def accessIndex(self, node):
         self.visit(node.value)
         self.access = _access.INPUT
-        if isinstance(node.slice, ast.Name):
-            self.visit(node.slice)
-        elif isinstance(node.slice, ast.Constant):
-            self.visit(node.slice)
-        elif isinstance(node.slice, ast.BinOp):
+        if isinstance(node.slice, (ast.Name, ast.Constant, ast.BinOp, ast.Call)):
             self.visit(node.slice)
         else:
             self.visit(node.slice.value)
@@ -1297,7 +1293,7 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
         if isinstance(y, ast.Expr):
             y = y.value
         if ((PY2 and (node.test.obj is True)) or
-                ((not PY2) and (self.getObj(node.test) is True))) and \
+            ((not PY2) and (self.getObj(node.test) is True))) and \
                 isinstance(y, ast.Yield) and \
                 not self.tree.hasYield > 1 and \
                 not isinstance(self.getObj(y.value), delay):
@@ -1386,8 +1382,8 @@ class _AnalyzeAlwaysCombVisitor(_AnalyzeBlockVisitor):
             if isinstance(n, ast.Expr) and isinstance(n.value, ast.Str):
                 continue  # skip doc strings
             if isinstance(n, ast.Assign) and \
-               isinstance(n.targets[0], ast.Attribute) and \
-               self.getKind(n.targets[0].value) != _kind.REG:
+                    isinstance(n.targets[0], ast.Attribute) and \
+                    self.getKind(n.targets[0].value) != _kind.REG:
                 pass
             else:
                 self.tree.kind = _kind.ALWAYS_COMB
@@ -1587,7 +1583,7 @@ class _AnalyzeTopFuncVisitor(_AnalyzeVisitor):
             elif _isMem(arg):
                 pass
                 # self.raiseError(node, _error.ListAsPort, n)
-        for n in self.argnames[i+1:]:
+        for n in self.argnames[i + 1:]:
             if n in self.kwargs:
                 arg = self.kwargs[n]
                 self.fullargdict[n] = arg
