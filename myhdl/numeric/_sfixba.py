@@ -23,7 +23,6 @@ from __future__ import absolute_import, division
 from ._bitarray import bitarray
 from ._sintba import sintba
 
-
 from .._compat import long, integer_types, string_types, bit_length
 from .._enum import enum
 from .._intbv import intbv
@@ -73,14 +72,17 @@ class fixmath(object):
 
     def _get_overflow(self):
         return self._overflow
+
     overflow = property(_get_overflow, None)
 
     def _get_rounding(self):
         return self._rounding
+
     rounding = property(_get_rounding, None)
 
     def _get_guard_bits(self):
         return self._guard_bits
+
     guard_bits = property(_get_guard_bits, None)
 
 
@@ -169,8 +171,8 @@ class sfixba(bitarray):
 
         length = len(args)
         if length != (i + 1):
-                raise TypeError("No positional arguments allowed after "
-                                "format or fixmath object")
+            raise TypeError("No positional arguments allowed after "
+                            "format or fixmath object")
         if (length == 0) and ('value' in kwargs):
             value = kwargs['value']
 
@@ -286,33 +288,33 @@ class sfixba(bitarray):
                               overflow_style=None,
                               round_style=None,
                               guard_bits=None):
-        left_index = high   # size of integer portion
-        right_index = low   # size of fraction
+        left_index = high  # size of integer portion
+        right_index = low  # size of fraction
         if not hasattr(fixmath.overflows, str(overflow_style)):
             overflow_style = self._overflow
         if not hasattr(fixmath.roundings, str(round_style)):
             round_style = self._rounding
         if guard_bits is not integer_types:
             guard_bits = self._guard_bits
-        fw = right_index   # catch literals
+        fw = right_index  # catch literals
         result = bitarray(0, left_index, fw)
-        Xresult = bitarray(0, left_index+1, fw-guard_bits)
+        Xresult = bitarray(0, left_index + 1, fw - guard_bits)
         presult = 0.0
 
         if (arg >= ldexp(1.0, left_index - 1)) or \
                 (arg < ldexp(-1.0, left_index - 1)):
             if overflow_style == fixmath.overflows.saturate:
-                if arg < 0.0:   # saturate
+                if arg < 0.0:  # saturate
                     self._saturate(result, True)  # underflow
                 else:
-                    self._saturate(result, False)      # overflow
+                    self._saturate(result, False)  # overflow
                 return result
             else:
                 presult = abs(arg) % ldexp(1.0, left_index + 1)  # wrap
         else:
             presult = abs(arg)
 
-        for i in range(Xresult.high-1, Xresult.low-1, -1):
+        for i in range(Xresult.high - 1, Xresult.low - 1, -1):
             if presult >= ldexp(1.0, i):
                 Xresult[i] = 1
                 presult = presult - ldexp(1.0, i)
@@ -326,7 +328,7 @@ class sfixba(bitarray):
         if guard_bits > 0 and round_style == fixmath.roundings.round:
             result = self._round_fixed(Xresult[left_index:right_index],
                                        Xresult[right_index:
-                                               right_index-guard_bits],
+                                               right_index - guard_bits],
                                        overflow_style)
         else:
             result[:] = Xresult[result.high:result.low]
@@ -406,7 +408,7 @@ class sfixba(bitarray):
         if '.' in mval:
             dec_point = True
             dec = mval.index('.')
-            mval = mval[:dec] + mval[dec+1:]
+            mval = mval[:dec] + mval[dec + 1:]
             high -= 1
             low = dec - high
             high += low
@@ -446,10 +448,10 @@ class sfixba(bitarray):
 
         self._wrap()
 
-#    def _from_bitarray(self, value, high, low):
-#        self._handle_limits(high, low, len(value))
-#        self._resize(value)
-#        self._handle_bounds()
+    #    def _from_bitarray(self, value, high, low):
+    #        self._handle_limits(high, low, len(value))
+    #        self._resize(value)
+    #        self._handle_bounds()
 
     def _saturate(self, arg, sign=False):
         val = (1 << (arg.high - arg.low - 1)) - 1
@@ -500,7 +502,7 @@ class sfixba(bitarray):
                 # else return 0 (wrap)
             elif arghigh > left_index:
                 if not invec[arghigh - 1]:
-                    reduced = (invec[arghigh - 1:left_index-1].or_reduce())
+                    reduced = (invec[arghigh - 1:left_index - 1].or_reduce())
                     if (overflow_style == fixmath.overflows.saturate) and \
                             reduced:
                         # saturate positive
@@ -512,7 +514,7 @@ class sfixba(bitarray):
                                               fixmath.roundings.round)
                         else:
                             result[left_index:arglow] = \
-                                    invec[left_index:arglow]
+                                invec[left_index:arglow]
                 else:
                     reduced = invec[arghigh - 1:left_index - 1].and_reduce()
                     if (overflow_style == fixmath.overflows.saturate) and \
@@ -525,13 +527,13 @@ class sfixba(bitarray):
                                               fixmath.roundings.round)
                         else:
                             result[left_index:arglow] = \
-                                    invec[left_index:arglow]
+                                invec[left_index:arglow]
             else:  # arghigh <= integer width
                 if (arglow >= right_index):
                     result[arghigh:arglow] = invec
                 else:
                     result[arghigh:right_index] = \
-                            invec[arghigh:right_index]
+                        invec[arghigh:right_index]
                     needs_rounding = (rounding_style ==
                                       fixmath.roundings.round)
                 if (left_index > arghigh):  # sign extend
@@ -559,7 +561,7 @@ class sfixba(bitarray):
         if len(remainder) > 1:
             if remainder[remainder.high - 1]:
                 rounds = arg[arg.low] or \
-                        remainder[remainder.high-1:remainder.low].or_reduce()
+                         remainder[remainder.high - 1:remainder.low].or_reduce()
         else:
             rounds = arg[arg.low] and remainder[remainder.high - 1]
         if rounds:
@@ -576,27 +578,36 @@ class sfixba(bitarray):
         args = sintba(arg._val, len(arg) + 1)
         ress = args + 1
         result = bitarray(0, arg)
-        result[:] = ress[ress.high-1:0]
+        result[:] = ress[ress.high - 1:0]
         overflowx = ((arg[arg.high - 1] != ress[ress.high - 2]) and
                      ress.or_reduce())
         return (result, overflowx)
 
     def _get_max(self):
-        return (long(1) << (self._high - self._low - 1))
+        if (self._high - self._low) < 1:
+            return 0
+        else:
+            return long(1) << (self._high - self._low - 1)
 
     def _get_min(self):
-        return -(long(1) << (self._high - self._low - 1))
+        if (self._high - self._low) < 1:
+            return 0
+        else:
+            return -(long(1) << (self._high - self._low - 1))
 
     def _get_overflow(self):
         return self._overflow
+
     overflow = property(_get_overflow, None)
 
     def _get_rounding(self):
         return self._rounding
+
     rounding = property(_get_rounding, None)
 
     def _get_guard_bits(self):
         return self._guard_bits
+
     guard_bits = property(_get_guard_bits, None)
 
     def _wrap(self):
@@ -879,26 +890,44 @@ class sfixba(bitarray):
         return NotImplemented
 
     def __and__(self, other):
-        if isinstance(other, (sintba, sfixba)):
-            return bitarray.__and__(self, other)
-        else:
-            return NotImplemented
+        if isinstance(other, sfixba):
+            high = max(self.high, other.high)
+            low = min(self.low, other.low)
+            return sfixba(bitarray.__and__(self.resize(high, low), other.resize(high, low)), high, low)
+        elif isinstance(other, sintba):
+            high = max(self.high, other.signed().high)
+            low = min(self.low, 0)
+            return sfixba(bitarray.__and__(self.resize(high, low), sfixba(other, high, low)),
+                          high, low)
+        return NotImplemented
 
     __rand__ = __and__
 
     def __or__(self, other):
-        if isinstance(other, (sintba, sfixba)):
-            return bitarray.__or__(self, other)
-        else:
-            return NotImplemented
+        if isinstance(other, sfixba):
+            high = max(self.high, other.high)
+            low = min(self.low, other.low)
+            return sfixba(bitarray.__or__(self.resize(high, low), other.resize(high, low)), high, low)
+        elif isinstance(other, sintba):
+            high = max(self.high, other.signed().high)
+            low = min(self.low, 0)
+            return sfixba(bitarray.__or__(self.resize(high, low), sfixba(other, high, low)),
+                          high, low)
+        return NotImplemented
 
     __ror__ = __or__
 
     def __xor__(self, other):
-        if isinstance(other, (sintba, sfixba)):
-            return bitarray.__xor__(self, other)
-        else:
-            return NotImplemented
+        if isinstance(other, sfixba):
+            high = max(self.high, other.high)
+            low = min(self.low, other.low)
+            return sfixba(bitarray.__xor__(self.resize(high, low), other.resize(high, low)), high, low)
+        elif isinstance(other, sintba):
+            high = max(self.high, other.signed().high)
+            low = min(self.low, 0)
+            return sfixba(bitarray.__xor__(self.resize(high, low), sfixba(other, high, low)),
+                          high, low)
+        return NotImplemented
 
     __rxor__ = __xor__
 
@@ -984,7 +1013,7 @@ class sfixba(bitarray):
     # XXX __complex__ seems redundant ??? (complex() works as such?)
 
     def _abs(self):
-        length = self._high-self._low
+        length = self._high - self._low
 
         if length > 1:
             return abs(self._val)
@@ -1010,7 +1039,7 @@ class sfixba(bitarray):
                 format_str = '{{0:0{0}b}}'.format(length)
                 result = format_str.format(val)
                 result = result[:self._high - 1] + '.' + \
-                    result[self._high - 1:]
+                         result[self._high - 1:]
         else:
             result = '.'
 
@@ -1201,7 +1230,7 @@ class sfixba(bitarray):
                 format_str = '{{0:0{0}b}}'.format(length)
                 result = format_str.format(val)
                 result = result[:self._high] + '.' + \
-                    result[self._high:]
+                         result[self._high:]
         else:
             result = '.'
 
@@ -1252,7 +1281,7 @@ class sfixba(bitarray):
     def floor(self):
         high = max(self.high, 2)
         result = sfixba(self).resize(high, 0, fixmath(
-                                     rounding=fixmath.roundings.truncate))
+            rounding=fixmath.roundings.truncate))
         return result
 
     def abs(self):
