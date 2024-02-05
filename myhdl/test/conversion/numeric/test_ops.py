@@ -10,6 +10,7 @@ import os
 import random
 from random import randrange
 import pytest
+
 path = os.path
 random.seed(2)
 
@@ -40,28 +41,27 @@ def resizeCheck(delta, i, j):
 
 
 def binaryOps(
-              Bitand,
-              Bitor,
-              Bitxor,
-              FloorDiv,
-              # TrueDiv,
-              LeftShift,
-              Modulo,
-              Mul,
-              Pow,
-              RightShift,
-              Sub,
-              Sum,
-              EQ,
-              NE,
-              LT,
-              GT,
-              LE,
-              GE,
-              Booland,
-              Boolor,
-              left, right):
-
+        Bitand,
+        Bitor,
+        Bitxor,
+        FloorDiv,
+        # TrueDiv,
+        LeftShift,
+        Modulo,
+        Mul,
+        Pow,
+        RightShift,
+        Sub,
+        Sum,
+        EQ,
+        NE,
+        LT,
+        GT,
+        LE,
+        GE,
+        Booland,
+        Boolor,
+        left, right):
     @instance
     def logic():
         while 1:
@@ -96,6 +96,7 @@ def binaryOps(
             GE.next = left >= right
             Booland.next = bool(left) and bool(right)
             Boolor.next = bool(left) or bool(right)
+
     return logic
 
 
@@ -211,7 +212,6 @@ def binaryBench(l, r):
 
 def divOp(TrueDiv,
           left, right):
-
     @instance
     def logic():
         while 1:
@@ -220,6 +220,7 @@ def divOp(TrueDiv,
                 TrueDiv.next = left / right
             else:
                 TrueDiv.next = 0
+
     return logic
 
 
@@ -286,12 +287,12 @@ def checkDiv(m, n):
 
 
 def multiOps(
-              Bitand,
-              Bitor,
-              Bitxor,
-              Booland,
-              Boolor,
-              argm, argn, argp):
+        Bitand,
+        Bitor,
+        Bitxor,
+        Booland,
+        Boolor,
+        argm, argn, argp):
     @instance
     def logic():
         while True:
@@ -301,11 +302,11 @@ def multiOps(
             Bitxor.next = argm ^ argn ^ argp
             Booland.next = bool(argm) and bool(argn) and bool(argp)
             Boolor.next = bool(argm) and bool(argn) and bool(argp)
+
     return logic
 
 
 def multiBench(m, n, p):
-
     Q = min(m.max, n.max, p.max)
     seqQ = tuple(range(1, Q))
     seqM = tuple([randrange(m.min, m.max) for _ in range(NRTESTS)])
@@ -380,12 +381,12 @@ def multiBench(m, n, p):
 
 
 def unaryOps(
-             Not_kw,
-             Invert,
-             UnaryAdd,
-             UnarySub,
-             arg,
-             clk):
+        Not_kw,
+        Invert,
+        UnaryAdd,
+        UnarySub,
+        arg,
+        clk):
     @instance
     def logic():
         while 1:
@@ -398,11 +399,11 @@ def unaryOps(
                 UnarySub.next = -arg
             else:
                 UnarySub.next = 0
+
     return logic
 
 
 def unaryBench(m):
-
     seqM = tuple([randrange(m.min, m.max) for i in range(NRTESTS)])
 
     clk = Signal(False)
@@ -461,77 +462,86 @@ def augmOps(Bitand,
         # var = intbv(0)[min(64, len(left) + len(right)):]
         while True:
             yield left, right
-            if left.min < 0 or right >= 0:
+            #if left.min < 0 or right >= 0:
+            var = left.val
+            var &= right.val
+            Bitand.next = var
+            var = left.val
+            var |= right.val
+            Bitor.next = var
+            var = left.val
+            var ^= right.val
+            Bitxor.next = var
+            if right != 0:
                 var = left.val
-                var &= right.val
-                Bitand.next = var
+                var //= right.val
+                FloorDiv.next = var
+            else:
+                FloorDiv.next = 0
+            var = left.val
+            var -= right.val
+            Sub.next = var
+            var = left.val
+            var += right.val
+            Sum.next = var
+            if (left.min <= left and left < left.max and
+                right >= 0 and right < 26):
                 var = left.val
-                var |= right.val
-                Bitor.next = var
+                var <<= int(right.val)
+                LeftShift.next = var
+            else:
+                LeftShift.next = 0
+            if right != 0:
                 var = left.val
-                var ^= right.val
-                Bitxor.next = var
-                if right != 0:
-                    var = left.val
-                    var //= right.val
-                    FloorDiv.next = var
-                else:
-                    FloorDiv.next = 0
+                var %= right.val
+                Modulo.next = var
+            else:
+                Modulo.next = 0
+            var = left.val
+            var *= right.val
+            Mul.next = var
+            if right >= 0 and right < 26:
                 var = left.val
-                var -= right.val
-                Sub.next = var
-                var = left.val
-                var += right.val
-                Sum.next = var
-                if left >= left.min and left < left.max and right >= 0 and \
-                        right < 26:
-                    var = left.val
-                    var <<= int(right.val)
-                    LeftShift.next = var
-                else:
-                    LeftShift.next = 0
-                if right != 0:
-                    var = left.val
-                    var %= right.val
-                    Modulo.next = var
-                else:
-                    Modulo.next = 0
-                var = left.val
-                var *= right.val
-                Mul.next = var
-                if right >= 0 and right < 26:
-                    var = left.val
-                    var >>= int(right.val)
-                    RightShift.next = var
-                else:
-                    RightShift.next = 0
+                var >>= int(right.val)
+                RightShift.next = var
+            else:
+                RightShift.next = 0
+
     return logic
 
 
 def augmBench(l, r):
+    l_scale = 2**l.low
+    r_scale = 2**r.low
     if l.is_signed:
-        lv = (l.min, 0, l.max - 1)
+        lv = (int(l.min * l_scale), 0, int(l.max * l_scale) - 1)
     else:
-        lv = (0, l.max - 1)
+        lv = (0, int(l.max * l_scale) - 1)
     if r.is_signed:
-        rv = (r.min, 0, r.max - 1)
+        rv = (int(r.min * r_scale), 0, int(r.max * r_scale) - 1)
     else:
-        rv = (0, r.max - 1)
-    seqM = tuple([randrange(l.min, l.max) for _ in range(NRTESTS)])
-    seqN = tuple([randrange(r.min, r.max) for _ in range(NRTESTS)])
+        rv = (0, int(r.max * r_scale) - 1)
+    seqM = tuple([randrange(lv[0], lv[-1]) for _ in range(NRTESTS)])
+    seqN = tuple([randrange(rv[0], rv[-1]) for _ in range(NRTESTS)])
 
     left = Signal(l)
     right = Signal(r)
-    Bitand = Signal(l)
-    Bitor = Signal(l)
-    Bitxor = Signal(l)
-    FloorDiv = Signal(l)
-    LeftShift = Signal(l)
-    Modulo = Signal(l)
-    Mul = Signal(l)
-    RightShift = Signal(l)
-    Sub = Signal(l)
-    Sum = Signal(l)
+    Bitand = Signal(l & r)
+    Bitor = Signal(l | r)
+    Bitxor = Signal(l ^ r)
+    FloorDiv = Signal(l // r)
+    if not isinstance(r.val, sfixba):
+        LeftShift = Signal(l << r)
+    else:
+        LeftShift = Signal(l)
+    Modulo = Signal(l % r)
+    Mul = Signal(l * r)
+    if not isinstance(r.val, sfixba):
+        RightShift = Signal(l >> r)
+    else:
+        RightShift = Signal(l)
+    Sub = Signal(l - r)
+    Sum = Signal(l + r)
 
     augmops = augmOps(Bitand,
                       Bitor,
@@ -552,15 +562,20 @@ def augmBench(l, r):
         right.next[:] = 1
         yield delay(10)
         for i in range(len(lv)):
+            left.next[:] = lv[i]
             for j in range(len(rv)):
-                left.next[:] = lv[i]
                 right.next[:] = rv[j]
                 yield delay(10)
+                assert left == lv[i], (left, lv[i])
+                assert right == rv[j], (right, rv[j])
         for i in range(NRTESTS):
             left.next[:] = seqM[i]
             tmpN = seqN[i]
             right.next[:] = tmpN
             yield delay(10)
+            assert left == seqM[i], (left, seqM[i])
+            assert right == seqN[i], (right, seqN[i])
+
 
     @instance
     def check():
@@ -622,7 +637,7 @@ def div_vectors():
 
 
 def resize_vectors():
-    return [(delta, i , j)
+    return [(delta, i, j)
             for delta in range(-5, 0)
             for i in range(0, 8)
             for j in range(delta, i - 1)
@@ -648,6 +663,7 @@ def multi_vectors():
             for p in pv
             ]
 
+
 def vector():
     return (uintba(0, 8),
             sintba(0, 6),
@@ -664,6 +680,7 @@ class _GenId(object):
         newId, self._id = self._id, self._id + 1
         return str(newId)
 
+
 genId = _GenId()
 
 
@@ -677,7 +694,7 @@ def test_AugmentedVer(left, right):
 @pytest.mark.parametrize("left, right", vectors())
 def test_BinaryVer(left, right):
     toVHDL.name = "BinaryVer_" + genId()
-    assert conversion.verify(binaryBench,left, right) == 0
+    assert conversion.verify(binaryBench, left, right) == 0
     toVHDL.name = None
 
 
