@@ -42,10 +42,16 @@ class sintba(bitarray):
         return copy(self)
 
     def _get_max(self):
-        return (long(1) << (self._high - self._low - 1))
+        if (self._high - self._low) < 1:
+            return 0
+        else:
+            return long(1) << (self._high - self._low - 1)
 
     def _get_min(self):
-        return -(long(1) << (self._high - self._low - 1))
+        if (self._high - self._low) < 1:
+            return 0
+        else:
+            return -(long(1) << (self._high - self._low - 1))
 
     def _wrap(self):
         val = self._val

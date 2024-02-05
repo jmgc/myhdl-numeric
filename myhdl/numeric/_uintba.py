@@ -37,7 +37,10 @@ class uintba(sintba):
         bitarray._resize(self, value)
 
     def _get_max(self):
-        return (1 << (self._high - self._low))
+        if (self._high - self._low) < 1:
+            return 0
+        else:
+            return 1 << (self._high - self._low)
 
     def _get_min(self):
         return 0
