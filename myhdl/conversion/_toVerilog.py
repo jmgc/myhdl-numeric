@@ -48,7 +48,7 @@ from .._delay import delay
 from .._compat import integer_types, class_types, PY2
 from .._errors import ToVerilogError, ToVerilogWarning
 from .._extractHierarchy import _HierExtr, _isMem, _getMemInfo, _MemInfo, \
-    _UserVerilogCode, _userCodeMap
+    _isRom, _getRomInfo, _UserVerilogCode, _userCodeMap
 
 from .._instance import _Instantiator
 from ._misc import _error, _kind, _context, \
@@ -693,7 +693,7 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
     def visit_Assign(self, node):
         # shortcut for expansion of ROM in case statement
         if isinstance(node.value, ast.Subscript) and \
-                isinstance(node.value.slice, ast.Index) and\
+                not isinstance(node.value.slice, ast.Slice) and\
                 isinstance(node.value.value.obj, _Rom):
             rom = node.value.value.obj.rom
 #            self.write("// synthesis parallel_case full_case")
@@ -1091,10 +1091,6 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
 
     def getName(self, node):
         n = node.id
-        if PY2 and n in ('True', 'False', 'None'):
-            self.visit_NameConstant(node)
-            return
-
         addSignBit = False
         isMixedExpr = (not node.signed) and (self.context == _context.SIGNED)
         if n in self.tree.vardict:
@@ -1236,11 +1232,7 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
         self.visit(node.value)
         self.write("[")
         # assert len(node.subs) == 1
-        if isinstance(node.slice, ast.Name):
-            self.visit(node.slice)
-        elif isinstance(node.slice, ast.Num):
-            self.visit(node.slice)
-        elif isinstance(node.slice, ast.BinOp):
+        if isinstance(node.slice, (ast.Name, ast.Constant, ast.BinOp, ast.Call)):
             self.visit(node.slice)
         else:
             self.visit(node.slice.value)
