@@ -1111,9 +1111,9 @@ class sfixba(bitarray):
     # comparisons
     def __eq__(self, other):
         if isinstance(other, integer_types):
-            value = type(self)(other, self)
+            value = type(self)(other)
         elif isinstance(other, float):
-            value = type(self)(other, self)
+            value = type(self)(other)
         elif isinstance(other, sfixba):
             value = other
         elif isinstance(other, bitarray):
@@ -1128,9 +1128,9 @@ class sfixba(bitarray):
 
     def __ne__(self, other):
         if isinstance(other, integer_types):
-            value = type(self)(other, self)
+            value = type(self)(other)
         elif isinstance(other, float):
-            value = type(self)(other, self)
+            value = type(self)(other)
         elif isinstance(other, sfixba):
             value = other
         elif isinstance(other, bitarray):
@@ -1145,9 +1145,9 @@ class sfixba(bitarray):
 
     def __lt__(self, other):
         if isinstance(other, integer_types):
-            value = type(self)(other, self)
+            value = type(self)(other)
         elif isinstance(other, float):
-            value = type(self)(other, self)
+            value = type(self)(other)
         elif isinstance(other, sfixba):
             value = other
         elif isinstance(other, bitarray):
@@ -1162,9 +1162,9 @@ class sfixba(bitarray):
 
     def __le__(self, other):
         if isinstance(other, integer_types):
-            value = type(self)(other, self)
+            value = type(self)(other)
         elif isinstance(other, float):
-            value = type(self)(other, self)
+            value = type(self)(other)
         elif isinstance(other, sfixba):
             value = other
         elif isinstance(other, bitarray):
@@ -1179,9 +1179,9 @@ class sfixba(bitarray):
 
     def __gt__(self, other):
         if isinstance(other, integer_types):
-            value = type(self)(other, self)
+            value = type(self)(other)
         elif isinstance(other, float):
-            value = type(self)(other, self)
+            value = type(self)(other)
         elif isinstance(other, sfixba):
             value = other
         elif isinstance(other, bitarray):
@@ -1196,9 +1196,9 @@ class sfixba(bitarray):
 
     def __ge__(self, other):
         if isinstance(other, integer_types):
-            value = type(self)(other, self)
+            value = type(self)(other)
         elif isinstance(other, float):
-            value = type(self)(other, self)
+            value = type(self)(other)
         elif isinstance(other, sfixba):
             value = other
         elif isinstance(other, bitarray):
