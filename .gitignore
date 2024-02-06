@@ -40,3 +40,4 @@ example/cordic/.ipynb_checkpoints
 .cache
 .DS_Store
 .idea/
+cosimulation/cver/myhdl_vpi.dylib
