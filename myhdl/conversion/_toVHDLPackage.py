@@ -29,6 +29,8 @@ def _package(version=None, fixed=False):
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
+use IEEE.math_real.ceil;
+use IEEE.math_real.log2;
 """
     if version == "93":
         result += """
@@ -78,6 +80,8 @@ package pck_myhdl_%(version)s is
     function tern_op(cond: boolean; if_true: unsigned; if_false: unsigned) return unsigned;
 
     function tern_op(cond: boolean; if_true: signed; if_false: signed) return signed;
+    
+    function ceil_log2 (arg: integer) return natural;
 
     procedure finish_simulation;
 """
@@ -304,6 +308,19 @@ package body pck_myhdl_%(version)s is
         end if;
     end function tern_op;
 
+    function ceil_log2 (arg: integer) return natural is
+        variable value: natural := 0;
+        variable result: natural := 0;
+    begin
+        if arg < 0 then
+            value := -arg;
+            result := 1;
+        else
+            value := arg;
+        end if;
+        result := result + integer(ceil(log2(real(value))));
+        return result;
+    end function ceil_log2;
 """
     result += """
     function c_l2u (arg: std_logic; size: integer) return unsigned is
@@ -324,13 +341,17 @@ package body pck_myhdl_%(version)s is
     end function c_l2s;
 
     function c_i2u (arg: integer; size: integer) return unsigned is
+        constant high: natural := ceil_log2(natural'high);
+        constant i_high: natural := maximum(size, high);
     begin
-        return unsigned(to_signed(arg, size + 1)((size-1) downto 0));
+        return unsigned(to_signed(arg, i_high + 1)((size-1) downto 0));
     end function c_i2u;
 
     function c_i2s (arg: integer; size: integer) return signed is
+        constant high: integer := ceil_log2(natural'high);
+        constant i_high: natural := maximum(size, high);
     begin
-        return to_signed(arg, size + 1)((size-1) downto 0);
+        return to_signed(arg, i_high + 1)((size-1) downto 0);
     end function c_i2s;
 
     function c_u2u (arg: unsigned; size: integer) return unsigned is
@@ -441,10 +462,11 @@ package body pck_myhdl_%(version)s is
                     overflow_style : fixed_overflow_style_type := fixed_overflow_style;
                     round_style    : fixed_round_style_type    := fixed_round_style
                     ) return sfixed is
-        variable inttemp: signed(maximum(high, 1) downto 0);
-        variable tmp: sfixed(maximum(high, 1) downto 0);
+        constant i_high: integer := ceil_log2(natural'high);
+        variable inttemp: signed(maximum(i_high, high)+1 downto 0);
+        variable tmp: sfixed(inttemp'high downto 0);
     begin
-        inttemp := to_signed(arg, inttemp'high + 1)(inttemp'high downto 0);
+        inttemp := to_signed(arg, inttemp'length);
         tmp := to_sfixed(inttemp);
         return my_resize(tmp, high, low, overflow_style, round_style);
     end function c_i2f;
