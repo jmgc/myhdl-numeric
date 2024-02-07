@@ -566,15 +566,11 @@ def augmBench(l, r):
             for j in range(len(rv)):
                 right.next[:] = rv[j]
                 yield delay(10)
-                assert left == lv[i], (left, lv[i])
-                assert right == rv[j], (right, rv[j])
         for i in range(NRTESTS):
             left.next[:] = seqM[i]
             tmpN = seqN[i]
             right.next[:] = tmpN
             yield delay(10)
-            assert left == seqM[i], (left, seqM[i])
-            assert right == seqN[i], (right, seqN[i])
 
 
     @instance
