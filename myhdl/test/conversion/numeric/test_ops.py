@@ -10,6 +10,7 @@ import os
 import random
 from random import randrange
 import pytest
+from ... import genId
 
 path = os.path
 random.seed(2)
@@ -661,17 +662,6 @@ def vector():
             sfixba(0, 2, -4),
             sfixba(0, 5, 2),
             )
-
-
-class _GenId(object):
-    _id = 0
-
-    def __call__(self):
-        newId, self._id = self._id, self._id + 1
-        return str(newId)
-
-
-genId = _GenId()
 
 
 @pytest.mark.parametrize("left, right", vectors())
