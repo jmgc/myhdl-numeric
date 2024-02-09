@@ -77,3 +77,13 @@ def resize(value, value_format):
         return int(val)
     else:
         return val
+
+class _GenId(object):
+    _id = 0
+
+    def __call__(self):
+        newId, self._id = self._id, self._id + 1
+        return str(newId)
+
+
+genId = _GenId()
