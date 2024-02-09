@@ -889,16 +889,28 @@ class sfixba(bitarray):
     def __rpow__(self, other):
         return NotImplemented
 
+    @staticmethod
+    def _bitresize(value, high, low):
+        result = bitarray(value.resize(high)).resize(high, low)
+        return result
+
     def __and__(self, other):
         if isinstance(other, sfixba):
             high = max(self.high, other.high)
             low = min(self.low, other.low)
-            return sfixba(bitarray.__and__(self.resize(high, low), other.resize(high, low)), high, low)
+            return bitarray.__and__(sfixba(self, high, low, maths=self),
+                                    sfixba(other, high, low, maths=self))
         elif isinstance(other, sintba):
-            high = max(self.high, other.signed().high)
+            thigh = max(self.high, other.signed().high)
+            high = max(self.high, other.high)
             low = min(self.low, 0)
-            return sfixba(bitarray.__and__(self.resize(high, low), sfixba(other, high, low)),
-                          high, low)
+            result = sfixba(0, high, low, maths=self)
+            value = bitarray.__and__(sfixba(self, thigh, low, maths=self),
+                                     sfixba(other, thigh, low, maths=self))
+            result._val = value._val
+            result._wrap()
+            return result
+
         return NotImplemented
 
     __rand__ = __and__
@@ -907,12 +919,19 @@ class sfixba(bitarray):
         if isinstance(other, sfixba):
             high = max(self.high, other.high)
             low = min(self.low, other.low)
-            return sfixba(bitarray.__or__(self.resize(high, low), other.resize(high, low)), high, low)
+            return bitarray.__or__(sfixba(self, high, low, maths=self),
+                                   sfixba(other, high, low, maths=self))
         elif isinstance(other, sintba):
-            high = max(self.high, other.signed().high)
+            thigh = max(self.high, other.signed().high)
+            high = max(self.high, other.high)
             low = min(self.low, 0)
-            return sfixba(bitarray.__or__(self.resize(high, low), sfixba(other, high, low)),
-                          high, low)
+            result = sfixba(0, high, low, maths=self)
+            value = bitarray.__or__(sfixba(self, thigh, low, maths=self),
+                                     sfixba(other, thigh, low, maths=self))
+            result._val = value._val
+            result._wrap()
+            return result
+
         return NotImplemented
 
     __ror__ = __or__
@@ -921,12 +940,19 @@ class sfixba(bitarray):
         if isinstance(other, sfixba):
             high = max(self.high, other.high)
             low = min(self.low, other.low)
-            return sfixba(bitarray.__xor__(self.resize(high, low), other.resize(high, low)), high, low)
+            return bitarray.__xor__(sfixba(self, high, low, maths=self),
+                                    sfixba(other, high, low, maths=self))
         elif isinstance(other, sintba):
-            high = max(self.high, other.signed().high)
+            thigh = max(self.high, other.signed().high)
+            high = max(self.high, other.high)
             low = min(self.low, 0)
-            return sfixba(bitarray.__xor__(self.resize(high, low), sfixba(other, high, low)),
-                          high, low)
+            result = sfixba(0, high, low, maths=self)
+            value = bitarray.__xor__(sfixba(self, thigh, low, maths=self),
+                                     sfixba(other, thigh, low, maths=self))
+            result._val = value._val
+            result._wrap()
+            return result
+
         return NotImplemented
 
     __rxor__ = __xor__
