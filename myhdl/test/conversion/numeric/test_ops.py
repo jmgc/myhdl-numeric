@@ -526,22 +526,16 @@ def augmBench(l, r):
 
     left = Signal(l)
     right = Signal(r)
-    Bitand = Signal(l & r)
-    Bitor = Signal(l | r)
-    Bitxor = Signal(l ^ r)
-    FloorDiv = Signal(l // r)
-    if not isinstance(r.val, sfixba):
-        LeftShift = Signal(l << r)
-    else:
-        LeftShift = Signal(l)
-    Modulo = Signal(l % r)
-    Mul = Signal(l * r)
-    if not isinstance(r.val, sfixba):
-        RightShift = Signal(l >> r)
-    else:
-        RightShift = Signal(l)
-    Sub = Signal(l - r)
-    Sum = Signal(l + r)
+    Bitand = Signal(l)
+    Bitor = Signal(l)
+    Bitxor = Signal(l)
+    FloorDiv = Signal(l)
+    LeftShift = Signal(l)
+    Modulo = Signal(l)
+    Mul = Signal(l)
+    RightShift = Signal(l)
+    Sub = Signal(l)
+    Sum = Signal(l)
 
     augmops = augmOps(Bitand,
                       Bitor,
