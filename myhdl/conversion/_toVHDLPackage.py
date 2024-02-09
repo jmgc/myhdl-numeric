@@ -142,6 +142,8 @@ package pck_myhdl_%(version)s is
 
     function c_f2s (arg: sfixed; size: integer) return signed;
 
+    function t_i2f (arg: integer; high: integer; low: integer) return sfixed;
+    
     function t_f2u (arg: sfixed; size: integer) return unsigned;
 
     function t_f2s (arg: sfixed; size: integer) return signed;
@@ -519,6 +521,11 @@ package body pck_myhdl_%(version)s is
     begin
         return my_resize(to_sfixed(arg), high, low, overflow_style, round_style);
     end function c_s2f;
+
+    function t_i2f (arg: integer; high: integer; low: integer) return sfixed is
+    begin
+        return my_resize(to_sfixed(c_i2s(arg, high+2)), high, low, fixed_wrap, fixed_truncate);
+    end function t_i2f;
 
     function t_u2f (arg: unsigned; high: integer; low: integer) return sfixed is
     begin
