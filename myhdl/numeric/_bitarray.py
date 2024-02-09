@@ -191,18 +191,11 @@ class bitarray(object):
                     high = self._high + 1
                 else:
                     high = self._high
-                if value._low <= 0:
-                    if self._low < value._low:
-                        low = value._low
-                    else:
-                        low = self._low
-                else:
-                    low = self._low
-                origin_resize = type(value)(0, high, low)
-                origin_resize._resize(value)
-                destination_resize = type(self)(0, self)
-                destination_resize._resize(origin_resize)
-                self._val = destination_resize._val
+                origin = type(value)(0, high, value.low)
+                origin._resize(value)
+                destination = type(self)(0, self)
+                destination._resize(origin)
+                self._val = destination._val
         else:
             self._val = value._val
         self._wrap()
