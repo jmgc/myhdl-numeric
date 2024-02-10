@@ -1,7 +1,7 @@
-from __future__ import absolute_import, print_function
-
+from pytest import mark
 from myhdl import Signal, uintba, sintba, sfixba, always_comb, \
-    instance, delay, conversion, fixmath
+    instance, delay, conversion, fixmath, toVHDL
+from ... import genId
 
 
 def sfixba_resize_sfixba():
@@ -13,7 +13,7 @@ def sfixba_resize_sfixba():
     j = Signal(sfixba(-1.5, 2, -2))
     k = Signal(sintba(-1, 4))
     t = Signal(i & j)
-    u = Signal(t & k)
+    u = Signal(t & j)
     s = Signal(i & j & k)
 
     @instance
@@ -31,7 +31,8 @@ def sfixba_resize_sfixba():
         yield delay(10)
         t.next = i & j
         yield delay(10)
-        u.next = t & k
+        assert t == -2
+        u.next = t & j
         s.next = i & j & k
         yield delay(10)
         assert u == -2
@@ -42,3 +43,41 @@ def sfixba_resize_sfixba():
 
 def test_sfixba_resize_sfixba():
     assert conversion.verify(sfixba_resize_sfixba) == 0
+
+
+def resize_vectors():
+    return [(delta, i, j, k)
+            for delta in range(-3, 1)
+            for i in range(0, 5, 2)
+            for j in range(delta, i, 2)
+            for k in ([0] + [s * (2 ** p) for p in range(0, 7, 2)
+                             for s in [-1, 1]])]
+
+
+def sfixba_resize(delta, i, j, k):
+    value = Signal(sfixba(k))
+    scaled = Signal(sfixba(k).scalb(delta))
+    data = Signal(sfixba(0, i, j))
+
+    @instance
+    def logic():
+        value.next = sfixba(k)
+        yield delay(10)
+        scaled.next = value
+        yield delay(10)
+        data.next = scaled.resize(i, j)
+        yield delay(10)
+        print("k: ", k)
+        print("value: ", value)
+        print("i: ", i)
+        print("j: ", j)
+        print("data: ", data)
+
+    return logic
+
+
+@mark.parametrize("delta, i, j, k", resize_vectors())
+def test_resize(delta, i, j, k):
+    toVHDL.name = "sfixba_resize_" + genId()
+    assert conversion.verify(sfixba_resize, delta, i, j, k) == 0
+    toVHDL.name = None
