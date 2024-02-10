@@ -46,38 +46,38 @@ def test_sfixba_resize_sfixba():
 
 
 def resize_vectors():
-    return [(delta, i, j, k)
-            for delta in range(-3, 1)
+    return [(delta, i, j)
+            for delta in range(-4, 1)
             for i in range(0, 5, 2)
-            for j in range(delta, i, 2)
-            for k in ([0] + [s * (2 ** p) for p in range(0, 7, 2)
-                             for s in [-1, 1]])]
+            for j in range(delta, i - 1, 2)]
 
 
-def sfixba_resize(delta, i, j, k):
+def sfixba_resize(delta, i, j):
+    k = 128
     value = Signal(sfixba(k))
     scaled = Signal(sfixba(k).scalb(delta))
     data = Signal(sfixba(0, i, j))
 
     @instance
     def logic():
-        value.next = sfixba(k)
-        yield delay(10)
-        scaled.next = value
-        yield delay(10)
-        data.next = scaled.resize(i, j)
-        yield delay(10)
-        print("k: ", k)
-        print("value: ", value)
-        print("i: ", i)
-        print("j: ", j)
-        print("data: ", data)
+        for k in range(-128, 128):
+            value.next = sfixba(k)
+            yield delay(10)
+            scaled.next = value.scalb(delta)
+            yield delay(10)
+            data.next = scaled.resize(i, j)
+            yield delay(10)
+            print("k: ", k)
+            print("value: ", value)
+            print("i: ", i)
+            print("j: ", j)
+            print("data: ", data)
 
     return logic
 
 
-@mark.parametrize("delta, i, j, k", resize_vectors())
-def test_resize(delta, i, j, k):
+@mark.parametrize("delta, i, j", resize_vectors())
+def test_resize(delta, i, j):
     toVHDL.name = "sfixba_resize_" + genId()
-    assert conversion.verify(sfixba_resize, delta, i, j, k) == 0
+    assert conversion.verify(sfixba_resize, delta, i, j) == 0
     toVHDL.name = None

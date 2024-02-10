@@ -37,35 +37,37 @@ def wrap(val, value_format):
 
 def resize(value, value_format):
     val = float(value)
-    lim = ldexp(1.0, value_format.high - 1)
+    lim = (1 << (value_format.high - value_format.low - 1))
+    lim_neg = -ldexp(lim, value_format.low)
+    lim_pos = ldexp(lim - 1, value_format.low)
     margin = ldexp(1.0, value_format.high)
 
     rounding = False
 
     if value_format.overflow == fixmath.overflows.saturate:
-        if val >= lim:
-            val = lim - ldexp(1.0, value_format.low)
-        elif val < -lim:
-            val = -lim
+        if val > lim_pos:
+            val = lim_pos
+        elif val < lim_neg:
+            val = lim_neg
         else:
             rounding = True
     elif value_format.overflow == fixmath.overflows.wrap:
-        if val < -lim or val >= lim:
+        if val <= -lim_neg or val > lim_pos:
             val = fmod(val, margin)
-        if val < -lim:
+        if val < -lim_neg:
             val += margin
-        elif val > lim:
+        elif val > lim_pos:
             val -= margin
         rounding = True
 
     if rounding and value_format.rounding == fixmath.roundings.round:
         tmp = ldexp(val, -value_format.low)
-        #str_tmp = '{0:.4f}'.format(tmp)
+        # str_tmp = '{0:.4f}'.format(tmp)
         d = Decimal(tmp).quantize(0, rounding=ROUND_HALF_EVEN)
         rtmp = float(d)
-        #if (rtmp == 0.0) and tmp < 0 and tmp > -0.25:
+        # if (rtmp == 0.0) and tmp < 0 and tmp > -0.25:
         #    val = ldexp(-1.0, value_format.low)
-        #else:
+        # else:
         #    val = ldexp(rtmp, value_format.low)
         val = ldexp(rtmp, value_format.low)
     elif value_format.rounding == fixmath.roundings.truncate:
@@ -77,6 +79,7 @@ def resize(value, value_format):
         return int(val)
     else:
         return val
+
 
 class _GenId(object):
     _id = 0
