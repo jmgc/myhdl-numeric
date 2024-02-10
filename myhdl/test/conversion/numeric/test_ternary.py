@@ -39,7 +39,7 @@ def ternary2(dout, clk, rst):
 
 def TernaryBench(ternary):
 
-    dout = Signal(sfixba(0, 8))
+    dout = Signal(sfixba(0, 8, 0))
     clk = Signal(False)
     rst = Signal(False)
 
