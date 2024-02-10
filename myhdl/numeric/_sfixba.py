@@ -1258,7 +1258,7 @@ class sfixba(bitarray):
                 result = result[:self._high] + '.' + \
                          result[self._high:]
         else:
-            result = '.'
+            result = '0'
 
         return result
 
