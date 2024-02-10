@@ -799,7 +799,7 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
             self.write(opening)
             self.visit(fn.value)
             self.write(closing)
-        elif (type(f) in type) and issubclass(f, Exception):
+        elif (type(f) is type) and issubclass(f, Exception):
             self.write(f.__name__)
         elif f in (posedge, negedge):
             opening, closing = ' ', ''

@@ -619,8 +619,8 @@ class TestSFixBaIndexing(TestCase):
                             ba[i:j] = val
                         except RuntimeWarning:
                             if isinstance(val, int):
-                                self.assertTrue((bit_length(val) > (i - j)) or
-                                                (bit_length(-1 - val) >
+                                self.assertTrue((val.bit_length() > (i - j)) or
+                                                ((-1 - val).bit_length() >
                                                  (i - j)))
                             else:
                                 self.assertTrue((len(val) != (i - j)) or \
@@ -651,9 +651,9 @@ class TestSFixBaIndexing(TestCase):
                         bai[:j] = -1 - val
                     except RuntimeWarning:
                         if isinstance(val, int):
-                            self.assertTrue((bit_length(val) >
+                            self.assertTrue((val.bit_length() >
                                              (ba.high - j)) or
-                                            (bit_length(-1-val) >
+                                            ((-1-val).bit_length() >
                                              (bai.high - j - 1)))
                         else:
                             self.assertTrue((len(val) != (ba.high - j)) or

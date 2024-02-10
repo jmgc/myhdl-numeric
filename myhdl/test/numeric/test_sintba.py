@@ -268,8 +268,8 @@ class TestSIntBaIndexing(TestCase):
                             ba[i:j] = val
                         except RuntimeWarning:
                             if isinstance(val, int):
-                                self.assertTrue((bit_length(val) > (i - j)) \
-                                                or (bit_length(-1 - val) > \
+                                self.assertTrue((val.bit_length() > (i - j)) \
+                                                or ((-1 - val).bit_length() > \
                                                     (i - j)))
                             else:
                                 self.assertTrue((len(val) != (i - j)) or \
@@ -299,9 +299,9 @@ class TestSIntBaIndexing(TestCase):
                         bai[:j] = -1 - val
                     except RuntimeWarning:
                         if isinstance(val, int):
-                            self.assertTrue((bit_length(val) > \
+                            self.assertTrue((val.bit_length() > \
                                              (len(ba) - j)) or \
-                                            (bit_length(-1-val) > \
+                                            ((-1-val).bit_length() > \
                                              (len(bai) - j - 1)))
                         else:
                             self.assertTrue((len(val) != (len(ba) - j)) or \
@@ -639,7 +639,7 @@ class TestSIntBaBounds(TestCase):
             try:
                 a[:] = v
             except RuntimeWarning:
-                self.assertTrue((bit_length(v) > len(a)) or (v < 0))
+                self.assertTrue((v.bit_length() > len(a)) or (v < 0))
         warnings.resetwarnings()
 
     def checkBounds(self, i, j, op):

@@ -346,10 +346,7 @@ class sintba(bitarray):
         return self
 
     def __imod__(self, other):
-        right = copy(other)
-        if self.high > other.high:
-            right = right.resize(self.high, other.low)
-        result = self % right
+        result = self % other
         if self.is_signed:
             value = result.resize(self.high, self.low)
         else:
