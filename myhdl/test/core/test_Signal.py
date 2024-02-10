@@ -32,7 +32,6 @@ import pytest
 
 from myhdl._simulator import _simulator
 from myhdl import Signal, intbv
-from myhdl._compat import long
 from myhdl._simulator import _simulator
 
 random.seed(1)  # random, but deterministic
@@ -110,8 +109,8 @@ class TestSig:
         for s in (self.sigs + self.incompatibleSigs):
             for n in (self.vals + self.incompatibleVals):
                 assert isinstance(s.val, s._type)
-                if isinstance(s.val, (int, long, intbv)):
-                    t = (int, long, intbv)
+                if isinstance(s.val, (int, intbv)):
+                    t = (int, intbv)
                 else:
                     t = s._type
                 if not isinstance(n, t):
@@ -264,11 +263,11 @@ class TestSignalAsNum:
     def binaryCheck(self, op, imin=0, imax=None, jmin=0, jmax=None):
         self.seqSetup(imin=imin, imax=imax, jmin=jmin, jmax=jmax)
         for i, j in zip(self.seqi, self.seqj):
-            bi = Signal(long(i))
-            bj = Signal(long(j))
-            ref = op(long(i), j)
+            bi = Signal(int(i))
+            bj = Signal(int(j))
+            ref = op(int(i), j)
             r1 = op(bi, j)
-            r2 = op(long(i), bj)
+            r2 = op(int(i), bj)
             r3 = op(bi, bj)
             assert type(r1) == type(ref)
             assert type(r2) == type(ref)
@@ -281,13 +280,13 @@ class TestSignalAsNum:
         self.seqSetup(imin=imin, imax=imax, jmin=jmin, jmax=jmax)
         for i, j in zip(self.seqi, self.seqj):
             bj = Signal(j)
-            ref = long(i)
+            ref = int(i)
             ref = op(ref, j)
             r1 = bi1 = Signal(i)
             with pytest.raises(TypeError):
                 r1 = op(r1, j)
 
-            r2 = long(i)
+            r2 = int(i)
             r2 = op(r2, bj)
             r3 = bi3 = Signal(i)
             with pytest.raises(TypeError):
@@ -405,10 +404,7 @@ class TestSignalAsNum:
         self.unaryCheck(operator.inv)
 
     def testInt(self):
-        self.conversionCheck(int, imax=maxint)
-
-    def testLong(self):
-        self.conversionCheck(long)
+        self.conversionCheck(int)
 
     def testFloat(self):
         self.conversionCheck(float)
@@ -472,11 +468,11 @@ class TestSignalIntBvIndexing:
     def testGetItem(self):
         self.seqsSetup()
         for s in self.seqs:
-            n = long(s, 2)
+            n = int(s, 2)
             sbv = Signal(intbv(n))
             sbvi = Signal(intbv(~n))
             for i in range(len(s)+20):
-                ref = long(getItem(s, i), 2)
+                ref = int(getItem(s, i), 2)
                 res = sbv[i]
                 resi = sbvi[i]
                 assert res == ref
@@ -487,7 +483,7 @@ class TestSignalIntBvIndexing:
     def testGetSlice(self):
         self.seqsSetup()
         for s in self.seqs:
-            n = long(s, 2)
+            n = int(s, 2)
             sbv = Signal(intbv(n))
             sbvi = Signal(intbv(~n))
             for i in range(1, len(s)+20):
@@ -498,7 +494,7 @@ class TestSignalIntBvIndexing:
                     except ValueError:
                         assert i<=j
                         continue
-                    ref = long(getSlice(s, i, j), 2)
+                    ref = int(getSlice(s, i, j), 2)
                     assert res == ref
                     assert type(res) == intbv
                     mask = (2**(i-j))-1

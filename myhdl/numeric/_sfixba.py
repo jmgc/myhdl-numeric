@@ -23,7 +23,6 @@ from __future__ import absolute_import, division
 from ._bitarray import bitarray
 from ._sintba import sintba
 
-from .._compat import long, integer_types, string_types, bit_length
 from .._enum import enum
 from .._intbv import intbv
 
@@ -63,7 +62,7 @@ class fixmath(object):
         else:
             self._rounding = self.roundings.round
 
-        if isinstance(guard_bits, integer_types):
+        if isinstance(guard_bits, int):
             self._guard_bits = int(guard_bits)
         else:
             self._guard_bits = 3
@@ -222,13 +221,13 @@ class sfixba(bitarray):
         if guard_bits is None:
             self._guard_bits = maths.guard_bits
         else:
-            if (not isinstance(guard_bits, integer_types)) or \
+            if (not isinstance(guard_bits, int)) or \
                     (guard_bits < 0):
                 raise TypeError("Guard_bits must be a natural value")
             else:
                 self._guard_bits = guard_bits
 
-        if isinstance(value, integer_types):
+        if isinstance(value, int):
             if value == 0:
                 self._zero(value, high, low)
             else:
@@ -238,7 +237,7 @@ class sfixba(bitarray):
                 self._zero(value, high, low)
             else:
                 self._from_float(value, high, low)
-        elif isinstance(value, string_types):
+        elif isinstance(value, str):
             if ('1' in value) or ('-' in value):
                 self._from_string(value, high, low)
             else:
@@ -258,12 +257,12 @@ class sfixba(bitarray):
     _signed = True
 
     def _from_int(self, value, high, low):
-        val = long(value)
+        val = int(value)
 
-        length = bit_length(val)
+        length = val.bit_length()
 
         if length == 0:
-            val = long(0)
+            val = int(0)
             length = 1
 
         length += 1  # Add the sign bit
@@ -294,7 +293,7 @@ class sfixba(bitarray):
             overflow_style = self._overflow
         if not hasattr(fixmath.roundings, str(round_style)):
             round_style = self._rounding
-        if guard_bits is not integer_types:
+        if guard_bits is not int:
             guard_bits = self._guard_bits
         fw = right_index  # catch literals
         result = bitarray(0, left_index, fw)
@@ -354,7 +353,7 @@ class sfixba(bitarray):
                 i_value = -1
             return (True, bitarray(i_value, f_high, f_low))
         else:
-            i_value = long(ldexp(arg, -f_low)) & mask
+            i_value = int(ldexp(arg, -f_low)) & mask
             return (False, bitarray(i_value, f_high, f_low))
 
     def _from_float(self, value, high, low):
@@ -415,7 +414,7 @@ class sfixba(bitarray):
             if '.' in mval:
                 warnings.warn("Two binary points: " + mval,
                               RuntimeWarning, stacklevel=2)
-        i_value = long(mval, 2)
+        i_value = int(mval, 2)
 
         return (bitarray(i_value, high, low), dec_point)
 
@@ -538,7 +537,7 @@ class sfixba(bitarray):
                                       fixmath.roundings.round)
                 if (left_index > arghigh):  # sign extend
                     if invec[arghigh - 1]:
-                        value = (long(1) << (left_index - arghigh)) - 1
+                        value = (1 << (left_index - arghigh)) - 1
                     else:
                         value = 0
                     result[left_index:arghigh] = value
@@ -587,13 +586,13 @@ class sfixba(bitarray):
         if (self._high - self._low) < 1:
             return 0
         else:
-            return long(1) << (self._high - self._low - 1)
+            return 1 << (self._high - self._low - 1)
 
     def _get_min(self):
         if (self._high - self._low) < 1:
             return 0
         else:
-            return -(long(1) << (self._high - self._low - 1))
+            return -(1 << (self._high - self._low - 1))
 
     def _get_overflow(self):
         return self._overflow
@@ -613,11 +612,11 @@ class sfixba(bitarray):
     def _wrap(self):
         length = self._high - self._low
 
-        lim = long(1) << (length - 1)
+        lim = 1 << (length - 1)
         if self._val & lim:
-            tmp = long(-1)
+            tmp = -1
         else:
-            tmp = long(0)
+            tmp = 0
         wrap = lim - 1
         self._val &= wrap
         tmp &= ~wrap
@@ -641,7 +640,7 @@ class sfixba(bitarray):
         return type(self)(self)
 
     def __add__(self, other):
-        if isinstance(other, integer_types):
+        if isinstance(other, int):
             value = sfixba(other, self)
         elif isinstance(other, float):
             value = sfixba(other, self)
@@ -660,7 +659,7 @@ class sfixba(bitarray):
         return result
 
     def __radd__(self, other):
-        if isinstance(other, integer_types):
+        if isinstance(other, int):
             value = sfixba(other, self)
         elif isinstance(other, float):
             value = sfixba(other, self)
@@ -673,7 +672,7 @@ class sfixba(bitarray):
         return value + self
 
     def __sub__(self, other):
-        if isinstance(other, integer_types):
+        if isinstance(other, int):
             value = sfixba(other, self)
         elif isinstance(other, float):
             value = sfixba(other, self)
@@ -692,7 +691,7 @@ class sfixba(bitarray):
         return result
 
     def __rsub__(self, other):
-        if isinstance(other, integer_types):
+        if isinstance(other, int):
             value = sfixba(other, self)
         elif isinstance(other, float):
             value = sfixba(other, self)
@@ -705,7 +704,7 @@ class sfixba(bitarray):
         return value - self
 
     def __mul__(self, other):
-        if isinstance(other, integer_types):
+        if isinstance(other, int):
             value = sfixba(other, self)
         elif isinstance(other, float):
             value = sfixba(other, self)
@@ -724,7 +723,7 @@ class sfixba(bitarray):
         return result
 
     def __rmul__(self, other):
-        if isinstance(other, integer_types):
+        if isinstance(other, int):
             value = sfixba(other, self)
         elif isinstance(other, float):
             value = sfixba(other, self)
@@ -737,7 +736,7 @@ class sfixba(bitarray):
         return value * self
 
     def __truediv__(self, other):
-        if isinstance(other, integer_types):
+        if isinstance(other, int):
             value = sfixba(other, self)
         elif isinstance(other, float):
             value = sfixba(other, self)
@@ -767,7 +766,7 @@ class sfixba(bitarray):
         return result
 
     def __rtruediv__(self, other):
-        if isinstance(other, integer_types):
+        if isinstance(other, int):
             value = sfixba(other, self)
         elif isinstance(other, float):
             value = sfixba(other, self)
@@ -780,7 +779,7 @@ class sfixba(bitarray):
         return value / self
 
     def __floordiv__(self, other):
-        if isinstance(other, integer_types):
+        if isinstance(other, int):
             value = sfixba(other, self)
         elif isinstance(other, float):
             value = sfixba(other, self)
@@ -795,7 +794,7 @@ class sfixba(bitarray):
         return result
 
     def __rfloordiv__(self, other):
-        if isinstance(other, integer_types):
+        if isinstance(other, int):
             value = sfixba(other, self)
         elif isinstance(other, float):
             value = sfixba(other, self)
@@ -808,7 +807,7 @@ class sfixba(bitarray):
         return value // self
 
     def __mod__(self, other):
-        if isinstance(other, integer_types):
+        if isinstance(other, int):
             value = sfixba(other, self)
         elif isinstance(other, float):
             value = sfixba(other, self)
@@ -871,7 +870,7 @@ class sfixba(bitarray):
         return result
 
     def __rmod__(self, other):
-        if isinstance(other, integer_types):
+        if isinstance(other, int):
             value = sfixba(other, self)
         elif isinstance(other, float):
             value = sfixba(other, self)
@@ -1029,10 +1028,6 @@ class sfixba(bitarray):
         result = self.resize(self._high, 0)
         return int(result._val)
 
-    def __long__(self):
-        result = self.resize(self._high, 0)
-        return long(result._val)
-
     def __float__(self):
         return ldexp(self._val, self._low)
 
@@ -1136,7 +1131,7 @@ class sfixba(bitarray):
 
     # comparisons
     def __eq__(self, other):
-        if isinstance(other, integer_types):
+        if isinstance(other, int):
             value = type(self)(other)
         elif isinstance(other, float):
             value = type(self)(other)
@@ -1153,7 +1148,7 @@ class sfixba(bitarray):
         return l._val == r._val
 
     def __ne__(self, other):
-        if isinstance(other, integer_types):
+        if isinstance(other, int):
             value = type(self)(other)
         elif isinstance(other, float):
             value = type(self)(other)
@@ -1170,7 +1165,7 @@ class sfixba(bitarray):
         return l._val != r._val
 
     def __lt__(self, other):
-        if isinstance(other, integer_types):
+        if isinstance(other, int):
             value = type(self)(other)
         elif isinstance(other, float):
             value = type(self)(other)
@@ -1187,7 +1182,7 @@ class sfixba(bitarray):
         return l._val < r._val
 
     def __le__(self, other):
-        if isinstance(other, integer_types):
+        if isinstance(other, int):
             value = type(self)(other)
         elif isinstance(other, float):
             value = type(self)(other)
@@ -1204,7 +1199,7 @@ class sfixba(bitarray):
         return l._val <= r._val
 
     def __gt__(self, other):
-        if isinstance(other, integer_types):
+        if isinstance(other, int):
             value = type(self)(other)
         elif isinstance(other, float):
             value = type(self)(other)
@@ -1221,7 +1216,7 @@ class sfixba(bitarray):
         return l._val > r._val
 
     def __ge__(self, other):
-        if isinstance(other, integer_types):
+        if isinstance(other, int):
             value = type(self)(other)
         elif isinstance(other, float):
             value = type(self)(other)
@@ -1296,7 +1291,7 @@ class sfixba(bitarray):
     def scalb(self, n):
         '''Scales the result by a power of 2.  Width of input = width of
         output with the binary point moved.'''
-        if isinstance(n, (integer_types, sintba)):
+        if isinstance(n, (int, sintba)):
             value = int(n)
             result = sfixba(0, self._high + value, self._low + value)
             result._val = self._val

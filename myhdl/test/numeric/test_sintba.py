@@ -24,8 +24,6 @@ from __future__ import print_function, division
 
 import sys
 
-from myhdl._compat import long, integer_types, bit_length
-
 import unittest
 from unittest import TestCase
 import random
@@ -42,11 +40,11 @@ import warnings
 def wrap(val, format):
     high = format.high - format.low - 1
     val = val.__index__()
-    lim = long(1) << high
+    lim = 1 << high
     if val & lim:
-        tmp = long(-1)
+        tmp = int(-1)
     else:
-        tmp = long(0)
+        tmp = int(0)
     wrap = lim - 1
     val &= wrap
     tmp &= ~wrap
@@ -55,11 +53,11 @@ def wrap(val, format):
 def resize(val, format):
     high = format.high - format.low - 1
     val = val.__index__()
-    lim = long(1) << high
+    lim = int(1) << high
     if val & lim:
-        tmp = long(-1)
+        tmp = int(-1)
     else:
-        tmp = long(0)
+        tmp = int(0)
     wrap = lim - 1
     val &= wrap
     tmp &= ~wrap
@@ -172,11 +170,11 @@ class TestSIntBaIndexing(TestCase):
         warnings.filterwarnings('error')
         self.seqsSetup()
         for s in self.seqs:
-            n = long(s, 2)
+            n = int(s, 2)
             ba = sintba(n, 128, 0)
             bai = sintba(~n, 128, 0)
             for i in range(len(s) + 20):
-                ref = long(getItem(s, i), 2)
+                ref = int(getItem(s, i), 2)
                 res = ba[i]
                 resi = bai[i]
                 self.assertEqual(res, ref)
@@ -189,7 +187,7 @@ class TestSIntBaIndexing(TestCase):
         warnings.filterwarnings('error')
         self.seqsSetup()
         for s in self.seqs:
-            n = long(s, 2)
+            n = int(s, 2)
             ba = sintba(n, 128, 0)
             bai = sintba(~n, 128, 0)
             for i in range(1, len(s) + 20):
@@ -200,7 +198,7 @@ class TestSIntBaIndexing(TestCase):
                     except RuntimeWarning:
                         self.assertTrue(i <= j)
                         continue
-                    ref = long(getSlice(s, i, j), 2)
+                    ref = int(getSlice(s, i, j), 2)
                     self.assertEqual(res, wrap(ref, res))
                     self.assertEqual(type(res), sintba)
                     self.assertEqual(resi, wrap(~ref, res))
@@ -211,13 +209,13 @@ class TestSIntBaIndexing(TestCase):
         warnings.filterwarnings('error')
         self.seqsSetup()
         for s in self.seqs:
-            n = long(s, 2)
+            n = int(s, 2)
             ba = sintba(n, len(s) + 1)
             bai = sintba(~n, len(s) + 1)
             for j in range(0, len(s)):
                 res = ba[:j]
                 resi = bai[:j]
-                ref = long(getSliceLeftOpen(s, j), 2)
+                ref = int(getSliceLeftOpen(s, j), 2)
                 self.assertEqual(res, ref)
                 self.assertEqual(type(res), sintba)
                 self.assertEqual(resi + ref, -1)
@@ -228,7 +226,7 @@ class TestSIntBaIndexing(TestCase):
         warnings.filterwarnings('error')
         self.seqsSetup()
         for s in self.seqs:
-            n = long(s, 2)
+            n = int(s, 2)
             for it in (int, sintba):
                 for i in range(len(s) + 20):
                     # print i
@@ -240,10 +238,10 @@ class TestSIntBaIndexing(TestCase):
                     ba1[i] = it(1)
                     ba0i[i] = it(0)
                     ba1i[i] = it(1)
-                    ref0 = long(setItem(s, i, '0'), 2)
-                    ref1 = long(setItem(s, i, '1'), 2)
-                    ref0i = ~long(setItem(s, i, '1'), 2)
-                    ref1i = ~long(setItem(s, i, '0'), 2)
+                    ref0 = int(setItem(s, i, '0'), 2)
+                    ref1 = int(setItem(s, i, '1'), 2)
+                    ref0i = ~int(setItem(s, i, '1'), 2)
+                    ref1i = ~int(setItem(s, i, '0'), 2)
                     self.assertEqual(ba0, ref0)
                     self.assertEqual(ba1, ref1)
                     self.assertEqual(ba0i, ref0i)
@@ -255,21 +253,21 @@ class TestSIntBaIndexing(TestCase):
         self.seqsSetup()
         toggle = 0
         for s in self.seqs:
-            n = long(s, 2)
+            n = int(s, 2)
             for i in range(1, len(s) + 5):
                 for j in range(0, i):
                     for v in self.seqv:
                         ext = '0' * (i - j - len(v))
                         extv = ext + v
                         ba = sintba(n, 128)
-                        val = long(v, 2)
+                        val = int(v, 2)
                         toggle ^= 1
                         if toggle:
                             val = sintba(val)
                         try:
                             ba[i:j] = val
                         except RuntimeWarning:
-                            if isinstance(val, integer_types):
+                            if isinstance(val, int):
                                 self.assertTrue((bit_length(val) > (i - j)) \
                                                 or (bit_length(-1 - val) > \
                                                     (i - j)))
@@ -278,7 +276,7 @@ class TestSIntBaIndexing(TestCase):
                                                 (len(-1 - val) != (i - j)))
                             continue
                         else:
-                            ref = long(setSlice(s, i, j, extv), 2)
+                            ref = int(setSlice(s, i, j, extv), 2)
                             self.assertEqual(ba, ref)
         warnings.resetwarnings()
 
@@ -287,12 +285,12 @@ class TestSIntBaIndexing(TestCase):
         self.seqsSetup()
         toggle = 0
         for s in self.seqs:
-            n = long(s, 2)
+            n = int(s, 2)
             for j in range(0, len(s)):
                 for v in self.seqv:
                     ba = sintba(n, len(s))
                     bai = ~ba
-                    val = long(v, 2)
+                    val = int(v, 2)
                     toggle ^= 1
                     if toggle:
                         val = sintba(val)
@@ -300,7 +298,7 @@ class TestSIntBaIndexing(TestCase):
                         ba[:j] = val
                         bai[:j] = -1 - val
                     except RuntimeWarning:
-                        if isinstance(val, integer_types):
+                        if isinstance(val, int):
                             self.assertTrue((bit_length(val) > \
                                              (len(ba) - j)) or \
                                             (bit_length(-1-val) > \
@@ -309,9 +307,9 @@ class TestSIntBaIndexing(TestCase):
                             self.assertTrue((len(val) != (len(ba) - j)) or \
                                             (len(-1-val) != (len(bai) - j)))
                     else:
-                        ref = long(setSliceLeftOpen(s, j, v), 2)
+                        ref = int(setSliceLeftOpen(s, j, v), 2)
                         self.assertEqual(ba, wrap(ref, ba))
-                        refi = ~long(setSliceLeftOpen(s, j, v), 2)
+                        refi = ~int(setSliceLeftOpen(s, j, v), 2)
                         self.assertEqual(bai, wrap(refi, bai))
         warnings.resetwarnings()
 
@@ -359,13 +357,13 @@ class TestSIntBaAsInt(TestCase):
         else:
             op_ = op
         for i, j in zip(self.seqi, self.seqj):
-            bi = sintba(long(i), 128)
+            bi = sintba(int(i), 128)
             bj = sintba(j, 128)
-            ref = op_(long(i), j)
+            ref = op_(int(i), j)
             try:
                 try:
                     r1 = op(bi, j)
-                    r2 = op(long(i), bj)
+                    r2 = op(int(i), bj)
                     self.assertEqual(type(r1), sintba)
                     self.assertEqual(type(r2), sintba)
                     self.assertEqual(r1, wrap(ref, r1),
@@ -401,13 +399,13 @@ class TestSIntBaAsInt(TestCase):
             op_ = op
         for i, j in zip(self.seqi, self.seqj):
             bj = sintba(j, 128)
-            ref = long(i)
+            ref = int(i)
             ref = op_(ref, j)
-            r1 = bi1 = sintba(long(i), 128)
+            r1 = bi1 = sintba(int(i), 128)
             try:
                 try:
                     r1 = op(r1, j)
-                    r2 = long(i)
+                    r2 = int(i)
                     r2 = op(r2, bj)
                     self.assertEqual(type(r1), sintba)
                     self.assertEqual(r1, resize(ref, r1))
@@ -420,7 +418,7 @@ class TestSIntBaAsInt(TestCase):
                                            operator.truediv, operator.itruediv,
                                            operator.pow, operator.ipow))
                 else:
-                    r3 = bi3 = sintba(long(i), 128)
+                    r3 = bi3 = sintba(int(i), 128)
                     r3 = op(r3, bj)
                     self.assertEqual(type(r3), sintba)
                     self.assertEqual(r3, resize(ref, r3))
@@ -448,7 +446,7 @@ class TestSIntBaAsInt(TestCase):
         self.seqSetup(imin=imin, imax=imax)
         for i in self.seqi:
             bi = sintba(i)
-            ref = op(long(i))
+            ref = op(int(i))
             r1 = op(bi)
             self.assertEqual(type(r1), type(ref))
             self.assertEqual(r1, ref)
@@ -481,7 +479,7 @@ class TestSIntBaAsInt(TestCase):
         self.binaryCheck(operator.sub)
 
     def testMul(self):
-        self.binaryCheck(operator.mul, imax=maxint)  # XXX doesn't work for long i???
+        self.binaryCheck(operator.mul)  # XXX doesn't work for long i???
 
     def testDiv(self):
         self.binaryCheck(operator.truediv, jmin=1)
@@ -523,7 +521,7 @@ class TestSIntBaAsInt(TestCase):
         self.augmentedAssignCheck(operator.isub)
 
     def testIMul(self):
-        self.augmentedAssignCheck(operator.imul, imax=maxint)  # XXX doesn't work for long i???
+        self.augmentedAssignCheck(operator.imul)  # XXX doesn't work for long i???
 
     def testIFloorDiv(self):
         self.augmentedAssignCheck(operator.ifloordiv, imin=-512, imax=512,
@@ -568,10 +566,7 @@ class TestSIntBaAsInt(TestCase):
         self.unaryCheck(operator.inv)
 
     def testInt(self):
-        self.conversionCheck(int, imax=maxint)
-
-    def testLong(self):
-        self.conversionCheck(long)
+        self.conversionCheck(int)
 
     def testFloat(self):
         self.conversionCheck(float)
@@ -652,14 +647,14 @@ class TestSIntBaBounds(TestCase):
         a = sintba(i)
         self.assertEqual(a, i) # just to be sure
         try:
-            op(a, long(j))
+            op(a, int(j))
         except (ZeroDivisionError, RuntimeWarning):
             return # prune
         except TypeError:
             self.assertTrue(op in (operator.iand, operator.ior,
                                    operator.ixor, operator.ipow,
                                    operator.itruediv))
-        if not isinstance(a._val, (int, long)):
+        if not isinstance(a._val, int):
             return # prune
         if abs(i) > maxint * maxint:
             return # keep it reasonable
@@ -667,23 +662,23 @@ class TestSIntBaBounds(TestCase):
             b = sintba(i)
             for _ in (i+1, a):
                 b = sintba(i)
-                b = op(b, long(j))
+                b = op(b, int(j))
                 self.assertEqual(b, resize(op(i, j), b))
         elif a < i :
             b = sintba(i)
-            b = op(b, long(j)) # should be ok
+            b = op(b, int(j)) # should be ok
             for _ in (a+1, i):
                 b = sintba(i)
-                b = op(b, long(j))
+                b = op(b, int(j))
                 if b != resize(op(i, j), b):
                     b = sintba(i)
-                    b = op(b, long(j))
+                    b = op(b, int(j))
                     resize(op(i, j), b)
                 self.assertEqual(b, resize(op(i, j), b))
         else: # a == i
             b = sintba(i)
             try:
-                op(b, long(j))
+                op(b, int(j))
             except TypeError:
                 self.assertTrue(op in (operator.iand, operator.ior,
                                        operator.ixor, operator.ipow,

@@ -20,14 +20,12 @@
 """ Module that provides the delay class."""
 from __future__ import absolute_import
 
-from myhdl._compat import integer_types
-
 _errmsg = "arg of delay constructor should be a natural integeer"
 
 class delay(object):
 
     """ Class to model delay in yield statements. """
-    
+
     def __init__(self, val):
         """ Return a delay instance.
 
@@ -35,6 +33,6 @@ class delay(object):
         val -- a natural integer representing the desired delay
 
         """
-        if not isinstance(val, integer_types) or val < 0:
+        if not isinstance(val, int) or val < 0:
             raise TypeError(_errmsg)
         self._time = val

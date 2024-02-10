@@ -19,7 +19,6 @@
 
 """ Module with the bitarray class """
 
-from myhdl._compat import integer_types, string_types, long, bit_length
 from myhdl._intbv import intbv
 
 from copy import copy
@@ -34,12 +33,12 @@ class bitarray(object):
         if (high is not None) and (low is not None) and (high == low):
             raise TypeError(type(self).__name__ + " must have a size.")
 
-        if isinstance(value, integer_types):
+        if isinstance(value, int):
             if value == 0:
                 self._zero(value, high, low)
             else:
                 self._from_int(value, high, low)
-        elif isinstance(value, string_types):
+        elif isinstance(value, str):
             if ('1' in value) or ('-' in value):
                 self._from_string(value, high, low)
             else:
@@ -115,11 +114,11 @@ class bitarray(object):
                 self._low = val.low
             else:
                 self._handle_limits(high, low, len(val))
-        elif isinstance(val, string_types):
+        elif isinstance(val, str):
             self._handle_limits(high, low, len(val))
         else:
             self._handle_limits(high, low, 1)
-        self._val = long(0)
+        self._val = int(0)
 
     def _convert_string(self, value):
         if '__' in value:
@@ -132,7 +131,7 @@ class bitarray(object):
 
         value = value.replace('_', '')
 
-        self._val = long(value, 2)
+        self._val = int(value, 2)
 
         return len(value)
 
@@ -150,12 +149,12 @@ class bitarray(object):
         self._wrap()
 
     def _from_int(self, value, high, low):
-        val = long(value)
+        val = int(value)
 
-        length = bit_length(val)
+        length = val.bit_length()
 
         if length == 0:
-            self._val = long(0)
+            self._val = int(0)
             length = 1
         else:
             self._val = val
@@ -421,7 +420,7 @@ class bitarray(object):
 
             value = data._val
 
-            mask = (long(1) << (i - j)) - 1
+            mask = (1 << (i - j)) - 1
             self._val &= ~(mask << (j - self._low))
             self._val |= ((value & mask) << (j - self._low))
         else:
@@ -440,9 +439,9 @@ class bitarray(object):
                                  "{0}, {1}, {2}".format(self._high,
                                                         i, self._low))
             if val:
-                self._val |= (long(1) << (i - self._low))
+                self._val |= (1 << (i - self._low))
             else:
-                self._val &= ~(long(1) << (i - self._low))
+                self._val &= ~(1 << (i - self._low))
 
         self._wrap()
 
@@ -457,7 +456,7 @@ class bitarray(object):
         __rlshift__ = __rrshift__ = _not_implemented_binary
 
     def __lshift__(self, other):
-        if isinstance(other, integer_types):
+        if isinstance(other, int):
             result = copy(self)
             result._val = self._val << other
             result._wrap()
@@ -466,7 +465,7 @@ class bitarray(object):
             return NotImplemented
 
     def __rshift__(self, other):
-        if isinstance(other, integer_types):
+        if isinstance(other, int):
             result = copy(self)
             result._val = self._val >> other
             result._wrap()
@@ -557,7 +556,7 @@ class bitarray(object):
         return self
 
     def __ilshift__(self, other):
-        if isinstance(other, integer_types):
+        if isinstance(other, int):
             value = other
         elif isinstance(other, bitarray) and (other.low == 0):
             value = other
@@ -568,7 +567,7 @@ class bitarray(object):
         return self
 
     def __irshift__(self, other):
-        if isinstance(other, integer_types):
+        if isinstance(other, int):
             value = other
         elif isinstance(other, bitarray) and (other.low == 0):
             value = other

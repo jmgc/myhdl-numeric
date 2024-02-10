@@ -29,6 +29,7 @@ import sys
 from types import FunctionType, MethodType
 import re
 import ast
+import builtins
 
 import myhdl
 from .._intbv import intbv
@@ -48,7 +49,6 @@ from .._Signal import _Signal, _WaiterList
 from .._ShadowSignal import _ShadowSignal, _SliceSignal, _TristateDriver
 from .._util import _isTupleOfInts, _flatten, _makeAST, _isTupleOfFloats
 from .._resolverefs import _AttrRefTransformer
-from .._compat import builtins, integer_types, long, string_types, PY2
 from ..numeric._conversion import numeric_functions_dict, \
     numeric_attributes_dict
 from ..numeric._bitarray import bitarray
@@ -480,18 +480,18 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
 
     def _add_size(self, node, l, r):
         result = l + r
-        if isinstance(result, integer_types):
+        if isinstance(result, int):
             if result < 0:
-                node.obj = long(-1)
+                node.obj = int(-1)
             else:
-                node.obj = long(0)
+                node.obj = int(0)
         else:
             node.obj = result
 
     def _sub_size(self, node, l, r):
         result = l - r
-        if isinstance(result, integer_types):
-            node.obj = long(-1)
+        if isinstance(result, int):
+            node.obj = int(-1)
         else:
             node.obj = result
 
@@ -510,11 +510,11 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
         result = l / r_obj
         if result is NotImplemented:
             raise NotImplementedError()
-        elif isinstance(result, integer_types):
+        elif isinstance(result, int):
             if l < 0 or r < 0:
-                node.obj = long(-1)
+                node.obj = int(-1)
             else:
-                node.obj = long(0)
+                node.obj = int(0)
         else:
             node.obj = result
 
@@ -531,11 +531,11 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
         else:
             r_obj = r
         result = l // r_obj
-        if isinstance(result, integer_types):
+        if isinstance(result, int):
             if l < 0 or r < 0:
-                node.obj = long(-1)
+                node.obj = int(-1)
             else:
-                node.obj = long(0)
+                node.obj = int(0)
         else:
             node.obj = result
 
@@ -552,21 +552,21 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
         else:
             r_obj = r
         result = l % r_obj
-        if isinstance(result, integer_types):
+        if isinstance(result, int):
             if l < 0 or r < 0:
-                node.obj = long(-1)
+                node.obj = int(-1)
             else:
-                node.obj = long(0)
+                node.obj = int(0)
         else:
             node.obj = result
 
     def _mul_size(self, node, l, r):
         result = abs(l) * abs(r)
-        if isinstance(result, integer_types):
+        if isinstance(result, int):
             if l < 0 or r < 0:
-                node.obj = long(-1)
+                node.obj = int(-1)
             else:
-                node.obj = long(0)
+                node.obj = int(0)
         else:
             node.obj = result
 
@@ -605,8 +605,8 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
                     self.raiseError(node, _error.NotSupported, "true division"
                                                                " - consider '//'")
             elif isinstance(node.op, ast.Mod):
-                if isinstance(l, string_types):
-                    node.obj = long(-1)
+                if isinstance(l, str):
+                    node.obj = int(-1)
                 else:
                     self._mod_size(node, l, r)
             elif isinstance(node.op, ast.Mult):
@@ -622,10 +622,10 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
                 raise AssertionError("Unknown binary operator: %s" % node.op)
             if isinstance(node.obj, bool):
                 pass
-            elif isinstance(node.obj, (integer_types, intbv)):
-                node.obj = long(node.obj)
+            elif isinstance(node.obj, (int, intbv)):
+                node.obj = int(node.obj)
         else:
-            node.obj = long(-1)
+            node.obj = int(-1)
 
     def visit_BoolOp(self, node):
         for n in node.values:
@@ -646,7 +646,7 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
                 not (isinstance(node.obj, bitarray) or
                      (isinstance(node.obj, _Signal) and
                       isinstance(node.obj._init, bitarray))):
-            node.obj = long(-1)
+            node.obj = int(-1)
 
     def visit_Attribute(self, node):
         if isinstance(node.ctx, ast.Store):
@@ -746,23 +746,23 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
             if n in self.tree.vardict:
                 curObj = self.tree.vardict[n]
                 if isinstance(obj, type(curObj)):
-                    if isinstance(obj, integer_types) and obj < 0:
+                    if isinstance(obj, int) and obj < 0:
                         self.tree.vardict[n] = obj
                 elif isinstance(curObj, type(obj)):
                     self.tree.vardict[n] = obj
-                elif isinstance(obj, integer_types) and \
-                        isinstance(curObj, integer_types):
-                    self.tree.vardict[n] = long(obj)
-                elif isinstance(obj, integer_types) and \
+                elif isinstance(obj, int) and \
+                        isinstance(curObj, int):
+                    self.tree.vardict[n] = int(obj)
+                elif isinstance(obj, int) and \
                         isinstance(curObj, bool):
                     self.tree.vardict[n] = obj
                 elif isinstance(obj, bool) and \
-                        isinstance(curObj, integer_types):
+                        isinstance(curObj, int):
                     pass
                 elif isinstance(obj, float) and \
-                        isinstance(curObj, (bool, integer_types)):
+                        isinstance(curObj, (bool, int)):
                     self.tree.vardict[n] = obj
-                elif isinstance(obj, (bool, integer_types)) and \
+                elif isinstance(obj, (bool, int)) and \
                         isinstance(curObj, float):
                     pass
                 else:
@@ -806,18 +806,18 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
             node.obj = self.getVal(node)
         elif f is len:
             self.access = _access.UNKNOWN
-            node.obj = long(0)  # XXX
+            node.obj = int(0)  # XXX
         elif f is bool:
             node.obj = bool()
-        elif f in _flatten(integer_types, ord):
+        elif f in _flatten(int, ord):
             try:
                 if self.getVal(node) < 0:
-                    node.obj = long(-1)
+                    node.obj = int(-1)
                 else:
-                    node.obj = long(0)
+                    node.obj = int(0)
             except ConversionError:
                 # To have a default value in case the conversion fails.
-                node.obj = long(-1)
+                node.obj = int(-1)
         # elif f in (posedge , negedge):
         #     node.obj = _EdgeDetector()
         elif f is float:
@@ -860,7 +860,7 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
             if f.__code__.co_freevars:
                 for n, c in zip(f.__code__.co_freevars, f.__closure__):
                     obj = c.cell_contents
-                    if not isinstance(obj, (integer_types, float, _Signal)):
+                    if not isinstance(obj, (int, float, _Signal)):
                         self.raiseError(node, _error.FreeVarTypeError, n)
                     tree.symdict[n] = obj
             v = _FirstPassVisitor(tree)
@@ -914,7 +914,7 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
                 val = arg.obj
                 if isinstance(val, bool):
                     val = int(val)  # cast bool to int first
-                if isinstance(val, (EnumItemType, integer_types)):
+                if isinstance(val, (EnumItemType, int)):
                     cases.append((node.left, val))
                     if isinstance(arg, ast.Name):
                         name = arg.id
@@ -940,7 +940,7 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
         node.value = n
         if n in (0, 1):
             node.obj = bool(n)
-        elif isinstance(n, (integer_types, float)):
+        elif isinstance(n, (int, float)):
             node.obj = n
         else:
             node.obj = None
@@ -1141,7 +1141,7 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
                     assert False, "unexpected mem access %s %s" % \
                                   (n, self.access)
                 self.tree.hasLos = True
-            elif isinstance(node.obj, integer_types):
+            elif isinstance(node.obj, int):
                 node.value = node.obj
             elif isinstance(node.obj, float):
                 node.value = node.obj
@@ -1161,13 +1161,7 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
         f = []
         nr = 0
         a = []
-        if PY2 and isinstance(node, ast.Print):
-            node_args = node.values
-            if (len(node_args) == 1) and isinstance(node_args[0], ast.Tuple):
-                node_args = node_args[0].elts
-        else:
-            node_args = node.args
-        for n in node_args:
+        for n in node.args:
             if isinstance(n, ast.BinOp) and isinstance(n.op, ast.Mod) and \
                     isinstance(n.left, ast.Str):
                 if isinstance(n.right, ast.Tuple):
@@ -1292,8 +1286,7 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
         y = node.body[0]
         if isinstance(y, ast.Expr):
             y = y.value
-        if ((PY2 and (node.test.obj is True)) or
-            ((not PY2) and (self.getObj(node.test) is True))) and \
+        if (self.getObj(node.test) is True) and \
                 isinstance(y, ast.Yield) and \
                 not self.tree.hasYield > 1 and \
                 not isinstance(self.getObj(y.value), delay):
@@ -1484,7 +1477,7 @@ class _AnalyzeFuncVisitor(_AnalyzeVisitor):
             obj = None
         elif isinstance(node.value, ast.Name) and node.value.id == 'None':
             obj = None
-        elif (not PY2) and isinstance(node.value, ast.NameConstant):
+        elif isinstance(node.value, ast.NameConstant):
             obj = node.value.value
         elif node.value.obj is not None:
             obj = node.value.obj
@@ -1546,7 +1539,7 @@ def _analyzeTopFunc(func, *args, **kwargs):
                     v.argdict[signame] = attrobj
                     v.argnames.append(signame)
                 elif not isinstance(attrobj,
-                                    (integer_types, float, EnumItemType)):
+                                    (int, float, EnumItemType)):
                     objs.append((name + '_' + attr, attrobj))
 
     return v

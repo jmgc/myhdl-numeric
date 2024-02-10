@@ -32,7 +32,6 @@ from __future__ import division
 
 from copy import copy, deepcopy
 
-from ._compat import integer_types, long
 from ._simulator import _simulator
 from ._intbv import intbv
 from ._bin import bin
@@ -145,8 +144,8 @@ class _Signal(object):
             self._setNextVal = self._setNextBool
             self._printVcd = self._printVcdBit
             self._nrbits = 1
-        elif isinstance(val, integer_types):
-            self._type = integer_types
+        elif isinstance(val, int):
+            self._type = int
             self._setNextVal = self._setNextInt
         elif isinstance(val, intbv):
             self._type = intbv
@@ -215,7 +214,7 @@ class _Signal(object):
                 self._val._val = next._val
             elif isinstance(val, bool):
                 self._val = bool(next)
-            elif isinstance(val, (integer_types, EnumItemType)):
+            elif isinstance(val, (int, EnumItemType)):
                 self._val = next
             else:
                 self._val = deepcopy(next)
@@ -323,14 +322,14 @@ class _Signal(object):
     def _setNextInt(self, val):
         if isinstance(val, intbv):
             val = val._val
-        elif not isinstance(val, (integer_types, intbv)):
+        elif not isinstance(val, (int, intbv)):
             raise TypeError("Expected int or intbv, got %s" % type(val))
         self._next = val
 
     def _setNextIntbv(self, val):
         if isinstance(val, intbv):
             val = val._val
-        elif not isinstance(val, integer_types):
+        elif not isinstance(val, int):
             raise TypeError("Expected int or intbv, got %s" % type(val))
         self._next._val = val
         self._next._handleBounds()
@@ -529,9 +528,6 @@ class _Signal(object):
 
     def __int__(self):
         return int(self._val)
-
-    def __long__(self):
-        return long(self._val)
 
     def __float__(self):
         return float(self._val)

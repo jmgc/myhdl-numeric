@@ -22,12 +22,7 @@
 
 from __future__ import print_function
 
-from myhdl._compat import long, PY2
-
-if PY2:
-    from sys import maxint
-else:
-    from sys import maxsize as maxint
+from sys import maxsize as maxint
 
 import unittest
 from unittest import TestCase
@@ -200,7 +195,7 @@ class TestBitVectorIndexing(TestCase):
         for s, low in self.seqs:
             ba = bitarray(s, len(s) + low, low)
             for i in range(len(s) + 20):
-                ref = long(getItem(s, i), 2)
+                ref = int(getItem(s, i), 2)
                 idx = i + low
                 try:
                     res = ba[idx]
@@ -222,9 +217,9 @@ class TestBitVectorIndexing(TestCase):
                         self.assertTrue(i <= j)
                         continue
                     ref = getSlice(s, i - low, j - low)
-                    if res.__index__() != long(ref,2):
+                    if res.__index__() != int(ref,2):
                         res = ba[i:j]
-                    self.assertEqual(res.__index__(), long(ref,2))
+                    self.assertEqual(res.__index__(), int(ref,2))
                     self.assertEqual(len(res), len(ref))
                     self.assertEqual(type(res), bitarray)
 
@@ -235,7 +230,7 @@ class TestBitVectorIndexing(TestCase):
             for j in range(low, len(s) + low):
                 res = ba[:j]
                 ref = getSliceLeftOpen(s, j - low)
-                self.assertEqual(res.__index__(), long(ref, 2))
+                self.assertEqual(res.__index__(), int(ref, 2))
                 self.assertEqual(len(res), len(ref))
                 self.assertEqual(type(res), bitarray)
 
@@ -253,8 +248,8 @@ class TestBitVectorIndexing(TestCase):
                     ba1[i] = it(1)
                     ref0 = setItem(s, i - low, '0')
                     ref1 = setItem(s, i - low, '1')
-                    self.assertEqual(ba0.__index__(), long(ref0, 2))
-                    self.assertEqual(ba1.__index__(), long(ref1, 2))
+                    self.assertEqual(ba0.__index__(), int(ref0, 2))
+                    self.assertEqual(ba1.__index__(), int(ref1, 2))
                     self.assertEqual(len(ba0), len(ref0))
                     self.assertEqual(len(ba1), len(ref1))
         warnings.resetwarnings()
@@ -284,7 +279,7 @@ class TestBitVectorIndexing(TestCase):
                             if ba != ref:
                                 ba[i:j] = val
                                 setSlice(s, i - s_low, j - s_low, s_v)
-                            self.assertEqual(ba.__index__(), long(ref, 2))
+                            self.assertEqual(ba.__index__(), int(ref, 2))
                             self.assertEqual(len(ba), len(ref))
 
     def testSetSliceLeftOpen(self):
@@ -303,7 +298,7 @@ class TestBitVectorIndexing(TestCase):
                         continue
                     ba[:j] = val
                     s_ref = setSliceLeftOpen(s, j - s_low, s_v)
-                    ref = long(s_ref, 2)
+                    ref = int(s_ref, 2)
                     self.assertEqual(ba.__index__(), ref)
                     self.assertEqual(len(ba), len(s_ref))
 
@@ -344,8 +339,8 @@ class TestBitVectorAsInt(TestCase):
     def binaryCheck(self, op, imin=0, imax=None, jmin=0, jmax=None):
         self.seqSetup(imin=imin, imax=imax, jmin=jmin, jmax=jmax)
         for i, j in zip(self.seqi, self.seqj):
-            bi = bitarray(long(i), 32, -32)
-            ref = op(long(i), j)
+            bi = bitarray(int(i), 32, -32)
+            ref = op(int(i), j)
             r1 = op(bi, j)
             ref = wrap(ref, bi)
             self.assertEqual(r1.__index__(), ref)
@@ -355,14 +350,14 @@ class TestBitVectorAsInt(TestCase):
         self.seqSetup(imin=imin, imax=imax, jmin=jmin, jmax=jmax)
         for i, j in zip(self.seqi, self.seqj):
             bj = bitarray(j, 128, 0)
-            ref = long(i)
+            ref = int(i)
             ref = op(ref, j)
-            r1 = bi1 = bitarray(long(i), 128, 0)
+            r1 = bi1 = bitarray(int(i), 128, 0)
             if op in (operator.ilshift, operator.irshift):
                 r1 = op(r1, j)
             else:
                 r1 = op(r1, bj)
-            r2 = bi2 = bitarray(long(i), 128, 0)
+            r2 = bi2 = bitarray(int(i), 128, 0)
             if op in (operator.ilshift, operator.irshift):
                 r2 = op(r2, j)
             else:
@@ -370,7 +365,7 @@ class TestBitVectorAsInt(TestCase):
             self.assertEqual(type(r1), bitarray)
             self.assertEqual(type(r2), bitarray)
             if r1._val != wrap(ref, r1):
-                r1 = bi1 = bitarray(long(i), 128, 0)
+                r1 = bi1 = bitarray(int(i), 128, 0)
                 r1 = op(r1, bj)
             self.assertEqual(r1._val, wrap(ref, r1))
             self.assertEqual(r2._val, wrap(ref, r2))
@@ -578,7 +573,7 @@ class TestBitVectorBounds(TestCase):
         self.assertEqual(a.__index__(), i)  # just to be sure
         try:
             if op in (operator.irshift, operator.ilshift):
-                a = op(a, long(j))
+                a = op(a, int(j))
             else:
                 a = op(a, bitarray(j, 32, -32))
         except (ZeroDivisionError, ValueError):

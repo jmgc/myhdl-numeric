@@ -34,7 +34,7 @@ import ast
 import string
 
 from types import GeneratorType
-from myhdl._compat import StringIO
+from io import StringIO
 import warnings
 
 import myhdl
@@ -45,7 +45,6 @@ from .._simulator import now
 from .._Signal import posedge, negedge
 from .._concat import concat
 from .._delay import delay
-from .._compat import integer_types, class_types, PY2
 from .._errors import ToVerilogError, ToVerilogWarning
 from .._extractHierarchy import _HierExtr, _isMem, _getMemInfo, _MemInfo, \
     _isRom, _getRomInfo, _UserVerilogCode, _userCodeMap
@@ -536,7 +535,7 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
             direction = direction + ' '
         if type(obj) is bool:
             self.write("%s%s" % (direction, name))
-        elif isinstance(obj, integer_types):
+        elif isinstance(obj, int):
             if direction == "input ":
                 self.write("input %s;" % name)
                 self.writeline()
@@ -784,7 +783,7 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
                                     "Strings with length > 1")
                 else:
                     node.args[0].s = str(ord(node.args[0].s))
-        elif f in integer_types:
+        elif f is int:
             opening, closing = '', ''
             # convert number argument to integer
             if isinstance(node.args[0], ast.Num):
@@ -800,7 +799,7 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
             self.write(opening)
             self.visit(fn.value)
             self.write(closing)
-        elif (type(f) in class_types) and issubclass(f, Exception):
+        elif (type(f) in type) and issubclass(f, Exception):
             self.write(f.__name__)
         elif f in (posedge, negedge):
             opening, closing = ' ', ''
@@ -1104,7 +1103,7 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
             obj = self.tree.symdict[n]
             if isinstance(obj, bool):
                 s = "1'b%s" % int(obj)
-            elif isinstance(obj, integer_types):
+            elif isinstance(obj, int):
                 s = self.IntRepr(obj)
             elif isinstance(obj, _Signal):
                 addSignBit = isMixedExpr
@@ -1115,7 +1114,7 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
                 s = m.name
             elif isinstance(obj, EnumItemType):
                 s = obj._toVerilog()
-            elif (type(obj) in class_types) and issubclass(obj, Exception):
+            elif (type(obj) in type) and issubclass(obj, Exception):
                 s = n
             else:
                 self.raiseError(node, _error.UnsupportedType,
@@ -1530,7 +1529,7 @@ class _ConvertTaskVisitor(_ConvertVisitor):
 def _maybeNegative(obj):
     if hasattr(obj, '_min') and (obj._min is not None) and (obj._min < 0):
         return True
-    if isinstance(obj, integer_types) and obj < 0:
+    if isinstance(obj, int) and obj < 0:
         return True
     return False
 

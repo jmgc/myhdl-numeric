@@ -27,7 +27,6 @@ import ast
 import traceback as tb
 
 from .._errors import ConversionError
-from .._compat import PY2
 
 
 class _error(object):
@@ -219,7 +218,4 @@ class _namesVisitor(ast.NodeVisitor):
 
 
 def _get_argnames(node):
-    if PY2:
-        return [arg.id for arg in node.args.args]
-    else:
-        return [arg.arg for arg in node.args.args]
+    return [arg.arg for arg in node.args.args]

@@ -28,7 +28,7 @@ import subprocess
 from ._intbv import intbv
 from ._errors import CosimulationError
 from ._simulator import _simulator
-from ._compat import PY2, string_types, to_bytes, to_str, set_inheritable
+from os import set_inheritable
 
 _MAXLINE = 4096
 
@@ -51,11 +51,11 @@ class Cosimulation(object):
     def __init__(self, exe="", **kwargs):
 
         """ Construct a cosimulation object. """
-        
+
         if _simulator._cosim != 0:
             raise CosimulationError(_error.MultipleCosim)
         _simulator._cosim = id(self)
-        
+
         self._rt, self._wt = rt, wt = os.pipe()
         self._rf, self._wf = rf, wf = os.pipe()
 
@@ -92,7 +92,7 @@ class Cosimulation(object):
             env['MYHDL_TO_PIPE'] = str(msvcrt.get_osfhandle(wt))
             env['MYHDL_FROM_PIPE'] = str(msvcrt.get_osfhandle(rf))
 
-        if isinstance(exe, string_types):
+        if isinstance(exe, str):
             exe = shlex.split(exe)
 
         try:
@@ -105,7 +105,7 @@ class Cosimulation(object):
         os.close(wt)
         os.close(rf)
         while 1:
-            s = to_str(os.read(rt, _MAXLINE))
+            s = os.read(rt, _MAXLINE).decode()
             if not s:
                 raise CosimulationError(_error.SimulationEnd)
             e = s.split()
@@ -147,7 +147,7 @@ class Cosimulation(object):
     def _get(self):
         if not self._getMode:
             return
-        buf = to_str(os.read(self._rt, _MAXLINE))
+        buf = os.read(self._rt, _MAXLINE).decode()
         if not buf:
             raise CosimulationError(_error.SimulationEnd)
         e = buf.split()
@@ -186,7 +186,7 @@ class Cosimulation(object):
                 if buf[-1] == 'L':
                     buf = buf[:-1] # strip trailing L
                 buflist.append(buf)
-        os.write(self._wf, to_bytes(" ".join(buflist)))
+        os.write(self._wf, (" ".join(buflist)).encode())
         self._getMode = 1
 
     def _waiter(self):

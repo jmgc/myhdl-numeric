@@ -124,7 +124,7 @@ For example, suppose that we have a mux module described as follows:
 
     def mux(z, a, b, sel):
         """ Multiplexer.
-        
+
         z -- mux output
         a, b -- data inputs
         sel -- control input
@@ -146,7 +146,7 @@ Using :func:`always_comb()`, we can describe it as follows instead:
 
     def mux(z, a, b, sel):
         """ Multiplexer.
-        
+
         z -- mux output
         a, b -- data inputs
         sel -- control input
@@ -182,7 +182,7 @@ returned explicitly. The following is a schematic example:
         instance_2 = module_2(...)
         ...
         instance_n = module_n(...)
-        ... 
+        ...
         return instance_1, instance_2, ... , instance_n
 
 It may be convenient to assemble the list of instances automatically,
@@ -255,7 +255,7 @@ be used as follows:
         ...
         def process_n():
             ...
-        ... 
+        ...
         return processes()
 
 To conclude, a top level function with both instances and processes can
@@ -340,7 +340,7 @@ returned a new :class:`intbv` object, even in mixed-mode operations with
 :class:`int`, and bitwise operations return a :class:`intbv`. In this
 way, the return value corresponds better to the nature of the operation.
 
-Function :func:`concat()` 
+Function :func:`concat()`
 ==========================
 
 In previous versions, the :class:`intbv` class provided a method. This
@@ -352,7 +352,7 @@ concatenated: :class:`intbv` objects with a defined bit width,
 :class:`bool` objects, the corresponding signal objects, and bit
 strings. All these objects have a defined bit width. Moreover, the first
 argument doesn’t need to have a defined bit width. It can also be an
-unsized :class:`intbv`, an :class:`int`, a :class:`long`, or a
+unsized :class:`intbv`, an :class:`int`, or a
 corresponding signal object. Function :func:`concat()` returns an
 :class:`intbv` object.
 

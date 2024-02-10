@@ -26,7 +26,6 @@ from __future__ import absolute_import
 import warnings
 from copy import deepcopy
 
-from ._compat import long
 from ._Signal import _Signal
 from ._intbv import intbv
 from ._simulator import _simulator
@@ -150,12 +149,12 @@ class ConcatSignal(_ShadowSignal):
                 v = a
             elif isinstance(a, str):
                 w = len(a)
-                v = long(a, 2)
+                v = int(a, 2)
             else:
                 raise TypeError("ConcatSignal: inappropriate argument type: %s" \
                                 % type(a))
             nrbits += w
-            val = val << w | v & (long(1) << w)-1
+            val = val << w | v & (1 << w)-1
         self._initval = val
         self._is_bitarray = is_bitarray
         if is_bitarray:

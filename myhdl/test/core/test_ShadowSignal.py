@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 
 from myhdl import *
-from myhdl._compat import long
 
 
 def bench_SliceSignal():
@@ -91,9 +90,9 @@ def bench_ConcatSignalWithConsts():
                             d.next = m
                             e.next = n
                             yield delay(10)
-                            assert s[29:27] == long(c1, 2)
+                            assert s[29:27] == int(c1, 2)
                             assert s[27:22] == a
-                            assert s[21] == long(c2, 2)
+                            assert s[21] == int(c2, 2)
                             assert s[20] == b
                             assert s[20:17] == c3
                             assert s[17:14] == c
@@ -132,7 +131,7 @@ def bench_ConcatSignalWithNegs():
                         c.next = k
                         d.next = m
                         yield delay(10)
-                         
+
                         assert s[13:8] == a[len(a):]
                         assert s[7] == b
                         assert s[7:4] == c[len(c):]

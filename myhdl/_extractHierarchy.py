@@ -31,7 +31,6 @@ import ast
 from ._errors import ExtractHierarchyError, ToVerilogError, ToVHDLError
 from ._enum import EnumItemType
 from ._Signal import _Signal, _isListOfSigs
-from ._compat import integer_types
 from ._getcellvars import _getCellVars
 from ._misc import _isGenSeq
 from ._resolverefs import _resolveRefs
@@ -139,7 +138,7 @@ class _RomInfo(object):
         self.name = None
         self.depth = len(mem)
         if (self.depth > 0):
-            if isinstance(mem[0], integer_types):
+            if isinstance(mem[0], int):
                 for elObj in mem:
                     if elObj < 0:
                         break
@@ -442,7 +441,7 @@ class _HierExtr(object):
                             sigdict[n] = v
                             if n in cellvars:
                                 v._markUsed()
-                        elif isinstance(v, (integer_types, float,
+                        elif isinstance(v, (int, float,
                                             EnumItemType)):
                             constdict[n] = _Constant(n, v)
                         elif _isListOfSigs(v):

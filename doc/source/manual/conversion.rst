@@ -12,7 +12,7 @@ Conversion to Verilog and VHDL
 Introduction
 ============
 
-Subject to some limitations, 
+Subject to some limitations,
 MyHDL supports the automatic conversion of MyHDL code to
 Verilog or VHDL code. This feature provides a path from MyHDL into a
 standard Verilog or VHDL based design environment.
@@ -30,8 +30,8 @@ defined as the :dfn:`convertible subset`. This is described
 in detail in :ref:`conv-subset`.
 
 A convertible design can be converted to an equivalent model in Verilog
-or VHDL, using the function :func:`toVerilog` or :func:`toVHDL`  from the MyHDL 
-library. 
+or VHDL, using the function :func:`toVerilog` or :func:`toVHDL`  from the MyHDL
+library.
 
 When the design is intended for implementation
 a third-party :dfn:`synthesis tool` is used to compile the Verilog or VHDL
@@ -77,7 +77,7 @@ The module ports are inferred from signal usage
   declared. The converter investigates signal usage in the design hierarchy to
   infer whether a signal is used as input, output, or as an internal signal.
 
-Interfaces are convertible 
+Interfaces are convertible
   An *interface*: an object that has a number of :class:`Signal` objects as its
   attributes. The convertor supports this by name expansion and mangling.
 
@@ -190,8 +190,8 @@ Supported types
 ---------------
 
 The most important restriction regards object types.  Only a limited
-amount of types can be converted. Python :class:`int` and
-:class:`long` objects are mapped to Verilog or VHDL integers. All
+amount of types can be converted. Python :class:`int` is mapped
+to Verilog or VHDL integers. All
 other supported types need to have a defined bit width. The
 supported types are the Python :class:`bool` type, the MyHDL
 :class:`intbv` type, and MyHDL enumeration types returned by function
@@ -246,7 +246,7 @@ MyHDL types is summarized in the following table.
 
 Notes:
 
-(1) 
+(1)
    The VHDL ``std_logic`` type is defined in the standard VHDL package
    ``IEEE.std_logic_1164``.
 
@@ -262,9 +262,9 @@ Notes:
 (4)
    All list members should have identical value constraints.
 
-  
+
 (5)
-   Lists are mapped to Verilog memories. 
+   Lists are mapped to Verilog memories.
 
 
 The table as presented applies to MyHDL variables. The convertor also
@@ -340,7 +340,7 @@ converter, possibly qualified with restrictions or usage notes.
 
   is not supported.
 
- 
+
 :keyword:`raise`
    This statement is mapped to statements that end the simulation with an
    error message.
@@ -440,7 +440,7 @@ objects as its attributes.  Grouping signals into an interface simplifies the
 code, improves efficiency, and reduces errors.
 
 The convertor supports interface using hierarchical name expansion and name
-mangling. 
+mangling.
 
 .. _conv-meth-assign:
 
@@ -574,7 +574,7 @@ The value of :attr:`verilog_code` or :attr:`vhdl_code` should be a Python
 template string. A template string supports ``$``-based substitutions.
 The ``$name`` notation can be used to refer to the
 variable names in the context of the string. The convertor will
-substitute the appropriate values in the string and then insert it 
+substitute the appropriate values in the string and then insert it
 instead of the regular converted output.
 
 There is one more issue with user-defined code.
@@ -582,7 +582,7 @@ Normally, the converter infers inputs, internal signals,
 and outputs. It also detects undriven and multiple driven signals. To
 do this, it assumes that signals are not driven by default. It then
 processes the code to find out which signals are driven from
-where. 
+where.
 
 Proper signal usage inference cannot be done with user-defined code. Without
 user help, this will result in warnings or errors during the
@@ -710,7 +710,7 @@ non-synthesizable feature that are of interest for test benches.
 
 the :keyword:`while` loop
  :keyword:`while` loops can be used for high-level control structures.
- 
+
 the :keyword:`raise` statement
    A :keyword:`raise` statement can stop the simulation on an error condition.
 
@@ -795,7 +795,7 @@ Known issues
 Verilog and VHDL integers are 32 bit wide
    Usually, Verilog and VHDL integers are 32 bit wide. In contrast,
    Python is moving toward integers with undefined width. Python
-   :class:`int` and :class:`long` variables are mapped to Verilog
+   :class:`int` is mapped to Verilog
    integers; so for values wider than 32 bit this mapping is
    incorrect.
 

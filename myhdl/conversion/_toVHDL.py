@@ -27,8 +27,6 @@ from __future__ import absolute_import
 from __future__ import print_function
 from __future__ import division
 
-from myhdl._compat import PY2
-
 import sys
 import math
 import os
@@ -43,6 +41,7 @@ import warnings
 from copy import copy
 import string
 from collections import namedtuple
+from io import StringIO
 
 from .._version import __version__
 from .._enum import EnumItemType, EnumType
@@ -68,7 +67,6 @@ from .._Signal import _Signal, _WaiterList, _SliceSignal, _isListOfSigs
 from .._ShadowSignal import ConcatSignal
 from ..conversion._toVHDLPackage import _package
 from .._util import _flatten, _isTupleOfInts, _isTupleOfFloats
-from .._compat import integer_types, class_types, StringIO
 from .._ShadowSignal import _TristateSignal, _TristateDriver
 from .._resolverefs import _suffixer
 from ..numeric._bitarray import bitarray
@@ -436,7 +434,7 @@ class _GenerateHierarchy(object):
                     arg_name = old_name
                 const_dict[arg_name] = obj
                 names_list.append(arg_name)
-            elif isinstance(obj, (integer_types, float, EnumItemType)):
+            elif isinstance(obj, (int, float, EnumItemType)):
                 if old_name in names_list:
                     arg_name = _suffixer(old_name, names_list)
                 else:
@@ -2231,7 +2229,7 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
             self.write(closing)
             self.write(suf)
             return
-        elif (type(f) in class_types) and issubclass(f, Exception):
+        elif (type(f) is type) and issubclass(f, Exception):
             self.write(f.__name__)
         elif f in (posedge, negedge):
             opening, closing = ' ', ''
@@ -2366,7 +2364,7 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
             else:
                 self.write('signed\'("%s")' % bin(n, node.vhd.size))
         elif isinstance(node.vhd, vhd_sfixed):
-            if isinstance(n, integer_types):
+            if isinstance(n, int):
                 if node.vhd.size[0] < 0:
                     v = "0"
                 else:
@@ -2764,7 +2762,7 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
                     constdict[n].used = True
                 else:
                     s = obj._toVHDL()
-            elif (type(obj) in class_types) and issubclass(obj, Exception):
+            elif (type(obj) in type) and issubclass(obj, Exception):
                 s = n
             else:
                 self.raiseError(node, _error.UnsupportedType,
@@ -4297,7 +4295,7 @@ def inferVhdlClass(obj):
     elif (isinstance(obj, _Signal) and isinstance(obj._init, EnumItemType)) or \
             isinstance(obj, EnumItemType):
         vhd = vhd_enum
-    elif isinstance(obj, integer_types):
+    elif isinstance(obj, int):
         if obj >= 0:
             vhd = vhd_nat
         else:
@@ -4418,7 +4416,7 @@ class _AnnotateTypesVisitor(ast.NodeVisitor, _ConversionMixin):
             node.vhd = vhd_unsigned(s)
         elif f is bool:
             node.vhd = vhd_boolean()
-        elif f in _flatten(integer_types, ord):
+        elif f in _flatten(int, ord):
             node.vhd = vhd_int()
             node.args[0].vhd = vhd_int()
         elif f is float:

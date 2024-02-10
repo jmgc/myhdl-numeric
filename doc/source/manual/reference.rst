@@ -173,7 +173,7 @@ Regular signals
 
 
     .. attribute:: driven
-    
+
        Writable attribute that can be used to indicate that the signal is supposed to
        be driven from the MyHDL code, and possibly how it should be declared in Verilog after
        conversion. The allowed values are ``'reg'``, ``'wire'``, ``True`` and ``False``.
@@ -182,9 +182,9 @@ Regular signals
        whether and how a signal is driven. This occurs when the signal is driven from
        user-defined code. ``'reg'`` and ``'wire'`` are "true" values that
        permit finer control for the Verilog case.
-  
+
     .. attribute:: read
-    
+
        Writable boolean attribute that can be used to indicate that the signal is read.
 
        This attribute is useful when the converter cannot infer automatically
@@ -195,7 +195,7 @@ Regular signals
 
     .. method:: Signal.__call__(left[, right=None])
 
-	This method returns a :class:`_SliceSignal` shadow signal. 
+	This method returns a :class:`_SliceSignal` shadow signal.
 
 
 .. class:: ResetSignal(val, active, async)
@@ -210,7 +210,7 @@ Regular signals
     This class should be used in conjunction with the :func:`always_seq`
     decorator.
 
- 
+
 Shadow signals
 ^^^^^^^^^^^^^^
 
@@ -234,21 +234,21 @@ Shadow signals
 
 .. class:: ConcatSignal(*args)
 
-   This class creates a new shadow signal of the concatenation of its arguments. 
+   This class creates a new shadow signal of the concatenation of its arguments.
 
    You can pass an arbitrary number of arguments to the constructor.  The
    arguments should be bit-oriented with a defined number of bits.  The following
    argument types are supported: :class:`intbv` objects with a defined bit width,
-   :class:`bool` objects, signals of the previous objects, and bit strings. 
+   :class:`bool` objects, signals of the previous objects, and bit strings.
 
    The new signal follows the value changes of the signal arguments. The non-signal
-   arguments are used to define constant values in the concatenation.  
+   arguments are used to define constant values in the concatenation.
 
 .. class:: TristateSignal(val)
 
     This class is used to construct a new tristate signal. The
     underlying type is specified by the *val*
-    parameter. 
+    parameter.
     It is a Signal subclass and has the usual attributes, with
     one exception: it doesn't support the ``next``
     attribute. Consequently, direct signal assignment to a tristate
@@ -389,7 +389,7 @@ generators from local generator functions.
 
           def _gen_func()
               while True:
-                  yield event1, event2, ... 
+                  yield event1, event2, ...
                   _func()
           ...
           inst = _gen_func()
@@ -439,10 +439,10 @@ The :class:`intbv` class
 
     This class represents :class:`int`\ -like objects with some
     additional features that make it suitable for hardware
-    design. 
+    design.
 
-    The *val* argument can be an :class:`int`, a
-    :class:`long`, an :class:`intbv` or a bit string (a string with
+    The *val* argument can be an :class:`int`, an :class:`intbv`
+or a bit string (a string with
     only '0's or '1's). For a bit string argument, the value is
     calculated as in ``int(bitstring, 2)``.  The optional *min* and
     *max* arguments can be used to specify the minimum and maximum
@@ -484,10 +484,10 @@ logical, and conversion operations as :class:`int` objects. See
 http://www.python.org/doc/current/lib/typesnumeric.html for more information on
 such operations. In all binary operations, :class:`intbv` objects can work
 together with :class:`int` objects. For mixed-type numeric operations, the
-result type is an :class:`int` or a :class:`long`. For mixed-type bitwise
+result type is an :class:`int`. For mixed-type bitwise
 operations, the result type is an :class:`intbv`.
 
-In addition, :class:`intbv` supports a number of sequence operators. 
+In addition, :class:`intbv` supports a number of sequence operators.
 In particular, the :func:`len` function returns the object's bit width. Furthermore,
 :class:`intbv` objects support indexing and slicing operations:
 
@@ -552,11 +552,11 @@ The :class:`modbv` class
    Instead of throwing an exception when those constraints are exceeded,
    the value of :class:`modbv` objects wraps around according to the
    following formula::
-  
+
        val = (val - min) % (max - min) + min
-       
+
    This formula is a generalization of modulo wrap-around behavior that
-   is often useful when describing hardware system behavior. 
+   is often useful when describing hardware system behavior.
 
 The :func:`enum` factory function
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -610,12 +610,12 @@ useful for hardware description.
 
    The following argument types are supported: :class:`intbv` objects with a
    defined bit width, :class:`bool` objects, signals of the previous objects, and
-   bit strings. All these objects have a defined bit width. 
+   bit strings. All these objects have a defined bit width.
 
-   The first argument *base* is special as it does not need to have a 
+   The first argument *base* is special as it does not need to have a
    defined bit width. In addition to
-   the previously mentioned objects, unsized :class:`intbv`, :class:`int` and
-   :class:`long` objects are supported, as well as signals of such objects.
+   the previously mentioned objects, unsized :class:`intbv` and :class:`int`
+    objects are supported, as well as signals of such objects.
 
    :rtype: :class:`intbv`
 
@@ -748,7 +748,7 @@ Conversion
     ``func(*args, **kwargs)``. It can be assigned to an instance name.
     The top-level instance name and the basename of the Verilog
     output filename is ``func.func_name`` by default.
-	
+
     :func:`toVHDL` has the following attributes:
 
     .. attribute:: name
@@ -767,17 +767,17 @@ Conversion
        VHDL output. When a string is assigned to it, it will be copied
        to the appropriate place in the output file.
 
-    .. attribute:: library 
+    .. attribute:: library
 
        This attribute can be used to set the library in the VHDL output
-       file. The assigned value should be a string. The default 
+       file. The assigned value should be a string. The default
        library is ``work``.
 
     .. attribute:: std_logic_ports
 
        This boolean attribute can be used to have only ``std_logic`` type
        ports on the top-level interface (when ``True``) instead of the
-       default ``signed/unsigned`` types (when ``False``, the default). 
+       default ``signed/unsigned`` types (when ``False``, the default).
 
 
 
@@ -819,7 +819,7 @@ Conversion output verification
 
 .. module:: myhdl.conversion
 
-MyHDL provides an interface to verify converted designs. 
+MyHDL provides an interface to verify converted designs.
 This is used extensively in the package itself to verify the conversion
 functionality. This capability is exported by the package so that users
 can use it also.
@@ -846,7 +846,7 @@ the :mod:`myhdl.conversion` package.
 .. function:: analyze(func[, *args][, **kwargs])
 
     Used like :func:`toVHDL()` and :func:`toVerilog()`. It converts MyHDL code, and analyzes the
-    resulting HDL. 
+    resulting HDL.
     Used to verify whether the HDL output is syntactically correct.
 
     This function has the following attribute:

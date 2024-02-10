@@ -20,7 +20,6 @@
 """ module with the bin function.
 
 """
-from myhdl._compat import long
 
 
 def _int2bitstring(num):
@@ -46,7 +45,7 @@ def bin(num, width=0):
     Optional parameter:
     width -- specifies the desired string (sign bit padding)
     """
-    num = long(num)
+    num = int(num)
     s = _int2bitstring(num)
     if width:
         pad = '0'
@@ -54,5 +53,5 @@ def bin(num, width=0):
             pad = '1'
         s = ((width - len(s)) * pad + s)
         return s[len(s)-width:]
-    return s 
+    return s
 

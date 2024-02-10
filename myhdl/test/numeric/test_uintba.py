@@ -24,8 +24,6 @@ from __future__ import print_function, division
 
 import sys
 
-from myhdl._compat import long, integer_types, bit_length
-
 import unittest
 from unittest import TestCase
 import random
@@ -125,11 +123,11 @@ class TestUIntBaIndexing(TestCase):
         warnings.filterwarnings('error')
         self.seqsSetup()
         for s in self.seqs:
-            n = long(s, 2)
+            n = int(s, 2)
             ba = uintba(n, 128)
             bai = ~ba
             for i in range(len(s) + 20):
-                ref = long(getItem(s, i), 2)
+                ref = int(getItem(s, i), 2)
                 res = ba[i]
                 resi = bai[i]
                 self.assertEqual(res, ref)
@@ -142,7 +140,7 @@ class TestUIntBaIndexing(TestCase):
         warnings.filterwarnings('error')
         self.seqsSetup()
         for s in self.seqs:
-            n = long(s, 2)
+            n = int(s, 2)
             ba = uintba(n, 128)
             bai = ~ba
             for i in range(1, len(s) + 20):
@@ -153,7 +151,7 @@ class TestUIntBaIndexing(TestCase):
                     except RuntimeWarning:
                         self.assertTrue(i <= j)
                         continue
-                    ref = long(getSlice(s, i, j), 2)
+                    ref = int(getSlice(s, i, j), 2)
                     self.assertEqual(res, ref)
                     self.assertEqual(type(res), uintba)
                     mask = (2 ** (i - j)) - 1
@@ -165,13 +163,13 @@ class TestUIntBaIndexing(TestCase):
         warnings.filterwarnings('error')
         self.seqsSetup()
         for s in self.seqs:
-            n = long(s, 2)
+            n = int(s, 2)
             ba = uintba(n, len(s))
             bai = uintba(~n & ((1 << len(s)) - 1), len(s))
             for j in range(0, len(s)):
                 res = ba[:j]
                 resi = bai[:j]
-                ref = long(getSliceLeftOpen(s, j), 2)
+                ref = int(getSliceLeftOpen(s, j), 2)
                 self.assertEqual(res, ref)
                 self.assertEqual(type(res), uintba)
                 self.assertEqual(resi + ref, (-1) & ((1 << len(res)) - 1))
@@ -182,7 +180,7 @@ class TestUIntBaIndexing(TestCase):
         warnings.filterwarnings('error')
         self.seqsSetup()
         for s in self.seqs:
-            n = long(s, 2)
+            n = int(s, 2)
             for it in (int, uintba):
                 for i in range(len(s) + 20):
                     # print i
@@ -194,10 +192,10 @@ class TestUIntBaIndexing(TestCase):
                     ba1[i] = it(1)
                     ba0i[i] = it(0)
                     ba1i[i] = it(1)
-                    ref0 = long(setItem(s, i, '0'), 2)
-                    ref1 = long(setItem(s, i, '1'), 2)
-                    ref0i = ~long(setItem(s, i, '1'), 2)
-                    ref1i = ~long(setItem(s, i, '0'), 2)
+                    ref0 = int(setItem(s, i, '0'), 2)
+                    ref1 = int(setItem(s, i, '1'), 2)
+                    ref0i = ~int(setItem(s, i, '1'), 2)
+                    ref1i = ~int(setItem(s, i, '0'), 2)
                     self.assertEqual(ba0, ref0)
                     self.assertEqual(ba1, ref1)
                     self.assertEqual(ba0i, wrap(ref0i, ba0i))
@@ -209,21 +207,21 @@ class TestUIntBaIndexing(TestCase):
         self.seqsSetup()
         toggle = 0
         for s in self.seqs:
-            n = long(s, 2)
+            n = int(s, 2)
             for i in range(1, len(s) + 5):
                 for j in range(0, i):
                     for v in self.seqv:
                         ext = '0' * (i - j - len(v))
                         extv = ext + v
                         ba = uintba(n, 128)
-                        val = long(v, 2)
+                        val = int(v, 2)
                         toggle ^= 1
                         if toggle:
                             val = uintba(val)
                         try:
                             ba[i:j] = val
                         except RuntimeWarning:
-                            if isinstance(val, integer_types):
+                            if isinstance(val, int):
                                 self.assertTrue((bit_length(val) > (i - j)) \
                                                 or (bit_length(-1 - val) > \
                                                     (i - j)))
@@ -232,7 +230,7 @@ class TestUIntBaIndexing(TestCase):
                                                 (len(-1 - val) != (i - j)))
                             continue
                         else:
-                            ref = long(setSlice(s, i, j, extv), 2)
+                            ref = int(setSlice(s, i, j, extv), 2)
                             self.assertEqual(ba, ref)
         warnings.resetwarnings()
 
@@ -241,12 +239,12 @@ class TestUIntBaIndexing(TestCase):
         self.seqsSetup()
         toggle = 0
         for s in self.seqs:
-            n = long(s, 2)
+            n = int(s, 2)
             for j in range(0, len(s)):
                 for v in self.seqv:
                     ba = uintba(n, len(s))
                     bai = ~ba
-                    val = long(v, 2)
+                    val = int(v, 2)
                     toggle ^= 1
                     if toggle:
                         val = uintba(val)
@@ -254,7 +252,7 @@ class TestUIntBaIndexing(TestCase):
                         ba[:j] = val
                         bai[:j] = wrap(1 - val - 2, bai[:j])  # Workaraound for -1 - val
                     except RuntimeWarning:
-                        if isinstance(val, integer_types):
+                        if isinstance(val, int):
                             self.assertTrue((bit_length(val) > \
                                              (len(ba) - j)) or \
                                             (bit_length(-1 - val) > \
@@ -263,9 +261,9 @@ class TestUIntBaIndexing(TestCase):
                             self.assertTrue((len(val) != (len(ba) - j)) or \
                                             (len(1 - val - 2) != (len(bai) - j)))
                     else:
-                        ref = long(setSliceLeftOpen(s, j, v), 2)
+                        ref = int(setSliceLeftOpen(s, j, v), 2)
                         self.assertEqual(ba, wrap(ref, ba))
-                        refi = ~long(setSliceLeftOpen(s, j, v), 2)
+                        refi = ~int(setSliceLeftOpen(s, j, v), 2)
                         self.assertEqual(bai, wrap(refi, bai))
         warnings.resetwarnings()
 
@@ -310,13 +308,13 @@ class TestUIntBaAsInt(TestCase):
         warnings.filterwarnings('error')
         self.seqSetup(imin=imin, imax=imax, jmin=jmin, jmax=jmax)
         for i, j in zip(self.seqi, self.seqj):
-            bi = uintba(abs(long(i)), 128)
+            bi = uintba(abs(int(i)), 128)
             bj = uintba(abs(j), 128)
-            ref = op(long(i), j)
+            ref = op(int(i), j)
             try:
                 try:
                     r1 = op(bi, j)
-                    r2 = op(long(i), bj)
+                    r2 = op(int(i), bj)
                     self.assertEqual(type(r1), uintba)
                     self.assertEqual(type(r2), uintba)
                     self.assertEqual(r1, wrap(ref, r1),
@@ -349,13 +347,13 @@ class TestUIntBaAsInt(TestCase):
         self.seqSetup(imin=imin, imax=imax, jmin=jmin, jmax=jmax)
         for i, j in zip(self.seqi, self.seqj):
             bj = uintba(j, 128)
-            ref = long(i)
+            ref = int(i)
             ref = op(ref, j)
-            r1 = bi1 = uintba(long(i), 128)
+            r1 = bi1 = uintba(int(i), 128)
             try:
                 try:
                     r1 = op(r1, j)
-                    r2 = long(i)
+                    r2 = int(i)
                     r2 = op(r2, bj)
                     self.assertEqual(type(r1), uintba)
                     self.assertEqual(r1, wrap(ref, r1))
@@ -368,7 +366,7 @@ class TestUIntBaAsInt(TestCase):
                                            operator.truediv, operator.itruediv,
                                            operator.pow, operator.ipow))
                 else:
-                    r3 = bi3 = uintba(long(i), 128)
+                    r3 = bi3 = uintba(int(i), 128)
                     r3 = op(r3, bj)
                     self.assertEqual(type(r3), uintba)
                     self.assertEqual(r3, wrap(ref, r3))
@@ -400,7 +398,7 @@ class TestUIntBaAsInt(TestCase):
         self.seqSetup(imin=imin, imax=imax)
         for i in self.seqi:
             bi = uintba(i)
-            ref = op(long(i))
+            ref = op(int(i))
             r1 = op(bi)
             self.assertEqual(type(r1), type(ref))
             self.assertEqual(r1, ref)
@@ -508,10 +506,7 @@ class TestUIntBaAsInt(TestCase):
         self.unaryCheck(operator.inv)
 
     def testInt(self):
-        self.conversionCheck(int, imax=maxint)
-
-    def testLong(self):
-        self.conversionCheck(long)
+        self.conversionCheck(int)
 
     def testFloat(self):
         self.conversionCheck(float)
@@ -592,14 +587,14 @@ class TestUIntBaBounds(TestCase):
         a = uintba(i)
         self.assertEqual(a, i)  # just to be sure
         try:
-            op(a, long(j))
+            op(a, int(j))
         except (ZeroDivisionError, RuntimeWarning):
             return  # prune
         except TypeError:
             self.assertTrue(op in (operator.iand, operator.ior,
                                    operator.ixor, operator.ipow,
                                    operator.itruediv))
-        if not isinstance(a._val, integer_types):
+        if not isinstance(a._val, int):
             return  # prune
         if abs(i) > maxint * maxint:
             return  # keep it reasonable
@@ -607,19 +602,19 @@ class TestUIntBaBounds(TestCase):
             b = uintba(i)
             for _ in (i + 1, a):
                 b = uintba(i)
-                b = op(b, long(j))
+                b = op(b, int(j))
                 self.assertEqual(b, wrap(op(i, j), b))
         elif a < i:
             b = uintba(i)
-            op(b, long(j))  # should be ok
+            op(b, int(j))  # should be ok
             for _ in (a + 1, i):
                 b = uintba(i)
-                b = op(b, long(j))
+                b = op(b, int(j))
                 self.assertEqual(b, wrap(op(i, j), b))
         else:  # a == i
             b = uintba(i)
             try:
-                op(b, long(j))  # should be ok
+                op(b, int(j))  # should be ok
             except TypeError:
                 self.assertTrue(op in (operator.iand, operator.ior,
                                        operator.ixor, operator.ipow,

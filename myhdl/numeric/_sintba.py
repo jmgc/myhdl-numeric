@@ -19,7 +19,6 @@
 
 from __future__ import absolute_import, division
 from ._bitarray import bitarray
-from myhdl._compat import long, integer_types
 from copy import copy
 
 
@@ -45,21 +44,21 @@ class sintba(bitarray):
         if (self._high - self._low) < 1:
             return 0
         else:
-            return long(1) << (self._high - self._low - 1)
+            return 1 << (self._high - self._low - 1)
 
     def _get_min(self):
         if (self._high - self._low) < 1:
             return 0
         else:
-            return -(long(1) << (self._high - self._low - 1))
+            return -(1 << (self._high - self._low - 1))
 
     def _wrap(self):
         val = self._val
-        lim = long(1) << (self._high - 1)
+        lim = 1 << (self._high - 1)
         if val & lim:
-            tmp = long(-1)
+            tmp = -1
         else:
-            tmp = long(0)
+            tmp = 0
         wrap = lim - 1
         val &= wrap
         tmp &= ~wrap
@@ -87,7 +86,7 @@ class sintba(bitarray):
 
     def __add__(self, other):
         length = self._high
-        if isinstance(other, integer_types):
+        if isinstance(other, int):
             value = other
         elif isinstance(other, sintba):
             if self.is_signed and not other.is_signed:
@@ -105,7 +104,7 @@ class sintba(bitarray):
         return result
 
     def __radd__(self, other):
-        if isinstance(other, integer_types):
+        if isinstance(other, int):
             return type(self)(other, self) + self
         elif isinstance(other, sintba):
             return type(self)(other) + self
@@ -114,7 +113,7 @@ class sintba(bitarray):
 
     def __sub__(self, other):
         length = self._high
-        if isinstance(other, integer_types):
+        if isinstance(other, int):
             value = other
         elif isinstance(other, sintba):
             if self.is_signed and not other.is_signed:
@@ -132,7 +131,7 @@ class sintba(bitarray):
         return result
 
     def __rsub__(self, other):
-        if isinstance(other, integer_types):
+        if isinstance(other, int):
             return type(self)(other, self) - self
         elif isinstance(other, sintba):
             return type(self)(other) - self
@@ -141,7 +140,7 @@ class sintba(bitarray):
 
     def __mul__(self, other):
         length = self._high
-        if isinstance(other, integer_types):
+        if isinstance(other, int):
             value = other
         elif isinstance(other, sintba):
             if self.is_signed and not other.is_signed:
@@ -160,7 +159,7 @@ class sintba(bitarray):
         return result
 
     def __rmul__(self, other):
-        if isinstance(other, integer_types):
+        if isinstance(other, int):
             return type(self)(other, self) * self
         elif isinstance(other, sintba):
             return type(self)(other) * self
@@ -168,7 +167,7 @@ class sintba(bitarray):
             return NotImplemented
 
     def __floordiv__(self, other):
-        if isinstance(other, integer_types):
+        if isinstance(other, int):
             other_value = other
         elif isinstance(other, sintba):
             if self.is_signed and not other.is_signed:
@@ -183,7 +182,7 @@ class sintba(bitarray):
         return result
 
     def __rfloordiv__(self, other):
-        if isinstance(other, integer_types):
+        if isinstance(other, int):
             return type(self)(other, self) // self
         elif isinstance(other, sintba):
             return type(self)(other) // self
@@ -192,7 +191,7 @@ class sintba(bitarray):
 
     def __mod__(self, other):
         size = self._high
-        if isinstance(other, integer_types):
+        if isinstance(other, int):
             value = other
         elif isinstance(other, sintba):
             if self.is_signed and not other.is_signed:
@@ -209,7 +208,7 @@ class sintba(bitarray):
         return result
 
     def __rmod__(self, other):
-        if isinstance(other, integer_types):
+        if isinstance(other, int):
             return type(self)(other, self) % self
         elif isinstance(other, sintba):
             return type(self)(other) % self
@@ -217,7 +216,7 @@ class sintba(bitarray):
             return NotImplemented
 
     def __lshift__(self, other):
-        if isinstance(other, integer_types):
+        if isinstance(other, int):
             if other < 0:
                 return NotImplemented
             else:
@@ -236,7 +235,7 @@ class sintba(bitarray):
         return result
 
     def __rlshift__(self, other):
-        if isinstance(other, integer_types):
+        if isinstance(other, int):
             if self._val < 0:
                 return NotImplemented
             else:
@@ -248,7 +247,7 @@ class sintba(bitarray):
             return NotImplemented
 
     def __rshift__(self, other):
-        if isinstance(other, integer_types):
+        if isinstance(other, int):
             if other < 0:
                 return NotImplemented
             else:
@@ -267,7 +266,7 @@ class sintba(bitarray):
         return result
 
     def __rrshift__(self, other):
-        if isinstance(other, integer_types):
+        if isinstance(other, int):
             if self._val < 0:
                 return NotImplemented
             else:
@@ -363,24 +362,21 @@ class sintba(bitarray):
     def __int__(self):
         return int(self._val)
 
-    def __long__(self):
-        return long(self._val)
-
     def __float__(self):
         return float(self._val)
 
     def __oct__(self):
-        return oct(long(self._val))
+        return oct(self._val)
 
     def __hex__(self):
-        return hex(long(self._val))
+        return hex(self._val)
 
     def __index__(self):
-        return long(self._val)
+        return self._val
 
     # comparisons
     def __eq__(self, other):
-        if isinstance(other, integer_types):
+        if isinstance(other, int):
             value = other
         elif isinstance(other, sintba):
             value = other._val
@@ -389,7 +385,7 @@ class sintba(bitarray):
         return self._val == value
 
     def __ne__(self, other):
-        if isinstance(other, integer_types):
+        if isinstance(other, int):
             value = other
         elif isinstance(other, sintba):
             value = other._val
@@ -398,7 +394,7 @@ class sintba(bitarray):
         return self._val != value
 
     def __lt__(self, other):
-        if isinstance(other, integer_types):
+        if isinstance(other, int):
             value = other
         elif isinstance(other, sintba):
             value = other._val
@@ -407,7 +403,7 @@ class sintba(bitarray):
         return self._val < value
 
     def __le__(self, other):
-        if isinstance(other, integer_types):
+        if isinstance(other, int):
             value = other
         elif isinstance(other, sintba):
             value = other._val
@@ -416,7 +412,7 @@ class sintba(bitarray):
         return self._val <= value
 
     def __gt__(self, other):
-        if isinstance(other, integer_types):
+        if isinstance(other, int):
             value = other
         elif isinstance(other, sintba):
             value = other._val
@@ -425,7 +421,7 @@ class sintba(bitarray):
         return self._val > value
 
     def __ge__(self, other):
-        if isinstance(other, integer_types):
+        if isinstance(other, int):
             value = other
         elif isinstance(other, sintba):
             value = other._val
@@ -443,7 +439,7 @@ class sintba(bitarray):
         value = self
         if length == 1:
             value_format = args[0]
-            if isinstance(value_format, integer_types):
+            if isinstance(value_format, int):
                 high = value_format
                 low = 0
             else:

@@ -50,7 +50,6 @@ toVerilog -- function that converts a design to Verilog
 
 """
 from ._bin import bin
-from ._compat import bit_length
 from ._concat import concat
 from ._intbv import intbv
 from ._modbv import modbv
@@ -92,7 +91,6 @@ from ._errors import ExtractHierarchyError
 from ._version import __version__
 
 __all__ = ["bin",
-           "bit_length",
            "concat",
            "intbv",
            "modbv",

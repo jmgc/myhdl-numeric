@@ -154,8 +154,8 @@ almost typeless language, while Python is strongly (albeit dynamically)
 typed. The converter has to infer the types of names used in the code,
 and map those names to Verilog variables.
 
-Only a limited amount of types can be converted. Python :class:`int` and
-:class:`long` objects are mapped to Verilog integers. All other
+Only a limited amount of types can be converted. Python :class:`int`
+object is mapped to Verilog integers. All other
 supported types are mapped to Verilog regs (or wires), and therefore
 need to have a defined bit width. The supported types are the Python
 :class:`bool` type, the MyHDL :class:`intbv` type, and MyHDL enumeration
@@ -366,7 +366,7 @@ Consider the following MyHDL code for an incrementer module:
 
     def inc(count, enable, clock, reset, n):
         """ Incrementer with enable.
-        
+
         count -- output
         enable -- control input, increment when 1
         clock -- clock input
@@ -394,7 +394,7 @@ follows:
 
     m = 8
     n = 2 ** m
-     
+
     count = Signal(intbv(0)[m:])
     enable = Signal(bool(0))
     clock, reset = [Signal(bool()) for i in range(2)]
@@ -476,7 +476,7 @@ As before, you can create an instance and convert to Verilog as follows:
     G = Signal(intbv(0)[width:])
 
     bin2gray_inst = toVerilog(bin2gray, B, G, width)
-     
+
 
 The generated Verilog code looks as follows:
 
@@ -514,12 +514,12 @@ follows:
 ::
 
     def GrayInc(graycnt, enable, clock, reset, width):
-        
+
         bincnt = Signal(intbv()[width:])
-        
+
         INC_1 = inc(bincnt, enable, clock, reset, n=2**width)
         BIN2GRAY_1 = bin2gray(B=bincnt, G=graycnt, width=width)
-        
+
         return INC_1, BIN2GRAY_1
 
 According to Gray code properties, only a single bit will change in
@@ -533,17 +533,17 @@ will ignore that here.)
 ::
 
     def GrayIncReg(graycnt, enable, clock, reset, width):
-        
+
         graycnt_comb = Signal(intbv()[width:])
-        
+
         GRAY_INC_1 = GrayInc(graycnt_comb, enable, clock, reset, width)
-        
+
         def reg():
             while 1:
                 yield posedge(clock)
                 graycnt.next = graycnt_comb
         REG_1 = reg()
-        
+
         return GRAY_INC_1, REG_1
 
 We can convert this hierarchical design as before:
@@ -643,7 +643,7 @@ variable uses the enumeration type defined above:
     FRAME_SIZE = 8
 
     def FramerCtrl(SOF, state, syncFlag, clk, reset_n):
-        
+
         """ Framing control FSM.
 
         SOF -- start-of-frame output bit
@@ -651,9 +651,9 @@ variable uses the enumeration type defined above:
         syncFlag -- sync pattern found indication input
         clk -- clock input
         reset_n -- active low reset
-        
+
         """
-        
+
         index = intbv(0, min=0, max=8) # position in frame
         while 1:
             yield posedge(clk), negedge(reset_n)
@@ -769,8 +769,8 @@ Negative values of :class:`intbv` instances are not supported.
 
 Verilog integers are 32 bit wide
     Usually, Verilog integers are 32 bit wide. In contrast, Python is
-    moving toward integers with undefined width. Python :class:`int` and
-    :class:`long` variables are mapped to Verilog integers; so for
+    moving toward integers with undefined width. Python :class:`int`
+    variables are mapped to Verilog integers; so for
     values wider than 32 bit this mapping is incorrect.
 
 Synthesis pragmas are specified as Verilog comments.

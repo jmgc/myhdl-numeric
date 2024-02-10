@@ -1,8 +1,4 @@
-from __future__ import absolute_import
-from __future__ import print_function
-
 from myhdl import *
-from myhdl._compat import long
 
 WIDTH=4
 

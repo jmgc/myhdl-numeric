@@ -22,7 +22,6 @@
 
 import sys
 from math import ldexp
-from myhdl._compat import long, integer_types, bit_length
 
 import unittest
 from unittest import TestCase
@@ -37,6 +36,8 @@ import random
 from random import randrange
 from .. import resize
 
+from .. import wrap, truediv_round
+
 random.seed(2)  # random, but deterministic
 maxint = sys.maxsize
 
@@ -50,7 +51,7 @@ class TestSFixBaInit(TestCase):
         self.assertEqual(value.low, 0, "Wrong low value")
         self.assertEqual(value.max, 1, "Wrong maximum value")
         self.assertEqual(value.min, -1, "Wrong minimum value")
-        self.assertEqual(str(value), ".", "Wrong binary string")
+        self.assertEqual(str(value), "0", "Wrong binary string")
 
     def testPIntValue(self):
         warnings.filterwarnings('error')
@@ -518,11 +519,11 @@ class TestSFixBaIndexing(TestCase):
         self.seqsSetup()
         offset = -64
         for s in self.seqs:
-            n = long(s, 2)
+            n = int(s, 2)
             ba = sfixba(n, 64 - offset, 0).scalb(offset)
             bai = sfixba(~n, 64 - offset, 0).scalb(offset)
             for i in range(len(s) + 20):
-                ref = long(getItem(s, i), 2)
+                ref = int(getItem(s, i), 2)
                 res = ba[i + offset]
                 resi = bai[i + offset]
                 self.assertEqual(res, ref)
@@ -535,7 +536,7 @@ class TestSFixBaIndexing(TestCase):
         self.seqsSetup()
         offset = -64
         for s in self.seqs:
-            n = long(s, 2)
+            n = int(s, 2)
             ba = sfixba(n, 64 - offset, 0).scalb(offset)
             bai = ~ba
             for i in range(1, len(s) + 20):
@@ -546,7 +547,7 @@ class TestSFixBaIndexing(TestCase):
                     except RuntimeWarning:
                         self.assertTrue(i <= j)
                         continue
-                    ref = long(getSlice(s, i, j), 2)
+                    ref = int(getSlice(s, i, j), 2)
                     self.assertEqual(res, wrap(ref, res))
                     self.assertEqual(type(res), sfixba)
                     self.assertEqual(resi, wrap(~ref, resi))
@@ -561,7 +562,7 @@ class TestSFixBaIndexing(TestCase):
             for j in range(0, len(s)):
                 res = ba[:j]
                 resi = bai[:j]
-                ref = long(getSliceLeftOpen(s, j), 2)
+                ref = int(getSliceLeftOpen(s, j), 2)
                 res_sum = resi + ref
                 self.assertEqual(res, resize(ref, res))
                 self.assertEqual(type(res), sfixba)
@@ -577,7 +578,7 @@ class TestSFixBaIndexing(TestCase):
         warnings.filterwarnings('error')
         self.seqsSetup()
         for s in self.seqs:
-            n = long(s, 2)
+            n = int(s, 2)
             for it in (int, sfixba):
                 for i in range(len(s) + 20):
                     # print i
@@ -589,10 +590,10 @@ class TestSFixBaIndexing(TestCase):
                     ba1[i] = it(1)
                     ba0i[i] = it(0)
                     ba1i[i] = it(1)
-                    ref0 = long(setItem(s, i, '0'), 2)
-                    ref1 = long(setItem(s, i, '1'), 2)
-                    ref0i = ~long(setItem(s, i, '1'), 2)
-                    ref1i = ~long(setItem(s, i, '0'), 2)
+                    ref0 = int(setItem(s, i, '0'), 2)
+                    ref1 = int(setItem(s, i, '1'), 2)
+                    ref0i = ~int(setItem(s, i, '1'), 2)
+                    ref1i = ~int(setItem(s, i, '0'), 2)
                     self.assertEqual(ba0, ref0)
                     self.assertEqual(ba1, ref1)
                     self.assertEqual(ba0i, ref0i)
@@ -603,21 +604,21 @@ class TestSFixBaIndexing(TestCase):
         self.seqsSetup()
         toggle = 0
         for s in self.seqs:
-            n = long(s, 2)
+            n = int(s, 2)
             for i in range(1, len(s) + 5):
                 for j in range(0, i):
                     for v in self.seqv:
                         ext = '0' * (i - j - len(v))
                         extv = ext + v
                         ba = sfixba(n, 128, 0)
-                        val = long(v, 2)
+                        val = int(v, 2)
                         toggle ^= 1
                         if toggle:
                             val = sfixba(val)
                         try:
                             ba[i:j] = val
                         except RuntimeWarning:
-                            if isinstance(val, integer_types):
+                            if isinstance(val, int):
                                 self.assertTrue((bit_length(val) > (i - j)) or
                                                 (bit_length(-1 - val) >
                                                  (i - j)))
@@ -626,7 +627,7 @@ class TestSFixBaIndexing(TestCase):
                                                 (len(-1 - val) != (i - j)))
                             continue
                         else:
-                            ref = long(setSlice(s, i, j, extv), 2)
+                            ref = int(setSlice(s, i, j, extv), 2)
                             if ba != ref:
                                 ba[i:j] = val
                                 str(ba)
@@ -641,7 +642,7 @@ class TestSFixBaIndexing(TestCase):
                 for v in self.seqv:
                     ba = sfixba(s)
                     bai = ~ba
-                    val = long(v, 2)
+                    val = int(v, 2)
                     toggle ^= 1
                     if toggle:
                         val = sfixba(val)
@@ -649,7 +650,7 @@ class TestSFixBaIndexing(TestCase):
                         ba[:j] = val
                         bai[:j] = -1 - val
                     except RuntimeWarning:
-                        if isinstance(val, integer_types):
+                        if isinstance(val, int):
                             self.assertTrue((bit_length(val) >
                                              (ba.high - j)) or
                                             (bit_length(-1-val) >
@@ -658,11 +659,11 @@ class TestSFixBaIndexing(TestCase):
                             self.assertTrue((len(val) != (ba.high - j)) or
                                             (len(-1-val) != (bai.high - j)))
                     else:
-                        ref = long(setSliceLeftOpen(s, j, v), 2)
+                        ref = int(setSliceLeftOpen(s, j, v), 2)
                         self.assertEqual(ba, wrap(ref, ba),
                                          "Different value: " +
                                          "{0}, {1}".format(ba, ref))
-                        refi = ~long(setSliceLeftOpen(s, j, v), 2)
+                        refi = ~int(setSliceLeftOpen(s, j, v), 2)
                         self.assertEqual(bai, wrap(refi, bai),
                                          "Different value: " +
                                          "{0}, {1}".format(bai, refi))
@@ -707,11 +708,11 @@ class TestSFixBaAsInt(TestCase):
         warnings.filterwarnings('error')
         self.seqSetup(imin=imin, imax=imax, jmin=jmin, jmax=jmax)
         for i, j in zip(self.seqi, self.seqj):
-            bi = sfixba(long(i), 32, 0)
+            bi = sfixba(int(i), 32, 0)
             bj = sfixba(j, 32, 0)
             ref1 = op(resize(i, bj), j)
-            ref2 = op(long(i), resize(j, bi))
-            ref3 = op(long(i), j)
+            ref2 = op(int(i), resize(j, bi))
+            ref3 = op(int(i), j)
             try:
                 try:
                     r1 = op(bi, j)
@@ -751,7 +752,7 @@ class TestSFixBaAsInt(TestCase):
         warnings.filterwarnings('error')
         self.seqSetup(imin=imin, imax=imax, jmin=jmin, jmax=jmax)
         for i, j in zip(self.seqi, self.seqj):
-            bi = sfixba(long(i), 32, 0)
+            bi = sfixba(int(i), 32, 0)
             bj = sfixba(j, 32, 0)
             r1 = op(bi, j)
             ref1 = truediv_round(op(resize(i, bj), j), r1)
@@ -765,7 +766,7 @@ class TestSFixBaAsInt(TestCase):
                                                              float(r1),
                                                              ref1))
             r2 = op(i, bj)
-            ref2 = truediv_round(op(long(i), resize(j, bi)), r2)
+            ref2 = truediv_round(op(int(i), resize(j, bi)), r2)
             self.assertEqual(type(r2), sfixba)
             self.assertEqual(r2, ref2,
                              "Different results "
@@ -774,7 +775,7 @@ class TestSFixBaAsInt(TestCase):
                                                              int(r2),
                                                              ref2))
             r3 = op(bi, bj)
-            ref3 = truediv_round(op(long(i), j), r3)
+            ref3 = truediv_round(op(int(i), j), r3)
             self.assertEqual(type(r3), sfixba)
             self.assertEqual(r3, resize(ref3, r3),
                              "Different results "
@@ -788,7 +789,7 @@ class TestSFixBaAsInt(TestCase):
         for i, j in zip(self.seqi, self.seqj):
             bi = sfixba(i, 64, 0)
             bj = sfixba(j, 64, 0)
-            ref = op(long(i), j)
+            ref = op(int(i), j)
             r1 = op(bi, j)
             self.assertEqual(type(r1), sfixba)
             self.assertEqual(r1, ref,
@@ -848,13 +849,13 @@ class TestSFixBaAsInt(TestCase):
         self.seqSetup(imin=imin, imax=imax, jmin=jmin, jmax=jmax)
         for i, j in zip(self.seqi, self.seqj):
             bj = sfixba(j, 32, 0)
-            ref = long(i)
+            ref = int(i)
             ref = op(ref, j)
             r1 = bi1 = sfixba(i, 32, 0)
             try:
                 try:
                     r1 = op(r1, j)
-                    r2 = long(i)
+                    r2 = int(i)
                     r2 = op(r2, bj)
                     self.assertEqual(type(r1), sfixba)
                     self.assertEqual(r1, resize(ref, r1))
@@ -867,7 +868,7 @@ class TestSFixBaAsInt(TestCase):
                                            operator.truediv, operator.itruediv,
                                            operator.pow, operator.ipow))
                 else:
-                    r3 = bi3 = sfixba(long(i), 32, 0)
+                    r3 = bi3 = sfixba(int(i), 32, 0)
                     r3 = op(r3, bj)
                     self.assertEqual(type(r3), sfixba)
                     self.assertEqual(r3, resize(ref, r3))
@@ -885,13 +886,13 @@ class TestSFixBaAsInt(TestCase):
         self.seqSetup(imin=imin, imax=imax, jmin=jmin, jmax=jmax)
         for i, j in zip(self.seqi, self.seqj):
             bj = sfixba(j, 32, 0)
-            ref = long(i)
+            ref = int(i)
             ref = op(ref, j)
             r1 = bi1 = sfixba(i, 32, 0)
             try:
                 try:
                     r1 = op(r1, j)
-                    r2 = long(i)
+                    r2 = int(i)
                     r2 = op(r2, bj)
                     self.assertEqual(type(r1), sfixba)
                     self.assertEqual(r1, truediv_round(ref, r1))
@@ -904,7 +905,7 @@ class TestSFixBaAsInt(TestCase):
                                            operator.truediv, operator.itruediv,
                                            operator.pow, operator.ipow))
                 else:
-                    r3 = bi3 = sfixba(long(i), 32, 0)
+                    r3 = bi3 = sfixba(int(i), 32, 0)
                     r3 = op(r3, bj)
                     self.assertEqual(type(r3), sfixba)
                     self.assertEqual(r3, truediv_round(ref, r3))
@@ -922,13 +923,13 @@ class TestSFixBaAsInt(TestCase):
         self.seqSetup(imin=imin, imax=imax, jmin=jmin, jmax=jmax)
         for i, j in zip(self.seqi, self.seqj):
             bj = sintba(j, 128)
-            ref = long(i)
+            ref = int(i)
             ref = op(ref, j)
-            r1 = bi1 = sintba(long(i), 128)
+            r1 = bi1 = sintba(int(i), 128)
             try:
                 try:
                     r1 = op(r1, j)
-                    r2 = long(i)
+                    r2 = int(i)
                     r2 = op(r2, bj)
                     self.assertEqual(type(r1), sintba)
                     self.assertEqual(r1, wrap(ref, r1))
@@ -941,7 +942,7 @@ class TestSFixBaAsInt(TestCase):
                                            operator.truediv, operator.itruediv,
                                            operator.pow, operator.ipow))
                 else:
-                    r3 = bi3 = sintba(long(i), 128)
+                    r3 = bi3 = sintba(int(i), 128)
                     r3 = op(r3, bj)
                     self.assertEqual(type(r3), sintba)
                     self.assertEqual(r3, wrap(ref, r3))
@@ -959,13 +960,13 @@ class TestSFixBaAsInt(TestCase):
         self.seqSetup(imin=imin, imax=imax, jmin=jmin, jmax=jmax)
         for i, j in zip(self.seqi, self.seqj):
             bj = sintba(j, 128)
-            ref = long(i)
+            ref = int(i)
             ref = op(ref, j)
-            r1 = bi1 = sintba(long(i), 128)
+            r1 = bi1 = sintba(int(i), 128)
             try:
                 try:
                     r1 = op(r1, j)
-                    r2 = long(i)
+                    r2 = int(i)
                     r2 = op(r2, bj)
                     self.assertEqual(type(r1), sintba)
                     self.assertEqual(r1, wrap(ref, r1))
@@ -978,7 +979,7 @@ class TestSFixBaAsInt(TestCase):
                                            operator.truediv, operator.itruediv,
                                            operator.pow, operator.ipow))
                 else:
-                    r3 = bi3 = sintba(long(i), 128)
+                    r3 = bi3 = sintba(int(i), 128)
                     r3 = op(r3, bj)
                     self.assertEqual(type(r3), sintba)
                     self.assertEqual(r3, wrap(ref, r3))
@@ -1003,7 +1004,7 @@ class TestSFixBaAsInt(TestCase):
         self.seqSetup(imin=imin, imax=imax)
         for i in self.seqi:
             bi = sfixba(i)
-            ref = op(long(i))
+            ref = op(int(i))
             r1 = op(bi)
             self.assertEqual(type(r1), type(ref))
             self.assertEqual(r1, ref)
@@ -1019,9 +1020,9 @@ class TestSFixBaAsInt(TestCase):
             r1 = op(bi, j)
             r2 = op(i, bj)
             r3 = op(bi, bj)
-            self.assertEqual(r1, op(i, rj), "bi, j, i, rj: "
+            self.assertEqual(r1, op(i, j), "bi, j, i, rj: "
                              "{0}, {1}, {2}, {3}".format(bi, j, i, rj))
-            self.assertEqual(r2, op(ri, j), "i, bj, ri, j: "
+            self.assertEqual(r2, op(i, j), "i, bj, ri, j: "
                              "{0}, {1}, {2}, {3}".format(i, bj, ri, j))
             self.assertEqual(r3, ref, "bi, bj, i, j: "
                              "{0}, {1}, {2}, {3}".format(bi, bj, i, j))
@@ -1151,10 +1152,7 @@ class TestSFixBaAsInt(TestCase):
         self.unaryCheck(operator.inv)
 
     def testInt(self):
-        self.conversionCheck(int, imax=maxint)
-
-    def testLong(self):
-        self.conversionCheck(long)
+        self.conversionCheck(int)
 
     def testFloat(self):
         self.conversionCheck(float)
@@ -1192,136 +1190,6 @@ class TestSFixBaAsInt(TestCase):
 
     def testNe(self):
         self.comparisonCheck(operator.ne)
-
-
-# class TestSFixBaBounds(TestCase):
-#
-#     def testConstructor(self):
-#         warnings.filterwarnings('error')
-#         self.assertEqual(sintba(40, high=54), 40)
-#         self.assertEqual(sintba(-25, high=16), -25)
-#         try:
-#             self.assertTrue(sintba(40, high=3) != 40)
-#         except RuntimeWarning:
-#             pass
-#         else:
-#             self.fail()
-#         try:
-#             self.assertTrue(sintba(-25, high=3) != -25)
-#         except RuntimeWarning:
-#             pass
-#         else:
-#             self.fail()
-#         warnings.resetwarnings()
-#
-#     def testSliceAssign(self):
-#         warnings.filterwarnings('error')
-#         a = sfixba(high=10, low=0)
-#         for i in (0, 2, 13, 31):
-#             for k in (7, 9, 10):
-#                 a[:] = 0
-#                 a[k:] = i
-#                 self.assertEqual(a, i & ((1 << len(a)) - 1))
-#         for i in (32, 63, 74, 116, 229):
-#             for k in (11, 12, 13):
-#                 try:
-#                     a[k:] = i
-#                 except RuntimeWarning:
-#                     pass
-#                 else:
-#                     self.fail()
-#         a = sfixba(5, 14, 0)
-#         for v in (0, 2 ** 8 - 1, 100, -1000, 4096):
-#             a[:] = v
-#
-#     def checkBounds(self, i, j, op, resized=True):
-#         warnings.filterwarnings('error')
-#         a = sfixba(i)
-#         self.assertEqual(a, i) # just to be sure
-#         try:
-#             op(a, long(j))
-#         except (ZeroDivisionError, ValueError):
-#             return # prune
-#         if not isinstance(a._val, (int, long)):
-#             return # prune
-#         if abs(a) > maxint * maxint:
-#             return # keep it reasonable
-#         if a > i:
-#             b = sfixba(i)
-#             for _ in (i+1, a):
-#                 b = sfixba(i)
-#                 b = op(b, long(j))
-#                 if resized:
-#                     if op in (operator.ifloordiv, operator.imod):
-#                         ref = b.resize(op(float(i), float(b.resize(j))))
-#                     else:
-#                         ref = b.resize(op(i, b.resize(j)))
-#                 else:
-#                     ref = op(i, j)
-#                 self.assertEqual(b, ref, "Wrong result: " \
-#                                  "{}({}, {}) = {}, {}".format(op, i, j,
-#                                                               ref, b))
-#         elif a < i :
-#             b = sfixba(i)
-#             b = op(b, long(j)) # should be ok
-#             for _ in (a+1, i):
-#                 b = sfixba(i)
-#                 b = op(b, j)
-#                 if resized:
-#                     if op in (operator.ifloordiv, operator.imod):
-#                         ref = b.resize(op(float(i), float(b.resize(j))))
-#                     else:
-#                         ref = b.resize(op(i, b.resize(j)))
-#                 else:
-#                     ref = op(i, j)
-#                 if b != ref:
-#                     b = sfixba(i)
-#                     b = op(b, j)
-#                 self.assertEqual(b, ref, "Wrong result: " \
-#                                  "{}({}, {}) = {}, {}".format(op, i, j,
-#                                                               ref, b))
-#         else: # a == i
-#             b = sfixba(i)
-#             op(b, long(j))
-#
-#     def checkOp(self, op, resized=True):
-#         warnings.filterwarnings('error')
-#         for i in (0, 1, 2, 16, 129, 1025):
-#             for j in (0, 1, 2, 9, 123, 2340):
-#                 self.checkBounds(i, j, op, resized)
-#
-#     def testIAdd(self):
-#         self.checkOp(operator.iadd)
-#
-#     def testISub(self):
-#         self.checkOp(operator.isub)
-#
-#     def testIMul(self):
-#         self.checkOp(operator.imul)
-#
-#     def testIFloorDiv(self):
-#         self.checkOp(operator.ifloordiv)
-#
-#     def testIMod(self):
-#         self.checkOp(operator.imod)
-#
-#     def testIPow(self):
-#         self.assertRaises(TypeError, self.checkOp, operator.ipow)
-#
-#     def testIAnd(self):
-#         self.checkOp(operator.iand, resized=False)
-#
-# #    def testIOr(self):
-# #        self.checkOp(operator.ior)
-#
-# #    def testIXor(self):
-# #        self.checkOp(operator.ixor)
-#
-#     def testILShift(self):
-#         self.checkOp(operator.ilshift)
-#
-#     def testIRShift(self):
-#         self.checkOp(operator.irshift)
 
 
 class TestSFixBaCopy(TestCase):
