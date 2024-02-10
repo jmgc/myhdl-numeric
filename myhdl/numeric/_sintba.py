@@ -346,7 +346,12 @@ class sintba(bitarray):
         return self
 
     def __imod__(self, other):
-        result = self % other
+        right = copy(other)
+        if isinstance(right, int):
+            right = sintba(right)
+        if self.high > right.high:
+            right = right.resize(self.high, right.low)
+        result = self % right
         if self.is_signed:
             value = result.resize(self.high, self.low)
         else:
