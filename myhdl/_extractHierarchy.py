@@ -36,16 +36,16 @@ from ._misc import _isGenSeq
 from ._resolverefs import _resolveRefs
 from ._util import _flatten, _genfunc, _isTupleOfInts, _isTupleOfFloats
 
-
 _profileFunc = None
 
 
 class _error:
     pass
 
+
 _error.NoInstances = "No instances found"
 _error.InconsistentHierarchy = "Inconsistent hierarchy - are all" \
-    " instances returned ?"
+                               " instances returned ?"
 _error.InconsistentToplevel = "Inconsistent top level %s for %s - should be 1"
 
 
@@ -76,6 +76,7 @@ class _Instance(object):
         self.frame = frame
 
         self.name = None
+
 
 _memInfoMap = {}
 
@@ -174,11 +175,6 @@ def _isRom(mem):
     return id(mem) in _romInfoMap
 
 
-_userCodeMap = {'verilog': {},
-                'vhdl': {}
-                }
-
-
 class _UserCode(object):
     __slots__ = ['code', 'namespace', 'funcname', 'func', 'sourcefile',
                  'sourceline']
@@ -204,7 +200,14 @@ class _UserCode(object):
         code = "\n%s\n" % code
         return code
 
+    def _scrub_namespace(self):
+        for nm, obj in self.namespace.items():
+            if _isMem(obj):
+                memi = _getMemInfo(obj)
+                self.namespace[nm] = memi.name
+
     def _interpolate(self):
+        self._scrub_namespace()
         return string.Template(self.code).substitute(self.namespace)
 
 
@@ -264,40 +267,6 @@ class _UserVhdlInstance(_UserVhdlCode):
         return s
 
 
-def _addUserCode(specs, arg, funcname, func, frame):
-    classMap = {
-                '__verilog__': _UserVerilogCodeDepr,
-                '__vhdl__': _UserVhdlCodeDepr,
-                'verilog_code': _UserVerilogCode,
-                'vhdl_code': _UserVhdlCode,
-                'verilog_instance': _UserVerilogInstance,
-                'vhdl_instance': _UserVhdlInstance,
-
-               }
-    namespace = frame.f_globals.copy()
-    namespace.update(frame.f_locals)
-    sourcefile = inspect.getsourcefile(frame)
-    sourceline = inspect.getsourcelines(frame)[1]
-    for hdl in _userCodeMap:
-        oldspec = "__%s__" % hdl
-        codespec = "%s_code" % hdl
-        instancespec = "%s_instance" % hdl
-        spec = None
-        # XXX add warning logic
-        if instancespec in specs:
-            spec = instancespec
-        elif codespec in specs:
-            spec = codespec
-        elif oldspec in specs:
-            spec = oldspec
-        if spec:
-            assert id(arg) not in _userCodeMap[hdl]
-            code = specs[spec]
-            _userCodeMap[hdl][id(arg)] = classMap[spec](code, namespace,
-                                                        funcname, func,
-                                                        sourcefile, sourceline)
-
-
 class _CallFuncVisitor(object):
 
     def __init__(self):
@@ -319,8 +288,10 @@ class _HierExtr(object):
 
         global _profileFunc
         _memInfoMap.clear()
-        for hdl in _userCodeMap:
-            _userCodeMap[hdl].clear()
+        self.userCodeMap = {'verilog': {},
+                            'vhdl': {}
+                            }
+
         self.skipNames = ('always_comb', 'instance',
                           'always_seq', '_always_seq_decorator',
                           'always', '_always_decorator',
@@ -395,7 +366,7 @@ class _HierExtr(object):
                 isGenSeq = _isGenSeq(arg)
                 if isGenSeq:
                     specs = {}
-                    for hdl in _userCodeMap:
+                    for hdl in self.userCodeMap:
                         spec = "__%s__" % hdl
                         if spec in frame.f_locals and frame.f_locals[spec]:
                             specs[spec] = frame.f_locals[spec]
@@ -408,7 +379,7 @@ class _HierExtr(object):
                                 getattr(func, spec):
                             specs[spec] = getattr(func, spec)
                     if specs:
-                        _addUserCode(specs, arg, funcname, func, frame)
+                        self._add_user_code(specs, arg, funcname, func, frame)
                 # building hierarchy only makes sense if there are generators
                 if isGenSeq and arg:
                     constdict = {}
@@ -462,7 +433,7 @@ class _HierExtr(object):
 
                     subs = []
                     for n, sub in frame.f_locals.items():
-                        for elt in _inferArgs(arg):
+                        for elt in _infer_args(arg):
                             if elt is sub:
                                 subs.append((n, sub))
                     inst = _Instance(self.level, arg, subs, constdict,
@@ -474,8 +445,40 @@ class _HierExtr(object):
             if funcname in self.skipNames:
                 self.skip -= 1
 
+    def _add_user_code(self, specs, arg, funcname, func, frame):
+        classMap = {
+            '__verilog__': _UserVerilogCodeDepr,
+            '__vhdl__': _UserVhdlCodeDepr,
+            'verilog_code': _UserVerilogCode,
+            'vhdl_code': _UserVhdlCode,
+            'verilog_instance': _UserVerilogInstance,
+            'vhdl_instance': _UserVhdlInstance,
+        }
+        namespace = frame.f_globals.copy()
+        namespace.update(frame.f_locals)
+        sourcefile = inspect.getsourcefile(frame)
+        sourceline = inspect.getsourcelines(frame)[1]
+        for hdl in self.userCodeMap:
+            oldspec = "__%s__" % hdl
+            codespec = "%s_code" % hdl
+            instancespec = "%s_instance" % hdl
+            spec = None
+            # XXX add warning logic
+            if instancespec in specs:
+                spec = instancespec
+            elif codespec in specs:
+                spec = codespec
+            elif oldspec in specs:
+                spec = oldspec
+            if spec:
+                assert id(arg) not in self.userCodeMap[hdl]
+                code = specs[spec]
+                self.userCodeMap[hdl][id(arg)] = classMap[spec](code, namespace,
+                                                           funcname, func,
+                                                           sourcefile, sourceline)
 
-def _inferArgs(arg):
+
+def _infer_args(arg):
     c = [arg]
     if isinstance(arg, (tuple, list)):
         c += list(arg)

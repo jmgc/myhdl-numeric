@@ -55,7 +55,7 @@ from .._misc import downrange
 from .._bin import bin
 from .._errors import ToVHDLError, ToVHDLWarning, ConversionError
 from .._extractHierarchy import (_HierExtr, _isMem, _isRom, _getMemInfo,
-                                 _UserVhdlCode, _userCodeMap, _MemInfo,
+                                 _UserVhdlCode, _MemInfo,
                                  _RomInfo, _Constant, _getRomInfo,
                                  _makeMemInfo, _makeRomInfo)
 from .._instance import _Instantiator
@@ -90,12 +90,16 @@ class _GenerateHierarchy(object):
         self.enum_types = {}
         self.rom_types = {}
         self.sfixed = False
+        self.userCodeMap = {'verilog': {},
+                            'vhdl': {}
+                            }
 
     def __call__(self, h, stdLogicPorts):
         p_entity_dict = {}
         p_offsprings_dict = {}
         p_v_entity_dict = {}
-        entity_list = _flatten(h.hierarchy[:])
+        entity_list = self._flatten(h.hierarchy[:])
+        self.userCodeMap = h.userCodeMap
         absnames = h.absnames
 
         # Search the associated entities (components)
@@ -158,7 +162,7 @@ class _GenerateHierarchy(object):
                 components_list.append(component)
                 component._clean_signals(1)
 
-            p_entity_obj = _flatten(p_entity.obj)
+            p_entity_obj = self._flatten(p_entity.obj)
             # After having determined the signals and other elements, the
             # duplicated generators are deleted. It has to be done between
             # generating the signals and analyzing the top function to avoid
@@ -401,6 +405,18 @@ class _GenerateHierarchy(object):
             entity._clean_signals()
 
         return self
+
+    def _flatten(self, *args):
+        arglist = []
+        for arg in args:
+            if id(arg) in self.userCodeMap['vhdl']:
+                arglist.append(self.userCodeMap['vhdl'][id(arg)])
+            elif isinstance(arg, (list, tuple, set)):
+                for item in arg:
+                    arglist.extend(self._flatten(item))
+            else:
+                arglist.append(arg)
+        return arglist
 
     def _flattenNames(self, args_list, args_dict, names_list, existing_signals,
                       base_name=''):
@@ -1081,19 +1097,6 @@ class vhd_component(object):
 
     def _clean_signals(self, level):
         self.entity._clean_signals(level - 1)
-
-
-def _flatten(*args):
-    arglist = []
-    for arg in args:
-        if id(arg) in _userCodeMap['vhdl']:
-            arglist.append(_userCodeMap['vhdl'][id(arg)])
-        elif isinstance(arg, (list, tuple, set)):
-            for item in arg:
-                arglist.extend(_flatten(item))
-        else:
-            arglist.append(arg)
-    return arglist
 
 
 def _makeDoc(doc, indent=''):
@@ -4452,7 +4455,7 @@ class _AnnotateTypesVisitor(ast.NodeVisitor, _ConversionMixin):
             node.vhd = vhd_unsigned(s)
         elif f is bool:
             node.vhd = vhd_boolean()
-        elif f in _flatten(int, ord):
+        elif f in (int, ord):
             node.vhd = vhd_int()
             node.args[0].vhd = vhd_int()
         elif f is float:

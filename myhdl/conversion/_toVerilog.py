@@ -47,7 +47,7 @@ from .._concat import concat
 from .._delay import delay
 from .._errors import ToVerilogError, ToVerilogWarning
 from .._extractHierarchy import _HierExtr, _isMem, _getMemInfo, _MemInfo, \
-    _isRom, _getRomInfo, _UserVerilogCode, _userCodeMap
+    _isRom, _getRomInfo, _UserVerilogCode
 
 from .._instance import _Instantiator
 from ._misc import _error, _kind, _context, \
@@ -68,19 +68,6 @@ def _checkArgs(arglist):
         if not isinstance(arg, (GeneratorType, _Instantiator,
                                 _UserVerilogCode)):
             raise ToVerilogError(_error.ArgType, arg)
-
-
-def _flatten(*args):
-    arglist = []
-    for arg in args:
-        if id(arg) in _userCodeMap['verilog']:
-            arglist.append(_userCodeMap['verilog'][id(arg)])
-        elif isinstance(arg, (list, tuple, set)):
-            for item in arg:
-                arglist.extend(_flatten(item))
-        else:
-            arglist.append(arg)
-    return arglist
 
 
 def _makeDoc(doc, indent=''):
@@ -105,7 +92,8 @@ class _ToVerilogConvertor(object):
                  "no_myhdl_header",
                  "no_testbench",
                  "portmap",
-                 "trace"
+                 "trace",
+                 "userCodeMap"
                  )
 
     def __init__(self):
@@ -119,6 +107,21 @@ class _ToVerilogConvertor(object):
         self.no_myhdl_header = False
         self.no_testbench = False
         self.trace = False
+        self.userCodeMap = {'verilog': {},
+                            'vhdl': {}
+                            }
+
+    def _flatten(self, *args):
+        arglist = []
+        for arg in args:
+            if id(arg) in self.userCodeMap['verilog']:
+                arglist.append(self.userCodeMap['verilog'][id(arg)])
+            elif isinstance(arg, (list, tuple, set)):
+                for item in arg:
+                    arglist.extend(self._flatten(item))
+            else:
+                arglist.append(arg)
+        return arglist
 
     def __call__(self, func, *args, **kwargs):
         global _converting
@@ -148,6 +151,8 @@ class _ToVerilogConvertor(object):
         else:
             directory = self.directory
 
+        self.userCodeMap = h.userCodeMap
+
         vfilename = name + ".v"
         vpath = os.path.join(directory, vfilename)
         vfile = open(vpath, 'w+')
@@ -155,7 +160,7 @@ class _ToVerilogConvertor(object):
         # initialize properly #
         _genUniqueSuffix.reset()
 
-        arglist = _flatten(h.top)
+        arglist = self._flatten(h.top)
         # print h.top
         _checkArgs(arglist)
         genlist = _analyzeGens(arglist, h.absnames)
