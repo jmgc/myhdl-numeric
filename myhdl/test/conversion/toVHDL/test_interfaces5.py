@@ -146,9 +146,14 @@ def test_five_analyze():
     analyze(m_top, clock, reset, intf1, intf2, intf3)
 
 
-def test_five_verify():
+def test_five_verify_std_logic():
+    toVHDL.std_logic_ports = True
     assert verify(c_testbench_five) == 0
+    toVHDL.std_logic_ports = False
 
+def test_five_verify():
+    toVHDL.std_logic_ports = False
+    assert verify(c_testbench_five) == 0
 
 def test_conversion():
     toVHDL(c_testbench_five)
