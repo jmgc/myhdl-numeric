@@ -525,9 +525,7 @@ class _GenerateHierarchy(object):
                     self.sfixed = True
             # change name to convert to std_logic, or
             # make sure signal name is equal to its port name
-            port_direction = None
             convert_port = False
-            final_name = None
             if isinstance(s, _Signal):
                 ds = s
             elif isinstance(s, _MemInfo):
@@ -552,16 +550,12 @@ class _GenerateHierarchy(object):
             if s._driven and not (isinstance(s, _Signal) and
                                   isinstance(s._assign, _Signal) and
                                   s._assign._driven is None):
-                if s._read:
-                    if not isinstance(ds, _TristateSignal):
-                        warnings.warn("%s: %s.%s" % (_error.OutputPortRead,
-                                                     intf.name,
-                                                     port.name),
-                                      category=ToVHDLWarning
-                                      )
+                if s._read and isinstance(ds, _TristateSignal):
                     port_direction = "inout"
                 else:
                     port_direction = "out"
+                if convert_port:
+                    s._read = True
                 s._used = True
             else:
                 if not s._read:
@@ -573,6 +567,8 @@ class _GenerateHierarchy(object):
                 else:
                     s._used = True
                 port_direction = "in"
+                if convert_port:
+                    s._driven = True
 
             port.direction = port_direction
             port.name = final_name
@@ -1455,7 +1451,7 @@ def _writePort(f, port, entity=True):
             for sl in port.signal.elObj._slicesigs:
                 sl._setName('VHDL')
             if isinstance(port.vhd_type.type, vhd_vector):
-                port_type = vhd_array(port.vhd_type.high+1, vhd_vector(port.vhd_type.type.size)).toStr(False)
+                port_type = vhd_array(port.vhd_type.high + 1, vhd_vector(port.vhd_type.type.size)).toStr(False)
             else:
                 port_type = "std_logic_vector"
         else:
@@ -1477,7 +1473,7 @@ def _writePort(f, port, entity=True):
         port_conversions = port.entity.architecture.signal_conversions
         if port.direction in ("inout", "out"):
             if isinstance(port.vhd_type, vhd_array):
-                for idx in range(port.vhd_type.high+1):
+                for idx in range(port.vhd_type.high + 1):
                     port_conversions.append(vhd_assign(f"{port.name:s}({idx:d})",
                                                        f"std_logic_vector({port.convert}({idx}))"))
             else:
@@ -1486,7 +1482,7 @@ def _writePort(f, port, entity=True):
             port.signal._read = True
         else:
             if isinstance(port.vhd_type, vhd_array):
-                for idx in range(port.vhd_type.high+1):
+                for idx in range(port.vhd_type.high + 1):
                     port_conversions.append(vhd_assign(port.convert,
                                                        f"{port.vhd_type.toStr(False)}({port.name}({idx}))"))
             else:
@@ -1647,7 +1643,7 @@ def _writeCompUnits(f, entity):
                             f.write("%s(%d) => std_logic_vector(%s(%d))" % (port_name, idx, name, idx))
                         else:
                             f.write("%s(%s(%d)) => std_logic_vector(%s(%d))" % (
-                            port.vhd_type.type.toStr(False), port_name, idx, name, idx))
+                                port.vhd_type.type.toStr(False), port_name, idx, name, idx))
                 else:
                     f.write(c)
                     f.write("%s => %s" % (port_name, name))
