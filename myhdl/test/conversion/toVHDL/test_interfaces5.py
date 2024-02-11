@@ -147,9 +147,11 @@ def test_five_analyze():
 
 
 def test_five_verify_std_logic():
+    toVHDL.name = "five_verify_std_logic"
     toVHDL.std_logic_ports = True
     assert verify(c_testbench_five) == 0
     toVHDL.std_logic_ports = False
+    toVHDL.name = None
 
 def test_five_verify():
     toVHDL.std_logic_ports = False
@@ -234,7 +236,6 @@ def c_test_seven_signals():
     return dut, stimulus, fsm
 
 
-@bug("Detection of ports names", "vhdl")
 def test_seven_verify():
     assert verify(c_test_seven_signals) == 0
     #sim = Simulation(c_test_seven_signals())
