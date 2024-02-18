@@ -1783,7 +1783,9 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
             if not isinstance(ori, vhd_int):
                 pre, suf = "to_integer(", ")"
         elif isinstance(vhd, vhd_int):
-            if not isinstance(ori, vhd_int):
+            if isinstance(ori, vhd_enum):
+                pre, suf = f"{ori.toStr(False)}'pos(", ")"
+            elif not isinstance(ori, vhd_int):
                 pre, suf = "to_integer(", ")"
         elif isinstance(vhd, vhd_real):
             if isinstance(ori, vhd_int):

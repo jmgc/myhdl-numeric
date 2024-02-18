@@ -47,18 +47,22 @@ def bench_enum():
 
         op.next = bitwise_op.BW_AND
         yield clock.posedge
+        print(int(op))
         print(int(c))
 
         op.next = bitwise_op.BW_ANDN
         yield clock.posedge
+        print(int(op))
         print(int(c))
 
         op.next = bitwise_op.BW_OR
         yield clock.posedge
+        print(int(op))
         print(int(c))
 
         op.next = bitwise_op.BW_XOR
         yield clock.posedge
+        print(int(op))
         print(int(c))
 
         raise StopSimulation
