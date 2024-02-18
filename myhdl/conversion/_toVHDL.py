@@ -1459,7 +1459,7 @@ def _writePort(f, port, entity=True):
                 sl._setName('VHDL')
             port_type = "std_logic_vector(%d downto 0)" % (port.vhd_type.size - 1)
 
-    if port.direction == "in" or port.internal is None or isinstance(port.vhd_type, (vhd_array, vhd_enum)):
+    if port.direction == "in" or port.internal is None or isinstance(port.vhd_type, vhd_array):
         f.write("\n        %s: %s %s" % (port.name,
                                          port.direction,
                                          port_type))
@@ -1549,16 +1549,22 @@ def _writeSigDecls(f, architecture):
         if not signal.used:
             continue
 
-        if isinstance(signal.vhd_type, (vhd_array, vhd_enum)):
+        if isinstance(signal.vhd_type, vhd_array):
             print("    signal %s: %s;" % (signal.name,
                                           signal.vhd_type.toStr(False)),
                   file=f)
         else:
             if signal.internal is not None:
-                print("    signal %s: %s := %s;" % (signal.name,
-                                                    signal.vhd_type.toStr(True),
-                                                    signal.vhd_type.literal(signal.internal)),
-                      file=f)
+                if isinstance(signal.vhd_type, vhd_enum):
+                    print("    signal %s: %s := %s;" % (signal.name,
+                                                        signal.vhd_type.toStr(False),
+                                                        signal.vhd_type.literal(signal.internal)),
+                          file=f)
+                else:
+                    print("    signal %s: %s := %s;" % (signal.name,
+                                                        signal.vhd_type.toStr(True),
+                                                        signal.vhd_type.literal(signal.internal)),
+                          file=f)
             elif isinstance(signal.vhd_type, (vhd_unsigned, vhd_signed, vhd_sfixed)):
                 print("    signal %s: %s := (others => '0');" % (signal.name,
                                                                  signal.vhd_type.toStr(True)),
