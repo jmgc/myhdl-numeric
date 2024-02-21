@@ -1,17 +1,18 @@
 from __future__ import absolute_import, print_function
 
-from myhdl import Signal, uintba, sintba, sfixba, always_comb, \
+from myhdl import Signal, bitarray, uintba, sintba, sfixba, always_comb, \
     instance, delay, conversion, fixmath
 
 
 def constants(t, v, u, x, y, z, a, s):
-
     b = Signal(bool(0))
     c = Signal(bool(1))
     d = Signal(uintba(5, 8))
     e = Signal(sintba(4, 6))
     f = Signal(sfixba(3.5, 8, -8))
     g = [Signal(sfixba(i/3.14159, 7, -15)) for i in range(8)]
+    h = Signal(bitarray(0, f))
+    j = Signal(bitarray(0, high=1, low=0))
 
     @always_comb
     def logic():
@@ -21,6 +22,8 @@ def constants(t, v, u, x, y, z, a, s):
         x.next = b
         y.next = c
         z.next = a
+        h.next = f
+        j.next[0] = b
         for i in range(len(g)):
             s[i].next = g[i]
 

@@ -159,8 +159,12 @@ class _Signal(object):
                 self._printVcd = self._printVcdHex
         elif isinstance(val, bitarray):
             self._type = type(val)
-            self._min = val.min
-            self._max = val.max
+            try:
+                self._min = val.min
+                self._max = val.max
+            except TypeError:
+                self._min = 0
+                self._max = (1 << len(val)) - 1
             self._nrbits = val._nrbits
             self._high = val.high
             self._low = val.low

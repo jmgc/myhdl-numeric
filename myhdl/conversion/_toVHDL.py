@@ -1745,7 +1745,7 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
         self.returnLabel = tree.name
         self.ind = ''
         self.SigAss = False
-        self.isLhs = False
+        #self.isLhs = False
         self.labelStack = []
         self.context = None
 
@@ -1887,6 +1887,31 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
                 else:
                     pre, suf = "c_i2f(", ", %s, %s, %s, %s)" % \
                                          (vhd.size[0], vhd.size[1], vhd.overflow, vhd.rounding)
+        elif isinstance(vhd, vhd_vector):
+            if isinstance(ori, vhd_unsigned):
+                if vhd.size == ori.size:
+                    pre, suf = "std_logic_vector(", ")"
+                else:
+                    raise TypeError("Vector size mismatch")
+            elif isinstance(ori, vhd_signed):
+                if vhd.size == ori.size:
+                    pre, suf = "std_logic_vector(", ")"
+                else:
+                    raise TypeError("Vector size mismatch")
+            elif isinstance(ori, vhd_sfixed):
+                size = ori.size[0] - ori.size[1] + 1
+                if vhd.size == size:
+                    pre, suf = "std_logic_vector(", ")"
+                else:
+                    raise TypeError("Vector size mismatch")
+            elif isinstance(ori, vhd_vector):
+                if vhd.size != ori.size:
+                    raise TypeError("Vector size mismatch")
+            elif isinstance(ori, vhd_std_logic):
+                if vhd.size != 1:
+                    raise TypeError("Vector size mismatch")
+            else:
+                pre, suf = "std_logic_vector(", ")"
         elif isinstance(vhd, vhd_boolean):
             if not isinstance(ori, vhd_boolean):
                 pre, suf = "bool(", ")"
@@ -2132,9 +2157,9 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
         if isinstance(lhs.vhd, vhd_type):
             rhs.vhd = lhs.vhd
         convOpen, convClose = "", ""
-        self.isLhs = True
+        #self.isLhs = True
         self.visit(lhs)
-        self.isLhs = False
+        #self.isLhs = False
         if self.SigAss:
             self.write(' <= ')
             if hasattr(lhs, "id") and lhs.id in self.tree.vardict:
@@ -3739,6 +3764,12 @@ class vhd_vector(vhd_type):
         result.trunc = True
         return result
 
+    def literal(self, value):
+        if value is None:
+            return "(others => 'Z')"
+        else:
+            return '"%s"' % str(value)
+
     __add__ = __sub__ = __mul__ = __floordiv__ = vhd_type._not_implemented
     __truediv__ = __mod__ = vhd_type._not_implemented
     __radd__ = __rsub__ = __rmul__ = __rfloordiv__ = vhd_type._not_implemented
@@ -4332,6 +4363,8 @@ def inferVhdlClass(obj):
             vhd = vhd_signed
         elif isinstance(obj, sfixba):
             vhd = vhd_sfixed
+        elif isinstance(obj, bitarray):
+            vhd = vhd_vector
     elif (isinstance(obj, _Signal) and obj._type is bool) or \
             isinstance(obj, bool):
         vhd = vhd_std_logic
@@ -4376,6 +4409,9 @@ def inferVhdlObj(obj):
                          guard_bits=
                          fixed_guard_bits
                          )
+    elif issubclass(vhd, vhd_vector):
+        high = getattr(obj, 'high', False)
+        vhd = vhd_vector(size=len(obj))
     elif issubclass(vhd, vhd_std_logic):
         vhd = vhd()
     elif issubclass(vhd, vhd_enum):
