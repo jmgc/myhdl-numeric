@@ -1889,12 +1889,16 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
                                          (vhd.size[0], vhd.size[1], vhd.overflow, vhd.rounding)
         elif isinstance(vhd, vhd_vector):
             if isinstance(ori, vhd_unsigned):
-                if vhd.size == ori.size:
+                if vhd.size > ori.size:
+                    pre, suf = "std_logic_vector(resize(", ", %s))" % vhd.size
+                elif vhd.size == ori.size:
                     pre, suf = "std_logic_vector(", ")"
                 else:
                     raise TypeError("Vector size mismatch")
             elif isinstance(ori, vhd_signed):
-                if vhd.size == ori.size:
+                if vhd.size > ori.size:
+                    pre, suf = "std_logic_vector(resize(", ", %s))" % vhd.size
+                elif vhd.size == ori.size:
                     pre, suf = "std_logic_vector(", ")"
                 else:
                     raise TypeError("Vector size mismatch")
@@ -3255,6 +3259,9 @@ def _convertInitVal(reg, init):
                                                tipe.size[0] -
                                                tipe.size[1] + 1),
                                            high, low, suf)
+    elif isinstance(tipe, vhd_vector):
+        vhd_tipe = tipe.toStr(False)
+        v = '%s%s\'(%s)%s' % (pre, vhd_tipe, tipe.literal(init), suf)
     else:
         assert isinstance(tipe, vhd_enum)
         v = init._toVHDL()
@@ -4534,6 +4541,14 @@ class _AnnotateTypesVisitor(ast.NodeVisitor, _ConversionMixin):
                 r = vhd_sfixed((r.size - 1, 0))
             elif isinstance(r, vhd_unsigned):
                 r = vhd_sfixed((r.size, 0))
+            elif isinstance(r, vhd_sfixed):
+                pass
+            elif isinstance(r, vhd_vector):
+                if len(l) != len(r):
+                    self.raiseError(l, _error.InconsistentType,
+                                    "Vector cannot be compared to an sfixed with different size")
+                else:
+                    l = vhd_vector(r.size)
             elif isinstance(r, vhd_real) and isinstance(right, ast.Constant):
                 value = sfixba(right.value)
                 r = vhd_sfixed((value.high, value.low))
@@ -4547,6 +4562,14 @@ class _AnnotateTypesVisitor(ast.NodeVisitor, _ConversionMixin):
                 l = vhd_sfixed((l.size - 1, 0))
             elif isinstance(l, vhd_unsigned):
                 l = vhd_sfixed((l.size, 0))
+            elif isinstance(l, vhd_sfixed):
+                pass
+            elif isinstance(l, vhd_vector):
+                if len(l) != len(r):
+                    self.raiseError(r, _error.InconsistentType,
+                                    "Vector cannot be compared to an sfixed with different size")
+                else:
+                    r = vhd_vector(l.size)
             elif isinstance(l, vhd_real) and isinstance(left, ast.Constant):
                 value = sfixba(left.value)
                 l = vhd_sfixed((value.high, value.low))
@@ -4561,6 +4584,14 @@ class _AnnotateTypesVisitor(ast.NodeVisitor, _ConversionMixin):
         elif isinstance(l, vhd_signed):
             if isinstance(r, vhd_unsigned):
                 r = vhd_signed(r.size + 1)
+            elif isinstance(r, (vhd_signed, vhd_sfixed)):
+                pass
+            elif isinstance(r, vhd_vector):
+                if l.size <= r.size:
+                    l = vhd_vector(r.size)
+                else:
+                    self.raiseError(r, _error.InconsistentType,
+                                    "Vector cannot be compared to a signed with bigger size")
             elif isinstance(r, vhd_int):
                 if isinstance(right, ast.Constant):
                     r = vhd_signed(sintba(right.value).high)
@@ -4574,6 +4605,14 @@ class _AnnotateTypesVisitor(ast.NodeVisitor, _ConversionMixin):
         elif isinstance(r, vhd_signed):
             if isinstance(l, vhd_unsigned):
                 l = vhd_signed(l.size + 1)
+            elif isinstance(l, (vhd_signed, vhd_sfixed)):
+                pass
+            elif isinstance(l, vhd_vector):
+                if r.size <= l.size:
+                    r = vhd_vector(l.size)
+                else:
+                    self.raiseError(r, _error.InconsistentType,
+                                    "Vector cannot be compared to a signed with bigger size")
             elif isinstance(l, vhd_int):
                 if isinstance(left, ast.Constant):
                     l = vhd_signed(sintba(left.value).high)
@@ -4604,6 +4643,14 @@ class _AnnotateTypesVisitor(ast.NodeVisitor, _ConversionMixin):
                     r = vhd_signed(right.value.vhd.size + 2)
                 else:
                     r = vhd_signed(r.MAX_SIZE)
+            elif isinstance(r, (vhd_unsigned, vhd_signed, vhd_sfixed)):
+                pass
+            elif isinstance(r, vhd_vector):
+                if l.size <= r.size:
+                    l = vhd_vector(r.size)
+                else:
+                    self.raiseError(r, _error.InconsistentType,
+                                    "Vector cannot be compared to an unsigned with bigger size")
             elif maybeNegative(r):
                 l = vhd_signed(l.size + 1)
         elif isinstance(r, vhd_unsigned):
@@ -4624,6 +4671,14 @@ class _AnnotateTypesVisitor(ast.NodeVisitor, _ConversionMixin):
                     l = vhd_signed(left.value.vhd.size + 2)
                 else:
                     l = vhd_signed(l.MAX_SIZE)
+            elif isinstance(l, (vhd_unsigned, vhd_signed, vhd_sfixed)):
+                pass
+            elif isinstance(l, vhd_vector):
+                if r.size <= l.size:
+                    r = vhd_vector(l.size)
+                else:
+                    self.raiseError(l, _error.InconsistentType,
+                                    "Vector cannot be compared to an unsigned with bigger size")
             elif maybeNegative(l):
                 r = vhd_signed(r.size + 1)
         left.vhd = l
@@ -4638,7 +4693,7 @@ class _AnnotateTypesVisitor(ast.NodeVisitor, _ConversionMixin):
         self.generic_visit(node)
         left, right = node.left, node.comparators[0]
         if left.vhd is None:
-            raise ToVHDLError("None cannot be compared: %s" % ast.dump(node))
+            self.raiseError(node, _error.UnsupportedType, "None cannot be compared: %s" % ast.dump(node))
         if isinstance(node.ops[0], (ast.In, ast.NotIn)):
             values = node.comparators[0]
             if isinstance(values, ast.Tuple):
