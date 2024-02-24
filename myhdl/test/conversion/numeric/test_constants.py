@@ -1,7 +1,7 @@
 from __future__ import absolute_import, print_function
 
 from myhdl import Signal, bitarray, uintba, sintba, sfixba, always_comb, \
-    instance, delay, conversion, fixmath
+    instance, delay, conversion, fixmath, StopSimulation
 
 
 def constants(t, v, u, x, y, z, a, s):
@@ -82,3 +82,35 @@ def sfixba_resize():
 
 def test_sfixba_resize():
     assert conversion.verify(sfixba_resize) == 0
+
+
+def bitarray_constants():
+    v = Signal(bitarray(0, 15, 0))
+    w = Signal(bitarray(0, 16, low=0))
+    h = Signal(bitarray(0, 14, 0))
+    @instance
+    def logic():
+        yield delay(10)
+        h.next = v[h.high:]
+        yield delay(10)
+        assert h == uintba(0)
+        print("%s, %s" % (h, v))
+        yield delay(10)
+        h.next = w[h.high:]
+        yield delay(10)
+        assert h == uintba(0)
+        print("%s, %s" % (h, w))
+        yield delay(10)
+        w.next[0] = 1
+        v.next = sfixba(0.1, 7, -8).scalb(8)
+        h.next = uintba(3)
+        yield delay(10)
+        print(w, v, h)
+        yield delay(10)
+        raise StopSimulation
+
+    return logic
+
+
+def test_bitarray_constants():
+    assert conversion.verify(bitarray_constants) == 0

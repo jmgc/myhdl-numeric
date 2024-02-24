@@ -89,8 +89,8 @@ class bitarray(object):
                     value_format = value
         length = len(args)
         if length != (i + 1):
-                raise TypeError("No positional arguments allowed after "
-                                "value_format object")
+            raise TypeError("No positional arguments allowed after "
+                            "value_format object")
         if (length == 0) and ('value' in kwargs):
             value = kwargs['value']
 
@@ -234,7 +234,7 @@ class bitarray(object):
                           RuntimeWarning)
 
     def _wrap(self):
-        length = self._high-self._low
+        length = self._high - self._low
         mask = (1 << length) - 1
         self._val &= mask
 
@@ -258,10 +258,12 @@ class bitarray(object):
 
     def _get_max(self):
         raise TypeError(type(self).__name__ + " does not have a max value")
+
     max = property(lambda self: self._get_max(), None)
 
     def _get_min(self):
         raise TypeError(type(self).__name__ + " does not have a min value")
+
     min = property(lambda self: self._get_min(), None)
 
     # math utility functions
@@ -603,17 +605,19 @@ class bitarray(object):
     # comparisons
     def __eq__(self, other):
         if isinstance(other, bitarray):
-            return (self._high == other.high) and \
-                    (self._low == other.low) and \
-                    (self._val == other._val)
+            if (self._high == other.high) and \
+                    (self._low == other.low):
+                return (self._val == other._val)
+            else:
+                return NotImplemented
         else:
             return NotImplemented
 
     def __ne__(self, other):
         if isinstance(other, bitarray):
             return (self._high != other.high) or \
-                    (self._low != other.low) or \
-                    (self._val != other._val)
+                (self._low != other.low) or \
+                (self._val != other._val)
         else:
             return NotImplemented
 

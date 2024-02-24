@@ -382,6 +382,12 @@ class sintba(bitarray):
             value = other
         elif isinstance(other, sintba):
             value = other._val
+        elif isinstance(other, bitarray):
+            if (other.high - other.low) > self.high:
+                mask = (1 << (other.high - other.low)) - 1
+                value = mask & self._val
+            else:
+                return NotImplemented
         else:
             return NotImplemented
         return self._val == value

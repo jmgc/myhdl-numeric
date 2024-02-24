@@ -1745,7 +1745,7 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
         self.returnLabel = tree.name
         self.ind = ''
         self.SigAss = False
-        #self.isLhs = False
+        # self.isLhs = False
         self.labelStack = []
         self.context = None
 
@@ -1782,8 +1782,7 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
     def BitRepr(item, var):
         return '"%s"' % bin(item, len(var))
 
-    @staticmethod
-    def inferCast(vhd, ori):
+    def inferCast(self, node, vhd, ori):
         pre, suf = "", ""
         if isinstance(vhd, vhd_nat):
             if not isinstance(ori, vhd_int):
@@ -1894,26 +1893,41 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
                 elif vhd.size == ori.size:
                     pre, suf = "std_logic_vector(", ")"
                 else:
-                    raise TypeError("Vector size mismatch")
+                    self.raiseError(node, _error.InconsistentType, "Vector size mismatch")
             elif isinstance(ori, vhd_signed):
                 if vhd.size > ori.size:
                     pre, suf = "std_logic_vector(resize(", ", %s))" % vhd.size
                 elif vhd.size == ori.size:
                     pre, suf = "std_logic_vector(", ")"
                 else:
-                    raise TypeError("Vector size mismatch")
+                    self.raiseError(node, _error.InconsistentType, "Vector size mismatch")
             elif isinstance(ori, vhd_sfixed):
                 size = ori.size[0] - ori.size[1] + 1
                 if vhd.size == size:
                     pre, suf = "std_logic_vector(", ")"
                 else:
-                    raise TypeError("Vector size mismatch")
+                    self.raiseError(node, _error.InconsistentType, "Vector size mismatch")
             elif isinstance(ori, vhd_vector):
                 if vhd.size != ori.size:
-                    raise TypeError("Vector size mismatch")
+                    self.raiseError(node, _error.InconsistentType, "Vector size mismatch")
             elif isinstance(ori, vhd_std_logic):
                 if vhd.size != 1:
-                    raise TypeError("Vector size mismatch")
+                    self.raiseError(node, _error.InconsistentType, "Vector size mismatch")
+            elif isinstance(ori, vhd_nat):
+                pre, suf = "std_logic_vector(c_i2u(", ", %s))" % vhd.size
+            elif isinstance(ori, vhd_int):
+                pre, suf = "std_logic_vector(c_i2s(", ", %s))" % vhd.size
+            elif isinstance(ori, vhd_real):
+                vhdOri = node.vhdOri
+                if isinstance(vhdOri, vhd_sfixed):
+                    l = vhdOri.size[0] - vhdOri.size[1] + 1
+                    if vhd.size != l:
+                        self.raiseError(node, _error.InconsistentType, "Sizes diverge: %d != %d" % (vhd.size, l))
+                    else:
+                        pre, suf = "std_logic_vector(to_sfixed(", ", %s, %s))" % (vhdOri.size[0],
+                                                                                  vhdOri.size[1])
+                else:
+                    self.raiseError(node, _error.InconsistentType, "Unable to convert real to bitarray")
             else:
                 pre, suf = "std_logic_vector(", ")"
         elif isinstance(vhd, vhd_boolean):
@@ -1995,7 +2009,7 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
         elif isinstance(left.vhd, vhd_vector) or \
                 isinstance(right.vhd, vhd_vector):
             vhd_vector.inferBinaryOpCast(node, left, right, op)
-        pre, suf = self.inferCast(node.vhd, node.vhdOri)
+        pre, suf = self.inferCast(node, node.vhd, node.vhdOri)
         if isinstance(node.op, ast.FloorDiv) and \
                 isinstance(node.vhdOri, vhd_sfixed):
             pre = pre + 'floor('
@@ -2017,7 +2031,7 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
             vhd_sfixed.inferShiftOpCast(node, left, right, op)
         if isinstance(left.vhd, vhd_vector):
             vhd_vector.inferShiftOpCast(node, left, right, op)
-        pre, suf = self.inferCast(node.vhd, node.vhdOri)
+        pre, suf = self.inferCast(node, node.vhd, node.vhdOri)
         return pre, suf
 
     def shiftOp(self, node):
@@ -2039,8 +2053,8 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
         elif isinstance(node.op, ast.BitXor):
             ori = node.left.vhdOri ^ node.right.vhdOri
         ori.trunc = True
-        pre, suf = self.inferCast(node.vhd, ori)
-        preori, sufori = self.inferCast(ori, node.vhdOri)
+        pre, suf = self.inferCast(node, node.vhd, ori)
+        preori, sufori = self.inferCast(node, ori, node.vhdOri)
         self.write(pre)
         self.write(preori)
         self.write("(")
@@ -2071,7 +2085,7 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
             newnode.vhdOri = node.vhdOri
             self.visit(newnode)
             return
-        pre, suf = self.inferCast(node.vhd, node.vhdOri)
+        pre, suf = self.inferCast(node, node.vhd, node.vhdOri)
         self.write(pre)
         self.write("(")
         if not isinstance(node.op, ast.UAdd):
@@ -2121,13 +2135,13 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
                 self.visit(node.value)
                 self.write(")")
             elif node.attr == 'val':
-                pre, suf = self.inferCast(node.vhd, node.vhdOri)
+                pre, suf = self.inferCast(node, node.vhd, node.vhdOri)
                 self.write(pre)
                 self.visit(node.value)
                 self.write(suf)
         if isinstance(obj, (_Signal, intbv, bitarray)):
             if node.attr in numeric_attributes_dict:
-                pre, suf = self.inferCast(node.vhd, node.vhdOri)
+                pre, suf = self.inferCast(node, node.vhd, node.vhdOri)
                 self.write(pre)
                 if node.obj < 0:
                     self.write("(%s)" % node.obj)
@@ -2161,9 +2175,9 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
         if isinstance(lhs.vhd, vhd_type):
             rhs.vhd = lhs.vhd
         convOpen, convClose = "", ""
-        #self.isLhs = True
+        # self.isLhs = True
         self.visit(lhs)
-        #self.isLhs = False
+        # self.isLhs = False
         if self.SigAss:
             self.write(' <= ')
             if hasattr(lhs, "id") and lhs.id in self.tree.vardict:
@@ -2195,13 +2209,13 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
             isFunc = True
             pre, suf = self.inferShiftOpCast(node, left, right, op)
         elif isinstance(op, (ast.BitAnd, ast.BitOr, ast.BitXor)):
-            pre, suf = self.inferCast(node.vhd, node.vhdOri)
+            pre, suf = self.inferCast(node, node.vhd, node.vhdOri)
         self.visit(left)
         self.write(" := ")
         self.write(pre)
         if isFunc:
             self.write("%s(" % opmap[type(op)])
-        left_pre, left_suf = self.inferCast(left.vhd, left.vhdOri)
+        left_pre, left_suf = self.inferCast(node, left.vhd, left.vhdOri)
         self.write(left_pre)
         self.visit(left)
         self.write(left_suf)
@@ -2244,13 +2258,13 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
         elif f is len:
             val = self.getVal(node)
             self.require(node, val is not None, "cannot calculate len")
-            pre, suf = self.inferCast(node.vhd, node.vhdOri)
+            pre, suf = self.inferCast(node, node.vhd, node.vhdOri)
             self.write(pre)
             self.write(int(val))
             self.write(suf)
             return
         elif f is now:
-            pre, suf = self.inferCast(node.vhd, node.vhdOri)
+            pre, suf = self.inferCast(node, node.vhd, node.vhdOri)
             self.write(pre)
             self.write("(now / 1 ns)")
             self.write(suf)
@@ -2265,7 +2279,7 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
                     node.args[0].s = ord(node.args[0].s)
         elif f is int:
             opening, closing = '', ''
-            pre, suf = self.inferCast(node.vhd, node.vhdOri)
+            pre, suf = self.inferCast(node, node.vhd, node.vhdOri)
             # convert number argument to integer
             if isinstance(node.args[0], ast.Num):
                 node.args[0].n = int(node.args[0].n)
@@ -2277,7 +2291,7 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
         elif inspect.isclass(f) and issubclass(f, (intbv, bitarray)):
             pre, post = "", ""
             arg = node.args[0]
-            pre, post = self.inferCast(node.vhd, arg.vhdOri)
+            pre, post = self.inferCast(node, node.vhd, arg.vhdOri)
             self.write(pre)
             self.visit(arg)
             self.write(post)
@@ -2285,7 +2299,7 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
         elif f == intbv.signed:  # note equality comparison
             # this call comes from a getattr
             arg = fn.value
-            pre, suf = self.inferCast(node.vhd, node.vhdOri)
+            pre, suf = self.inferCast(node, node.vhd, node.vhdOri)
             opening, closing = '', ''
             if isinstance(arg.vhd, vhd_unsigned):
                 opening, closing = "signed(", ")"
@@ -2305,17 +2319,17 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
             self.write(" * 1 ns")
             return
         elif f is concat:
-            pre, suf = self.inferCast(node.vhd, node.vhdOri)
+            pre, suf = self.inferCast(node, node.vhd, node.vhdOri)
             opening, closing = "unsigned'(", ")"
             sep = " & "
         elif hasattr(node, 'tree'):
-            pre, suf = self.inferCast(node.vhd, node.tree.vhd)
+            pre, suf = self.inferCast(node, node.vhd, node.tree.vhd)
             fname = node.tree.name
         elif f in numeric_functions_dict:
-            pre, suf = self.inferCast(node.vhd, node.vhdOri)
+            pre, suf = self.inferCast(node, node.vhd, node.vhdOri)
             fname = numeric_functions_dict[f]
         else:
-            pre, suf = self.inferCast(node.vhd, node.vhdOri)
+            pre, suf = self.inferCast(node, node.vhd, node.vhdOri)
         if node.args:
             self.write(pre)
             # TODO rewrite making use of fname variable
@@ -2379,7 +2393,7 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
                 c = self.constdict[right.id]
                 n = c.name
                 items = c.mem
-                t_pre, t_suf = self.inferCast(right.vhd.type,
+                t_pre, t_suf = self.inferCast(right, right.vhd.type,
                                               right.vhdOri.type)
                 isRomInfo = True
             else:
@@ -2413,69 +2427,70 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
             self.visit(right)
             self.write(suf)
 
-    def visit_Num(self, node):
-        n = node.n
-        if isinstance(node.vhd, vhd_std_logic):
-            self.write("'%s'" % n)
-        elif isinstance(node.vhd, vhd_boolean):
-            self.write("%s" % bool(n))
-        elif isinstance(node.vhd, vhd_unsigned):
-            if abs(n) < 2 ** 31:
-                self.write("to_unsigned(%d, %s)" % (n, node.vhd.size))
-            else:
-                self.write('unsigned\'("%s")' % bin(n, node.vhd.size))
-        elif isinstance(node.vhd, vhd_signed):
-            if abs(n) < 2 ** 31:
-                self.write("to_signed(%d, %s)" % (n, node.vhd.size))
-            else:
-                self.write('signed\'("%s")' % bin(n, node.vhd.size))
-        elif isinstance(node.vhd, vhd_sfixed):
-            if isinstance(n, int):
+    def visit_Constant(self, node):
+        if node.value is None:
+            # NameConstant
+            node.id = str(node.value)
+            self.getName(node)
+        elif isinstance(node.value, bool):
+            # NameConstant
+            node.id = str(node.value)
+            self.getName(node)
+        elif isinstance(node.value, int):
+            # Num
+            n = node.value
+            if isinstance(node.vhd, vhd_std_logic):
+                self.write("'%s'" % n)
+            elif isinstance(node.vhd, vhd_boolean):
+                self.write("%s" % bool(n))
+            elif isinstance(node.vhd, vhd_unsigned):
+                if abs(n) < 2 ** 31:
+                    self.write("to_unsigned(%s, %s)" % (n, node.vhd.size))
+                else:
+                    self.write('unsigned\'("%s")' % bin(n, node.vhd.size))
+            elif isinstance(node.vhd, vhd_signed):
+                if abs(n) < 2 ** 31:
+                    self.write("to_signed(%s, %s)" % (n, node.vhd.size))
+                else:
+                    self.write('signed\'("%s")' % bin(n, node.vhd.size))
+            elif isinstance(node.vhd, vhd_sfixed):
                 if node.vhd.size[0] < 0:
                     v = "0"
                 else:
                     v = bin(n, node.vhd.size[0] + 1)
                 self.write('my_resize(c_str2f("%s"), %s, %s)' %
                            (v, node.vhd.size[0], node.vhd.size[1]))
+            elif isinstance(node.vhd, vhd_vector):
+                self.raiseError(node, _error.UnsupportedType, "int cannot be assigned to bitarray")
             else:
+                if n < 0:
+                    self.write("(")
+                self.write(n)
+                if n < 0:
+                    self.write(")")
+        elif isinstance(node.value, float):
+            n = node.value
+            if isinstance(node.vhd, vhd_sfixed):
                 self.write('to_sfixed(%s, %s, %s)' %
                            (n, node.vhd.size[0], node.vhd.size[1]))
-        elif isinstance(node.vhd, vhd_nat):
-            if isinstance(node.vhdOri, vhd_nat):
-                pre, suf = "(", ")"
-            elif isinstance(node.vhdOri, vhd_int):
-                pre, suf = "natural(", ")"
-            if n < 0:
-                self.write(pre)
-            self.write(n)
-            if n < 0:
-                self.write(suf)
-        elif isinstance(node.vhd, vhd_int):
-            if isinstance(node.vhdOri, vhd_nat):
-                pre, suf = "integer(", ")"
-            elif isinstance(node.vhdOri, vhd_int):
-                pre, suf = "(", ")"
-            if n < 0:
-                self.write(pre)
-            self.write(n)
-            if n < 0:
-                self.write(suf)
-        elif isinstance(node.vhd, vhd_real):
-            if isinstance(node.vhdOri, vhd_int):
-                pre, suf = "real(", ")"
-            elif isinstance(node.vhdOri, vhd_real):
-                pre, suf = "(", ")"
-            if n < 0:
-                self.write(pre)
-            self.write(float(n))
-            if n < 0:
-                self.write(suf)
-
-    def visit_Str(self, node):
-        typemark = 'string'
-        if isinstance(node.vhd, vhd_unsigned):
-            typemark = 'unsigned'
-        self.write("%s'(\"%s\")" % (typemark, str(node.s).replace('"', '""')))
+            elif isinstance(node.vhd, vhd_real):
+                if isinstance(node.vhdOri, vhd_int):
+                    pre, suf = "real(", ")"
+                elif isinstance(node.vhdOri, vhd_real):
+                    pre, suf = "(", ")"
+                if n < 0:
+                    self.write(pre)
+                self.write(float(n))
+                if n < 0:
+                    self.write(suf)
+            elif isinstance(node.vhd, vhd_vector):
+                self.raiseError(node, _error.UnsupportedType, "float cannot be assigned to bitarray")
+        elif isinstance(node.value, str):
+            # Str
+            typemark = 'string'
+            if isinstance(node.vhd, vhd_unsigned):
+                typemark = 'unsigned'
+            self.write("%s'(\"%s\")" % (typemark, node.value))
 
     def visit_Continue(self, node, *args):
         self.write("next;")
@@ -2666,10 +2681,6 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
         for stmt in node.body:
             self.visit(stmt)
 
-    def visit_NameConstant(self, node):
-        node.id = str(node.value)
-        self.getName(node)
-
     def visit_Name(self, node):
         if isinstance(node.ctx, ast.Store):
             self.setName(node)
@@ -2708,7 +2719,7 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
             s = n
             obj = self.tree.vardict[n]
             ori = inferVhdlObj(obj)
-            pre, suf = self.inferCast(node.vhd, ori)
+            pre, suf = self.inferCast(node, node.vhd, ori)
             s = "%s%s%s" % (pre, s, suf)
 
         elif n in self.tree.argnames:
@@ -2809,7 +2820,7 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
             elif isinstance(obj, _Signal):
                 s = str(obj)
                 # ori = inferVhdlObj(obj)
-                pre, suf = self.inferCast(node.vhd, node.vhdOri)
+                pre, suf = self.inferCast(node, node.vhd, node.vhdOri)
                 s = "%s%s%s" % (pre, s, suf)
                 obj.used = True
             elif _isMem(obj):
@@ -2908,7 +2919,7 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
             self.write("%s" % c)
             self.write(post)
             return
-        pre, suf = self.inferCast(node.vhd, node.vhdOri)
+        pre, suf = self.inferCast(node, node.vhd, node.vhdOri)
         if isinstance(node.value.vhd, vhd_signed) and \
                 isinstance(node.ctx, ast.Load) and \
                 node.value.vhd.from_intbv:
@@ -2946,7 +2957,7 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
         self.write(suf)
 
     def accessIndex(self, node):
-        pre, suf = self.inferCast(node.vhd, node.vhdOri)
+        pre, suf = self.inferCast(node, node.vhd, node.vhdOri)
         self.write(pre)
         self.visit(node.value)
 
@@ -4417,7 +4428,9 @@ def inferVhdlObj(obj):
                          fixed_guard_bits
                          )
     elif issubclass(vhd, vhd_vector):
-        high = getattr(obj, 'high', False)
+        low = getattr(obj, 'low', None)
+        if low is not None and low < 0:
+            raise ToVHDLError("Vector low cannot be negative")
         vhd = vhd_vector(size=len(obj))
     elif issubclass(vhd, vhd_std_logic):
         vhd = vhd()
@@ -4527,7 +4540,7 @@ class _AnnotateTypesVisitor(ast.NodeVisitor, _ConversionMixin):
             node.vhd = node.tree.vhd = inferVhdlObj(node.tree.returnObj)
         node.vhdOri = copy(node.vhd)
 
-    def inferCompareType(self, left, right):
+    def inferCompareType(self, node, left, right):
         attributes = ('max', 'min')
         l = left.vhd
         r = right.vhd
@@ -4545,7 +4558,7 @@ class _AnnotateTypesVisitor(ast.NodeVisitor, _ConversionMixin):
                 pass
             elif isinstance(r, vhd_vector):
                 if len(l) != len(r):
-                    self.raiseError(l, _error.InconsistentType,
+                    self.raiseError(node, _error.InconsistentType,
                                     "Vector cannot be compared to an sfixed with different size")
                 else:
                     l = vhd_vector(r.size)
@@ -4566,7 +4579,7 @@ class _AnnotateTypesVisitor(ast.NodeVisitor, _ConversionMixin):
                 pass
             elif isinstance(l, vhd_vector):
                 if len(l) != len(r):
-                    self.raiseError(r, _error.InconsistentType,
+                    self.raiseError(node, _error.InconsistentType,
                                     "Vector cannot be compared to an sfixed with different size")
                 else:
                     r = vhd_vector(l.size)
@@ -4590,7 +4603,7 @@ class _AnnotateTypesVisitor(ast.NodeVisitor, _ConversionMixin):
                 if l.size <= r.size:
                     l = vhd_vector(r.size)
                 else:
-                    self.raiseError(r, _error.InconsistentType,
+                    self.raiseError(node, _error.InconsistentType,
                                     "Vector cannot be compared to a signed with bigger size")
             elif isinstance(r, vhd_int):
                 if isinstance(right, ast.Constant):
@@ -4611,7 +4624,7 @@ class _AnnotateTypesVisitor(ast.NodeVisitor, _ConversionMixin):
                 if r.size <= l.size:
                     r = vhd_vector(l.size)
                 else:
-                    self.raiseError(r, _error.InconsistentType,
+                    self.raiseError(node, _error.InconsistentType,
                                     "Vector cannot be compared to a signed with bigger size")
             elif isinstance(l, vhd_int):
                 if isinstance(left, ast.Constant):
@@ -4649,7 +4662,7 @@ class _AnnotateTypesVisitor(ast.NodeVisitor, _ConversionMixin):
                 if l.size <= r.size:
                     l = vhd_vector(r.size)
                 else:
-                    self.raiseError(r, _error.InconsistentType,
+                    self.raiseError(node, _error.InconsistentType,
                                     "Vector cannot be compared to an unsigned with bigger size")
             elif maybeNegative(r):
                 l = vhd_signed(l.size + 1)
@@ -4677,10 +4690,15 @@ class _AnnotateTypesVisitor(ast.NodeVisitor, _ConversionMixin):
                 if r.size <= l.size:
                     r = vhd_vector(l.size)
                 else:
-                    self.raiseError(l, _error.InconsistentType,
+                    self.raiseError(node, _error.InconsistentType,
                                     "Vector cannot be compared to an unsigned with bigger size")
             elif maybeNegative(l):
                 r = vhd_signed(r.size + 1)
+        elif isinstance(l, vhd_vector):
+            self.raiseError(node, _error.InconsistentType, "Vector cannot be compared")
+        elif isinstance(r, vhd_vector):
+            self.raiseError(node, _error.InconsistentType, "Vector cannot be compared")
+
         left.vhd = l
         # Case for the in operator
         if isinstance(right.vhd, vhd_array):
@@ -4698,7 +4716,7 @@ class _AnnotateTypesVisitor(ast.NodeVisitor, _ConversionMixin):
             values = node.comparators[0]
             if isinstance(values, ast.Tuple):
                 for right in values.elts:
-                    self.inferCompareType(left, right)
+                    self.inferCompareType(node, left, right)
                 node.vhdOri = copy(node.vhd)
                 return
             elif isinstance(values, ast.Name) and \
@@ -4707,21 +4725,27 @@ class _AnnotateTypesVisitor(ast.NodeVisitor, _ConversionMixin):
             else:
                 raise ToVHDLError("In is not a valid operand: %s" %
                                   ast.dump(node))
-        self.inferCompareType(left, right)
+        self.inferCompareType(node, left, right)
         node.vhdOri = copy(node.vhd)
 
-    def visit_Str(self, node):
-        node.vhd = vhd_string()
-        node.vhdOri = copy(node.vhd)
-
-    def visit_Num(self, node):
-        if node.n is float:
-            node.vhd = vhd_real()
-        else:
-            if node.n < 0:
+    def visit_Constant(self, node):
+        if node.value is None:
+            # NameConstant
+            node.vhd = inferVhdlObj(node.value)
+        elif isinstance(node.value, bool):
+            # NameConstant
+            node.vhd = inferVhdlObj(node.value)
+        elif isinstance(node.value, int):
+            # Num
+            if node.value < 0:
                 node.vhd = vhd_int()
             else:
                 node.vhd = vhd_nat()
+        elif isinstance(node.value, float):
+            node.vhd = vhd_real()
+        elif isinstance(node.value, str):
+            # Str
+            node.vhd = vhd_string()
         node.vhdOri = copy(node.vhd)
 
     def visit_For(self, node):
@@ -4730,14 +4754,13 @@ class _AnnotateTypesVisitor(ast.NodeVisitor, _ConversionMixin):
         self.tree.vardict[var] = _loopInt(-1)
         self.generic_visit(node)
 
-    def visit_NameConstant(self, node):
-        node.vhd = inferVhdlObj(node.value)
-        node.vhdOri = copy(node.vhd)
-
     def visit_Name(self, node):
         if node.id in self.tree.vardict:
             node.obj = self.tree.vardict[node.id]
-        node.vhd = inferVhdlObj(node.obj)
+        try:
+            node.vhd = inferVhdlObj(node.obj)
+        except ToVHDLError as error:
+            self.raiseError(node, _error.UnsupportedType, str(error))
         node.vhdOri = copy(node.vhd)
 
     def visit_BinOp(self, node):
