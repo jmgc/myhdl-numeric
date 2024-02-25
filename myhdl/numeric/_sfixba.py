@@ -926,7 +926,7 @@ class sfixba(bitarray):
             low = min(self.low, 0)
             result = sfixba(0, high, low, maths=self)
             value = bitarray.__or__(sfixba(self, thigh, low, maths=self),
-                                     sfixba(other, thigh, low, maths=self))
+                                    sfixba(other, thigh, low, maths=self))
             result._val = value._val
             result._wrap()
             return result
@@ -1137,8 +1137,14 @@ class sfixba(bitarray):
             value = type(self)(other)
         elif isinstance(other, sfixba):
             value = other
-        elif isinstance(other, bitarray):
+        elif isinstance(other, sintba):
             value = type(self)(other, maths=self)
+        elif type(other) is bitarray:
+            if (other.high - other.low) > self.high:
+                mask = (1 << (other.high - other.low)) - 1
+                value = mask & self._val
+            else:
+                return NotImplemented
         else:
             return NotImplemented
         high = max(self._high, value._high)
@@ -1148,21 +1154,7 @@ class sfixba(bitarray):
         return l._val == r._val
 
     def __ne__(self, other):
-        if isinstance(other, int):
-            value = type(self)(other)
-        elif isinstance(other, float):
-            value = type(self)(other)
-        elif isinstance(other, sfixba):
-            value = other
-        elif isinstance(other, bitarray):
-            value = type(self)(other, maths=self)
-        else:
-            return NotImplemented
-        high = max(self._high, value._high)
-        low = min(self._low, value._low)
-        l = self.resize(high, low)
-        r = value.resize(high, low)
-        return l._val != r._val
+        return not (self == other)
 
     def __lt__(self, other):
         if isinstance(other, int):

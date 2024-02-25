@@ -382,7 +382,7 @@ class sintba(bitarray):
             value = other
         elif isinstance(other, sintba):
             value = other._val
-        elif isinstance(other, bitarray):
+        elif type(other) is bitarray:
             if (other.high - other.low) > self.high:
                 mask = (1 << (other.high - other.low)) - 1
                 value = mask & self._val
@@ -393,13 +393,7 @@ class sintba(bitarray):
         return self._val == value
 
     def __ne__(self, other):
-        if isinstance(other, int):
-            value = other
-        elif isinstance(other, sintba):
-            value = other._val
-        else:
-            return NotImplemented
-        return self._val != value
+        return not (self == other)
 
     def __lt__(self, other):
         if isinstance(other, int):
@@ -440,7 +434,7 @@ class sintba(bitarray):
     # representation
     def __repr__(self):
         return type(self).__name__ + \
-                "({0:#x}, high={1})".format(self._val, self._high)
+            "({0:#x}, high={1})".format(self._val, self._high)
 
     def resize(self, *args):
         length = len(args)

@@ -102,7 +102,6 @@ def Signal(val=None, delay=None):
 
 
 class _Signal(object):
-
     """ _Signal class.
 
     Properties:
@@ -374,7 +373,7 @@ class _Signal(object):
 
     def _printVcdVec(self):
         if self._val is None:
-            print("b%s %s" % ('z'*self._nrbits, self._code),
+            print("b%s %s" % ('z' * self._nrbits, self._code),
                   file=_simulator._tf)
         else:
             print("b%s %s" % (bin(self._val, self._nrbits), self._code),
@@ -547,21 +546,33 @@ class _Signal(object):
 
     # comparisons
     def __eq__(self, other):
+        if isinstance(other, _Signal):
+            return self._val == other._val
         return self.val == other
 
     def __ne__(self, other):
+        if isinstance(other, _Signal):
+            return self._val != other._val
         return self.val != other
 
     def __lt__(self, other):
+        if isinstance(other, _Signal):
+            return self._val < other._val
         return self.val < other
 
     def __le__(self, other):
+        if isinstance(other, _Signal):
+            return self._val <= other._val
         return self.val <= other
 
     def __gt__(self, other):
+        if isinstance(other, _Signal):
+            return self._val > other._val
         return self.val > other
 
     def __ge__(self, other):
+        if isinstance(other, _Signal):
+            return self._val >= other._val
         return self.val >= other
 
     # method lookup delegation
@@ -617,7 +628,6 @@ class _Signal(object):
 
 
 class _DelayedSignal(_Signal):
-
     __slots__ = ('_nextZ', '_delay', '_timeStamp',
                  )
 
@@ -677,6 +687,7 @@ class _SignalWrap(object):
 
     def apply(self):
         return self.sig._apply(self.next, self.timeStamp)
+
 
 # for export
 SignalType = _Signal
