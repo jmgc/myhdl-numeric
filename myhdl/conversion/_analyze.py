@@ -934,19 +934,24 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
                     elif v == 1:
                         node.edge = sig.posedge
 
-    def visit_Num(self, node):
-        n = node.n
-        # assign to value attribute for backwards compatibility
-        node.value = n
-        if n in (0, 1):
-            node.obj = bool(n)
-        elif isinstance(n, (int, float)):
-            node.obj = n
-        else:
-            node.obj = None
-
-    def visit_Str(self, node):
-        node.obj = node.s
+    def visit_Constant(self, node):
+        node.obj = None  # safeguarding?
+        # ToDo check for tuples?
+        if isinstance(node.value, int):
+            # int
+            if node.value in (0, 1):
+                node.obj = bool(node.value)
+            else:
+                node.obj = node.value
+        elif isinstance(node.value, float):
+            # float
+            node.obj = node.value
+        elif node.value in (True, False, None):
+            # NameConstant
+            node.obj = node.value
+        elif isinstance(node.value, str):
+            # Str
+            node.obj = node.value
 
     def visit_Continue(self, node):
         self.labelStack[-1].isActive = True
@@ -1049,9 +1054,6 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
             self.raiseError(node, _error.UnsupportedListComp)
         mem.depth = cf.args[0].obj
 
-    def visit_NameConstant(self, node):
-        node.obj = node.value
-
     def visit_Name(self, node):
         if isinstance(node.ctx, ast.Store):
             self.setName(node)
@@ -1141,9 +1143,7 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
                     assert False, "unexpected mem access %s %s" % \
                                   (n, self.access)
                 self.tree.hasLos = True
-            elif isinstance(node.obj, int):
-                node.value = node.obj
-            elif isinstance(node.obj, float):
+            elif isinstance(node.obj, (int, float)):
                 node.value = node.obj
             if n in self.tree.nonlocaldict:
                 # hack: put nonlocal intbv's in the vardict
