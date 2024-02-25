@@ -11,7 +11,7 @@ def constants(t, v, u, x, y, z, a, s):
     e = Signal(sintba(4, 6))
     f = Signal(sfixba(3.5, 8, -8))
     g = [Signal(sfixba(i/3.14159, 7, -15)) for i in range(8)]
-    h = Signal(bitarray(0, f))
+    h = Signal(bitarray(0, len(f), 0))
     j = Signal(bitarray(0, high=1, low=0))
 
     @always_comb
@@ -22,7 +22,7 @@ def constants(t, v, u, x, y, z, a, s):
         x.next = b
         y.next = c
         z.next = a
-        h.next = f
+        h.next = f.scalb(-f.low)
         j.next[0] = b
         for i in range(len(g)):
             s[i].next = g[i]
@@ -88,12 +88,16 @@ def bitarray_constants():
     v = Signal(bitarray(0, 15, 0))
     w = Signal(bitarray(0, 16, low=0))
     h = Signal(bitarray(0, 14, 0))
+    i = Signal(bitarray(0, 32, 0))
+    data = 3913087651
     @instance
     def logic():
         yield delay(10)
         h.next = v[h.high:]
+        i.next = uintba(data, 32)
         yield delay(10)
         assert h == uintba(0)
+        assert i == uintba(data, 32)
         print("%s, %s" % (h, v))
         yield delay(10)
         h.next = w[h.high:]

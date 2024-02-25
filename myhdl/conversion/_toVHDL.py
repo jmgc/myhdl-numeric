@@ -1825,6 +1825,8 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
                     pre, suf = "c_f2u(", ", %s)" % vhd.size
             elif isinstance(ori, vhd_std_logic):
                 pre, suf = "c_l2u(", ", %s)" % vhd.size
+            elif isinstance(ori, vhd_nat):
+                pre, suf = "c_n2u(", ", %s)" % vhd.size
             else:
                 pre, suf = "c_i2u(", ", %s)" % vhd.size
         elif isinstance(vhd, vhd_signed):
@@ -1906,7 +1908,7 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
                 if vhd.size == size:
                     pre, suf = "std_logic_vector(", ")"
                 else:
-                    self.raiseError(node, _error.InconsistentType, "Vector size mismatch")
+                    self.raiseError(node, _error.InconsistentType, "Vector size mismatch %d != %d" % (vhd.size, size))
             elif isinstance(ori, vhd_vector):
                 if vhd.size != ori.size:
                     self.raiseError(node, _error.InconsistentType, "Vector size mismatch")
@@ -1914,7 +1916,7 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
                 if vhd.size != 1:
                     self.raiseError(node, _error.InconsistentType, "Vector size mismatch")
             elif isinstance(ori, vhd_nat):
-                pre, suf = "std_logic_vector(c_i2u(", ", %s))" % vhd.size
+                pre, suf = "std_logic_vector(c_n2u(", ", %s))" % vhd.size
             elif isinstance(ori, vhd_int):
                 pre, suf = "std_logic_vector(c_i2s(", ", %s))" % vhd.size
             elif isinstance(ori, vhd_real):
@@ -2291,7 +2293,11 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
         elif inspect.isclass(f) and issubclass(f, (intbv, bitarray)):
             pre, post = "", ""
             arg = node.args[0]
-            pre, post = self.inferCast(node, node.vhd, arg.vhdOri)
+            if type(node.vhd) is vhd_vector:
+                pre, post = self.inferCast(node, node.vhd, node.vhdOri)
+                arg.vhd = node.vhdOri
+            else:
+                arg.vhd = node.vhd
             self.write(pre)
             self.visit(arg)
             self.write(post)
@@ -2444,12 +2450,12 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
             elif isinstance(node.vhd, vhd_boolean):
                 self.write("%s" % bool(n))
             elif isinstance(node.vhd, vhd_unsigned):
-                if abs(n) < 2 ** 31:
+                if abs(n) < (1 << 31):
                     self.write("to_unsigned(%s, %s)" % (n, node.vhd.size))
                 else:
                     self.write('unsigned\'("%s")' % bin(n, node.vhd.size))
             elif isinstance(node.vhd, vhd_signed):
-                if abs(n) < 2 ** 31:
+                if abs(n) < (1 << 31):
                     self.write("to_signed(%s, %s)" % (n, node.vhd.size))
                 else:
                     self.write('signed\'("%s")' % bin(n, node.vhd.size))
@@ -2463,6 +2469,8 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
             elif isinstance(node.vhd, vhd_vector):
                 self.raiseError(node, _error.UnsupportedType, "int cannot be assigned to bitarray")
             else:
+                if n > 1 << 31:
+                    self.raiseError(node, _error.InconsistentBitWidth, "Integer too large to be represented")
                 if n < 0:
                     self.write("(")
                 self.write(n)
@@ -2749,7 +2757,7 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
                 if n in constdict and obj == constdict[n].value:
                     name = constdict[n].name
                     if isinstance(node.vhd, (vhd_int, vhd_real)):
-                        if abs(obj) < 2 ** 31:
+                        if abs(obj) < (1 << 31):
                             s = name
                             constdict[n].used = True
                         else:
