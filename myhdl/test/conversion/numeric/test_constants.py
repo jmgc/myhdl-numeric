@@ -13,6 +13,8 @@ def constants(t, v, u, x, y, z, a, s):
     g = [Signal(sfixba(i/3.14159, 7, -15)) for i in range(8)]
     h = Signal(bitarray(0, len(f), 0))
     j = Signal(bitarray(0, high=1, low=0))
+    k = Signal(uintba(0, 32))
+    data = 391308765
 
     @always_comb
     def logic():
@@ -26,6 +28,7 @@ def constants(t, v, u, x, y, z, a, s):
         j.next[0] = b
         for i in range(len(g)):
             s[i].next = g[i]
+        k.next = uintba(data, 32)
 
     return logic
 
@@ -89,15 +92,15 @@ def bitarray_constants():
     w = Signal(bitarray(0, 16, low=0))
     h = Signal(bitarray(0, 14, 0))
     i = Signal(bitarray(0, 32, 0))
-    data = 3913087651
+    data = uintba(3913087651, 32)
     @instance
     def logic():
         yield delay(10)
         h.next = v[h.high:]
-        i.next = uintba(data, 32)
+        i.next = data
         yield delay(10)
         assert h == uintba(0)
-        assert i == uintba(data, 32)
+        assert i == data
         print("%s, %s" % (h, v))
         yield delay(10)
         h.next = w[h.high:]

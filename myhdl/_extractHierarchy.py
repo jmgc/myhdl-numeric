@@ -30,6 +30,7 @@ import ast
 
 from ._errors import ExtractHierarchyError, ToVerilogError, ToVHDLError
 from ._enum import EnumItemType
+from .numeric._bitarray import bitarray
 from ._Signal import _Signal, _isListOfSigs
 from ._getcellvars import _getCellVars
 from ._misc import _isGenSeq
@@ -412,7 +413,7 @@ class _HierExtr(object):
                             sigdict[n] = v
                             if n in cellvars:
                                 v._markUsed()
-                        elif isinstance(v, (int, float,
+                        elif isinstance(v, (int, float, bitarray,
                                             EnumItemType)):
                             constdict[n] = _Constant(n, v)
                         elif _isListOfSigs(v):

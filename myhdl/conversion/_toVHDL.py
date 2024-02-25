@@ -2825,6 +2825,18 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
                     elif isinstance(node.vhd, vhd_sfixed):
                         s = "to_sfixed(%s, %s, %s)" % (obj, node.vhd.size[0],
                                                        node.vhd.size[1])
+            elif isinstance(obj, bitarray):
+                if n in constdict and obj == constdict[n].value:
+                    obj = self.tree.constdict[n]
+                    ori = inferVhdlObj(obj)
+                    pre, suf = self.inferCast(node, node.vhd, ori)
+                    s = "%s%s%s" % (pre, s, suf)
+                    constdict[n].used = True
+                else:
+                    obj = self.tree.constdict[n]
+                    ori = inferVhdlObj(obj)
+                    pre, suf = self.inferCast(node, node.vhd, ori)
+                    s = "%s%s%s" % (pre, s, suf)
             elif isinstance(obj, _Signal):
                 s = str(obj)
                 # ori = inferVhdlObj(obj)
@@ -2847,7 +2859,7 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
                     constdict[n].used = True
                 else:
                     s = obj._toVHDL()
-            elif (type(obj) in type) and issubclass(obj, Exception):
+            elif (type(obj) is type) and issubclass(obj, Exception):
                 s = n
             else:
                 self.raiseError(node, _error.UnsupportedType,
