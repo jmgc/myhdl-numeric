@@ -1678,6 +1678,11 @@ def _convertGens(architecture, vfile):
             blockBuf.write(str(tree))
             continue
         tree.constdict = constdict
+        for n in tree.constdict:
+            if n in tree.vardict:
+                obj = tree.vardict[n]
+                if not isinstance(obj, _loopInt):
+                    tree.vardict.pop(n)
         if tree.kind == _kind.ALWAYS:
             Visitor = _ConvertAlwaysVisitor
         elif tree.kind == _kind.INITIAL:
