@@ -30,6 +30,7 @@ from tokenize import generate_tokens, untokenize, INDENT
 from io import StringIO
 
 from ._compat import ast_parse
+from .numeric._bitarray import bitarray
 
 
 def _printExcInfo():
@@ -68,6 +69,15 @@ def _isTupleOfFloats(obj):
         return False
     for e in obj:
         if not isinstance(e, float):
+            return False
+    return True
+
+
+def _isTupleOfBitArray(obj):
+    if not isinstance(obj, tuple):
+        return False
+    for e in obj:
+        if not isinstance(e, bitarray):
             return False
     return True
 

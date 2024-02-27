@@ -14,7 +14,12 @@ def constants(t, v, u, x, y, z, a, s):
     h = Signal(bitarray(0, len(f), 0))
     j = Signal(bitarray(0, high=1, low=0))
     k = Signal(uintba(0, 32))
+    r = Signal(bitarray(0, 32, 0))
+    q = Signal(bitarray(0, 32, 0))
     data = 391308765
+
+    rom_int = (0, 1, 2, 3, 4, 5, 6, 7)
+    rom_uintba = tuple(uintba(i, 32) for i in rom_int)
 
     @always_comb
     def logic():
@@ -29,6 +34,8 @@ def constants(t, v, u, x, y, z, a, s):
         for i in range(len(g)):
             s[i].next = g[i]
         k.next = uintba(data, 32)
+        r.next = uintba(rom_int[0], 32)
+        q.next = rom_uintba[0]
 
     return logic
 

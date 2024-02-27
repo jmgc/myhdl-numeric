@@ -66,7 +66,7 @@ from ..conversion._analyze import _analyzeSigs, _analyzeMems, \
 from .._Signal import _Signal, _WaiterList, _SliceSignal, _isListOfSigs
 from .._ShadowSignal import ConcatSignal
 from ..conversion._toVHDLPackage import _package
-from .._util import _flatten, _isTupleOfInts, _isTupleOfFloats
+from .._util import _flatten, _isTupleOfInts, _isTupleOfFloats, _isTupleOfBitArray
 from .._ShadowSignal import _TristateSignal, _TristateDriver
 from .._resolverefs import _suffixer
 from ..numeric._bitarray import bitarray
@@ -469,7 +469,7 @@ class _GenerateHierarchy(object):
                 else:
                     mems_dict[arg_name] = _makeMemInfo(obj)
                     names_list.append(arg_name)
-            elif _isTupleOfInts(obj) or _isTupleOfFloats(obj):
+            elif _isTupleOfInts(obj) or _isTupleOfFloats(obj) or _isTupleOfBitArray(obj):
                 if old_name in names_list:
                     arg_name = _suffixer(old_name, names_list)
                 else:

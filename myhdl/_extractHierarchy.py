@@ -35,7 +35,7 @@ from ._Signal import _Signal, _isListOfSigs
 from ._getcellvars import _getCellVars
 from ._misc import _isGenSeq
 from ._resolverefs import _resolveRefs
-from ._util import _flatten, _genfunc, _isTupleOfInts, _isTupleOfFloats
+from ._util import _flatten, _genfunc, _isTupleOfInts, _isTupleOfFloats, _isTupleOfBitArray
 
 _profileFunc = None
 
@@ -427,6 +427,11 @@ class _HierExtr(object):
                             if n in cellvars:
                                 m._used = True
                         elif _isTupleOfFloats(v):
+                            m = _makeRomInfo(n, v)
+                            romdict[n] = m
+                            if n in cellvars:
+                                m._used = True
+                        elif _isTupleOfBitArray(v):
                             m = _makeRomInfo(n, v)
                             romdict[n] = m
                             if n in cellvars:

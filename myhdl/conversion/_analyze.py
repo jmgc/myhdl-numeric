@@ -47,7 +47,7 @@ from ..conversion._misc import _error, _access, _kind, \
 from .._extractHierarchy import _isMem, _getMemInfo, _UserCode
 from .._Signal import _Signal, _WaiterList
 from .._ShadowSignal import _ShadowSignal, _SliceSignal, _TristateDriver
-from .._util import _isTupleOfInts, _flatten, _makeAST, _isTupleOfFloats
+from .._util import _isTupleOfInts, _flatten, _makeAST, _isTupleOfFloats, _isTupleOfBitArray
 from .._resolverefs import _AttrRefTransformer
 from ..numeric._conversion import numeric_functions_dict, \
     numeric_attributes_dict
@@ -1127,7 +1127,7 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
             node.obj = obj
         elif n in self.tree.symdict:
             node.obj = self.tree.symdict[n]
-            if _isTupleOfInts(node.obj) or _isTupleOfFloats(node.obj):
+            if _isTupleOfInts(node.obj) or _isTupleOfFloats(node.obj) or _isTupleOfBitArray(node.obj):
                 node.obj = _Rom(node.obj)
                 self.tree.hasRom = True
             elif _isMem(node.obj):
