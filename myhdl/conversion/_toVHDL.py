@@ -1465,9 +1465,9 @@ def _writePort(f, port, entity=True):
                                          port_type))
     else:
         f.write("\n        %s: %s %s := %s" % (port.name,
-                                               port.direction,
-                                               port_type,
-                                               port.vhd_type.literal(port.internal)))
+                                                   port.direction,
+                                                   port_type,
+                                                   port.vhd_type.literal(port.internal, False)))
 
     if port.convert and entity:
         port_conversions = port.entity.architecture.signal_conversions
@@ -2767,6 +2767,7 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
                 pre, suf = self.inferCast(node, node.vhd, node.vhdOri)
                 if n in constdict:
                     if obj == constdict[n].value:
+                        s = constdict[n].name
                         if abs(obj) < (1 << 31):
                             s = "%s%s%s" % (pre, s, suf)
                             constdict[n].used = True
@@ -2776,7 +2777,7 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
                             else:
                                 self.raiseError(node, _error.UnsupportedType, "int cannot be represented")
                     else:
-                        obj = self.tree.constdict[n]
+                        obj = constdict[n]
                         if abs(obj) < (1 << 31):
                             s = "%s%d%s" % (pre, obj, suf)
                         else:
@@ -2796,11 +2797,11 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
                 pre, suf = self.inferCast(node, node.vhd, node.vhdOri)
                 if n in constdict:
                     if obj == constdict[n].value:
-                        s = "%s%s%s" % (pre, s, suf)
+                        s = "%s%s%s" % (pre, constdict[n].name, suf)
                         constdict[n].used = True
                     else:
                         obj = self.tree.constdict[n]
-                        s = str(obj)
+                        s = node.vhdOri.literal(obj)
                         s = "%s%s%s" % (pre, s, suf)
                 else:
                     s = str(obj)
@@ -2823,7 +2824,7 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
                 m.used = True
             elif isinstance(obj, EnumItemType):
                 if n in constdict and obj == constdict[n].value:
-                    s = n
+                    s = constdict[n].name
                     constdict[n].used = True
                 else:
                     s = obj._toVHDL()
@@ -3454,7 +3455,7 @@ class vhd_int(vhd_type):
     def toStr(self, constr=True):
         return "integer"
 
-    def literal(self, value):
+    def literal(self, value, prefixed=False):
         limit = 1 << 31
         if value >= limit or value < -limit:
             raise ToVHDLError("Not representable integer value: %d" % value)
@@ -3509,7 +3510,7 @@ class vhd_nat(vhd_int):
     def toStr(self, constr=True):
         return "natural"
 
-    def literal(self, value):
+    def literal(self, value, prefixed=False):
         limit = 1 << 32
         if value >= limit or value < 0:
             raise ToVHDLError("Not representable natural value: %d" % value)
@@ -3561,7 +3562,7 @@ class vhd_real(vhd_type):
     def toStr(self, constr=True):
         return "real"
 
-    def literal(self, value):
+    def literal(self, value, prefixed=False):
         return str(float(value))
 
     def _direct(self, other):
@@ -3656,7 +3657,7 @@ class vhd_enum(vhd_type):
         self._type = tipe
         self._name = "enum_%s" % tipe.__dict__['_name']
 
-    def literal(self, value):
+    def literal(self, value, prefixed=False):
         return str(value)
 
     def toStr(self, constr=True):
@@ -3675,7 +3676,7 @@ class vhd_std_logic(vhd_type):
     def toStr(self, constr=True):
         return 'std_logic'
 
-    def literal(self, value):
+    def literal(self, value, prefixed=False):
         if isinstance(value, (intbv, uintba)):
             value = value[0]
         s = str(int(bool(value)))
@@ -3714,7 +3715,7 @@ class vhd_boolean(vhd_type):
         vhd_type.__init__(self)
         self.size = 1
 
-    def literal(self, value):
+    def literal(self, value, prefixed=False):
         return "'%s'" % bool(value)
 
     def toStr(self, constr=True):
@@ -3770,7 +3771,7 @@ class vhd_vector(vhd_type):
         result.trunc = True
         return result
 
-    def literal(self, value):
+    def literal(self, value, prefixed=False):
         if value is None:
             return "(others => 'Z')"
         else:
@@ -3859,9 +3860,11 @@ class vhd_unsigned(vhd_vector):
         vhd_type.__init__(self, size)
         self._name = 'unsigned_%s' % size
 
-    def literal(self, value):
+    def literal(self, value, prefixed=True):
         if value is None:
             return "(others => 'Z')"
+        elif prefixed:
+            return 'unsigned\'("%s")' % bin(value, self.size)
         else:
             return '"%s"' % bin(value, self.size)
 
@@ -3978,9 +3981,11 @@ class vhd_signed(vhd_vector):
         vhd_type.__init__(self, size)
         self._name = 'signed_%s' % size
 
-    def literal(self, value):
+    def literal(self, value, prefixed=True):
         if value is None:
             return "(others => 'Z')"
+        elif prefixed:
+            return 'signed\'("%s")' % bin(value, self.size)
         else:
             return '"%s"' % bin(value, self.size)
 
@@ -4099,10 +4104,18 @@ class vhd_sfixed(vhd_type):
         self.rounding = "fixed_truncate" if fixed_truncate else "fixed_round"
         self._guard_bits = guard_bits
 
-    def literal(self, value):
-        return '"%s"' % bin(sfixba(value, self.size[0] + 1,
-                                   self.size[1]).scalb(-self.size[1]),
-                            self.size[0] - self.size[1] + 1)
+    def literal(self, value, prefixed=True):
+        if value is None:
+            return "(others => 'Z')"
+        elif prefixed:
+            return 'c_str2f("%s", %s, %s)' % \
+                (bin(sfixba(value, self.size[0] + 1,
+                            self.size[1]).scalb(-self.size[1]),
+                     self.size[0] - self.size[1] + 1),
+                 self.size[0], self.size[1])
+        else:
+            return '"%s"' % bin(sfixba(value, self.size[0] + 1, self.size[1]).scalb(-self.size[1]),
+                                self.size[0] - self.size[1] + 1)
 
     def toStr(self, constr=True):
         if constr:
@@ -4323,8 +4336,8 @@ class vhd_array(object):
         self.high = length - 1
         self.type = tipe
 
-    def literal(self, values):
-        return [self.type.literal(value) for value in values]
+    def literal(self, values, prefixed=False):
+        return [self.type.literal(value, prefixed) for value in values]
 
     def toStr(self, constr=True):
         if constr:
