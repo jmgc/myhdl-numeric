@@ -1828,6 +1828,11 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
                     pre, suf = "t_f2u(", ", %s)" % vhd.size
                 else:
                     pre, suf = "c_f2u(", ", %s)" % vhd.size
+            elif isinstance(ori, vhd_vector):
+                if vhd.size == ori.size:
+                    pre, suf = "unsigned(", ")"
+                else:
+                    self.raiseError(node, _error.InconsistentType, "Vector size mismatch")
             elif isinstance(ori, vhd_std_logic):
                 pre, suf = "c_l2u(", ", %s)" % vhd.size
             elif isinstance(ori, vhd_nat):
@@ -1848,6 +1853,11 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
                     pre, suf = "t_f2s(", ", %s)" % vhd.size
                 else:
                     pre, suf = "c_f2s(", ", %s)" % vhd.size
+            elif isinstance(ori, vhd_vector):
+                if vhd.size == ori.size:
+                    pre, suf = "signed(", ")"
+                else:
+                    self.raiseError(node, _error.InconsistentType, "Vector size mismatch")
             elif isinstance(ori, vhd_std_logic):
                 pre, suf = "c_l2s(", ", %s)" % vhd.size
             else:
@@ -1877,6 +1887,11 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
                 else:
                     pre, suf = "c_s2f(", ", %s, %s, %s, %s)" % \
                                          (vhd.size[0], vhd.size[1], vhd.overflow, vhd.rounding)
+            elif isinstance(ori, vhd_vector):
+                if vhd.size[0] + 1 == ori.size and vhd.size[1] == 0:
+                    pre, suf = "sfixed(", ")"
+                else:
+                    self.raiseError(node, _error.InconsistentType, "Vector size mismatch")
             elif isinstance(ori, vhd_std_logic):
                 pre, suf = "c_l2f(", ", %s, %s)" % (vhd.size[0],
                                                     vhd.size[1])
@@ -1938,7 +1953,9 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
             else:
                 pre, suf = "std_logic_vector(", ")"
         elif isinstance(vhd, vhd_boolean):
-            if not isinstance(ori, vhd_boolean):
+            if isinstance(ori, vhd_std_logic):
+                pre, suf = "(", " = '1')"
+            elif not isinstance(ori, vhd_boolean):
                 pre, suf = "bool(", ")"
         elif isinstance(vhd, vhd_std_logic):
             if not isinstance(ori, vhd_std_logic):
@@ -2472,7 +2489,10 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
                 self.write('my_resize(c_str2f("%s"), %s, %s)' %
                            (v, node.vhd.size[0], node.vhd.size[1]))
             elif isinstance(node.vhd, vhd_vector):
-                self.raiseError(node, _error.UnsupportedType, "int cannot be assigned to bitarray")
+                if node.value == 0:
+                    self.write('"%s"' % bin(0, node.vhd.size))
+                else:
+                    self.raiseError(node, _error.UnsupportedType, "int cannot be assigned to bitarray")
             else:
                 if n > 1 << 31:
                     self.raiseError(node, _error.InconsistentBitWidth, "Integer too large to be represented")
@@ -2737,110 +2757,53 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
 
         elif n in self.tree.argnames:
             assert n in self.tree.symdict
-            obj = self.tree.symdict[n]
-            vhd = inferVhdlObj(obj)
-            if isinstance(vhd, vhd_std_logic) and \
-                    isinstance(node.vhd, vhd_boolean):
-                s = "(%s = '1')" % n
-            else:
-                s = n
+            # ori = inferVhdlObj(obj)
+            pre, suf = self.inferCast(node, node.vhd, node.vhdOri)
+            s = "%s%s%s" % (pre, n, suf)
         elif n in self.tree.symdict:
             obj = self.tree.symdict[n]
             s = n
-            if isinstance(obj, bool):
-                if n in constdict and obj == constdict[n].value:
-                    if isinstance(node.vhd, vhd_std_logic):
-                        s = "stdl(%s)" % int(obj)
-                    else:
-                        s = "bool(%s)" % int(obj)
-                else:
-                    if isinstance(node.vhd, vhd_std_logic):
-                        s = "'%s'" % int(obj)
-                    else:
-                        s = "%s" % obj
-            elif isinstance(obj, int):
-                if n in constdict and obj == constdict[n].value:
-                    name = constdict[n].name
-                    if isinstance(node.vhd, (vhd_int, vhd_real)):
+            if isinstance(node.vhdOri, vhd_int):
+                pre, suf = self.inferCast(node, node.vhd, node.vhdOri)
+                if n in constdict:
+                    if obj == constdict[n].value:
                         if abs(obj) < (1 << 31):
-                            s = name
+                            s = "%s%s%s" % (pre, s, suf)
                             constdict[n].used = True
                         else:
-                            s = self.IntRepr(obj)
-                    elif isinstance(node.vhd, vhd_boolean):
-                        s = "bool(%s)" % name
-                        constdict[n].used = True
-                    elif isinstance(node.vhd, vhd_std_logic):
-                        s = "stdl(%s)" % name
-                        constdict[n].used = True
-                    elif isinstance(node.vhd, vhd_unsigned):
-                        if abs(obj) < 2 ** 31:
-                            s = "to_unsigned(%s, %s)" % (name, node.vhd.size)
-                            constdict[n].used = True
+                            if isinstance(node.vhd, (vhd_unsigned, vhd_signed, vhd_sfixed)):
+                                s = node.vhd.literal(obj)
+                            else:
+                                self.raiseError(node, _error.UnsupportedType, "int cannot be represented")
+                    else:
+                        obj = self.tree.constdict[n]
+                        if abs(obj) < (1 << 31):
+                            s = "%s%d%s" % (pre, obj, suf)
                         else:
-                            s = 'unsigned\'("%s")' % bin(obj, node.vhd.size)
-                    elif isinstance(node.vhd, vhd_signed):
-                        if abs(obj) < 2 ** 31:
-                            s = "to_signed(%s, %s)" % (name, node.vhd.size)
-                            constdict[n].used = True
-                        else:
-                            s = 'signed\'("%s")' % bin(obj, node.vhd.size)
-                    elif isinstance(node.vhd, vhd_sfixed):
-                        high = node.vhd.size[0]
-                        if high <= 0:
-                            high = 0
-                        s = 'my_resize(to_sfixed(%s, %s, 0), %s, %s, %s, %s)' % \
-                            (name, high,
-                             node.vhd.size[0], node.vhd.size[1],
-                             node.vhd.overflow, node.vhd.rounding)
-                        constdict[n].used = True
+                            if isinstance(node.vhd, (vhd_unsigned, vhd_signed, vhd_sfixed)):
+                                s = node.vhd.literal(obj)
+                            else:
+                                self.raiseError(node, _error.UnsupportedType, "int cannot be represented")
                 else:
-                    if isinstance(node.vhd, vhd_int):
-                        s = self.IntRepr(obj)
-                    elif isinstance(node.vhd, vhd_boolean):
-                        s = "%s" % bool(obj)
-                    elif isinstance(node.vhd, vhd_std_logic):
-                        s = "'%s'" % int(obj)
-                    elif isinstance(node.vhd, vhd_unsigned):
-                        if abs(obj) < 2 ** 31:
-                            s = "to_unsigned(%s, %s)" % (obj, node.vhd.size)
+                    if abs(obj) < (1 << 31):
+                        s = "%s%d%s" % (pre, obj, suf)
+                    else:
+                        if isinstance(node.vhd, (vhd_unsigned, vhd_signed, vhd_sfixed)):
+                            s = node.vhd.literal(obj)
                         else:
-                            s = 'unsigned\'("%s")' % bin(obj, node.vhd.size)
-                    elif isinstance(node.vhd, vhd_signed):
-                        if abs(obj) < 2 ** 31:
-                            s = "to_signed(%s, %s)" % (obj, node.vhd.size)
-                        else:
-                            s = 'signed\'("%s")' % bin(obj, node.vhd.size)
-                    elif isinstance(node.vhd, vhd_sfixed):
-                        s = "c_str2f(%s, %s, %s)" % \
-                            (bin(obj, node.vhd.size[0] -
-                                 node.vhd.size[1] + 1),
-                             node.vhd.size[0], node.vhd.size[1])
-            elif isinstance(obj, float):
-                if n in constdict and obj == constdict[n].value:
-                    if isinstance(node.vhd, vhd_real):
-                        s = n
-                    elif isinstance(node.vhd, vhd_sfixed):
-                        s = "to_sfixed(%s, %s, %s)" % (n, node.vhd.size[0],
-                                                       node.vhd.size[1])
-                    constdict[n].used = True
+                            self.raiseError(node, _error.UnsupportedType, "int cannot be represented")
+            elif isinstance(node.vhdOri, (vhd_boolean, vhd_std_logic, vhd_real, vhd_vector)):
+                pre, suf = self.inferCast(node, node.vhd, node.vhdOri)
+                if n in constdict:
+                    if obj == constdict[n].value:
+                        s = "%s%s%s" % (pre, s, suf)
+                        constdict[n].used = True
+                    else:
+                        obj = self.tree.constdict[n]
+                        s = str(obj)
+                        s = "%s%s%s" % (pre, s, suf)
                 else:
-                    if isinstance(node.vhd, vhd_real):
-                        s = self.RealRepr(obj)
-                    elif isinstance(node.vhd, vhd_sfixed):
-                        s = "to_sfixed(%s, %s, %s)" % (obj, node.vhd.size[0],
-                                                       node.vhd.size[1])
-            elif isinstance(obj, bitarray):
-                if n in constdict and obj == constdict[n].value:
-                    obj = self.tree.constdict[n]
-                    ori = inferVhdlObj(obj)
-                    pre, suf = self.inferCast(node, node.vhd, ori)
-                    s = "%s%s%s" % (pre, s, suf)
-                    constdict[n].used = True
-                else:
-                    obj = self.tree.constdict[n]
-                    ori = inferVhdlObj(obj)
-                    pre, suf = self.inferCast(node, node.vhd, ori)
+                    s = str(obj)
                     s = "%s%s%s" % (pre, s, suf)
             elif isinstance(obj, _Signal):
                 s = str(obj)

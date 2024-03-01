@@ -4,7 +4,7 @@ from myhdl import Signal, bitarray, uintba, sintba, sfixba, always_comb, \
     instance, delay, conversion, fixmath, StopSimulation
 
 
-def constants(t, v, u, x, y, z, a, s):
+def constants(t, v, u, x, y, z, a, s, param_constant):
     b = Signal(bool(0))
     c = Signal(bool(1))
     d = Signal(uintba(5, 8))
@@ -16,6 +16,7 @@ def constants(t, v, u, x, y, z, a, s):
     k = Signal(uintba(0, 32))
     r = Signal(bitarray(0, 32, 0))
     q = Signal(bitarray(0, 32, 0))
+    p = Signal(bitarray(0, 32, 0))
     data = 391308765
 
     rom_int = (0, 1, 2, 3, 4, 5, 6, 7)
@@ -23,6 +24,7 @@ def constants(t, v, u, x, y, z, a, s):
 
     @always_comb
     def logic():
+        l = f.val
         t.next = f
         u.next = d
         v.next = e
@@ -36,6 +38,8 @@ def constants(t, v, u, x, y, z, a, s):
         k.next = uintba(data, 32)
         r.next = uintba(rom_int[0], 32)
         q.next = rom_uintba[0]
+        #p.next = uintba(param_constant)
+        l[:] = param_constant
 
     return logic
 
@@ -48,7 +52,7 @@ s = g = [Signal(sfixba(0, 7, -15)) for _ in range(8)]
 
 
 def test_constants():
-    assert conversion.analyze(constants, t, v, u, x, y, z, a, s) == 0
+    assert conversion.analyze(constants, t, v, u, x, y, z, a, s, 23) == 0
 
 
 def sfixba_constant():
