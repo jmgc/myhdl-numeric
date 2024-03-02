@@ -2464,60 +2464,10 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
             # NameConstant
             node.id = str(node.value)
             self.getName(node)
-        elif isinstance(node.value, int):
+        elif isinstance(node.value, (int, float)):
             # Num
-            n = node.value
-            if isinstance(node.vhd, vhd_std_logic):
-                self.write("'%s'" % n)
-            elif isinstance(node.vhd, vhd_boolean):
-                self.write("%s" % bool(n))
-            elif isinstance(node.vhd, vhd_unsigned):
-                if abs(n) < (1 << 31):
-                    self.write("to_unsigned(%s, %s)" % (n, node.vhd.size))
-                else:
-                    self.write('unsigned\'("%s")' % bin(n, node.vhd.size))
-            elif isinstance(node.vhd, vhd_signed):
-                if abs(n) < (1 << 31):
-                    self.write("to_signed(%s, %s)" % (n, node.vhd.size))
-                else:
-                    self.write('signed\'("%s")' % bin(n, node.vhd.size))
-            elif isinstance(node.vhd, vhd_sfixed):
-                if node.vhd.size[0] < 0:
-                    v = "0"
-                else:
-                    v = bin(n, node.vhd.size[0] + 1)
-                self.write('my_resize(c_str2f("%s"), %s, %s)' %
-                           (v, node.vhd.size[0], node.vhd.size[1]))
-            elif isinstance(node.vhd, vhd_vector):
-                if node.value == 0:
-                    self.write('"%s"' % bin(0, node.vhd.size))
-                else:
-                    self.raiseError(node, _error.UnsupportedType, "int cannot be assigned to bitarray")
-            else:
-                if n > 1 << 31:
-                    self.raiseError(node, _error.InconsistentBitWidth, "Integer too large to be represented")
-                if n < 0:
-                    self.write("(")
-                self.write(n)
-                if n < 0:
-                    self.write(")")
-        elif isinstance(node.value, float):
-            n = node.value
-            if isinstance(node.vhd, vhd_sfixed):
-                self.write('to_sfixed(%s, %s, %s)' %
-                           (n, node.vhd.size[0], node.vhd.size[1]))
-            elif isinstance(node.vhd, vhd_real):
-                if isinstance(node.vhdOri, vhd_int):
-                    pre, suf = "real(", ")"
-                elif isinstance(node.vhdOri, vhd_real):
-                    pre, suf = "(", ")"
-                if n < 0:
-                    self.write(pre)
-                self.write(float(n))
-                if n < 0:
-                    self.write(suf)
-            elif isinstance(node.vhd, vhd_vector):
-                self.raiseError(node, _error.UnsupportedType, "float cannot be assigned to bitarray")
+            s = node.vhd.literal(node.value, prefixed=True)
+            self.write(s)
         elif isinstance(node.value, str):
             # Str
             typemark = 'string'
@@ -2725,10 +2675,7 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
 
     def getName(self, node):
         constdict = self.tree.constdict
-        if isinstance(node, ast.NameConstant):
-            n = str(node.value)
-        else:
-            n = node.id
+        n = node.id
         if n == 'False':
             if isinstance(node.vhd, vhd_std_logic):
                 s = "'0'"
@@ -3459,17 +3406,20 @@ class vhd_int(vhd_type):
         limit = 1 << 31
         if value >= limit or value < -limit:
             raise ToVHDLError("Not representable integer value: %d" % value)
-        s = str(int(value))
-        sign = ''
+        n = abs(int(value))
+        s = str(n)
+        pre, suf = '', ''
         if value < 0:
-            sign = '-'
+            pre, suf = '(-', ')'
         for i in range(4, 31):
-            if abs(value) == 2 ** i:
-                s = "%s(2**%s)" % (sign, i)
+            if n == (1 << i):
+                s = "%s(2**%s)%s" % (pre, i, suf)
                 break
-            if abs(value) == 2 ** i - 1:
-                s = "%s((2**%s)-1)" % (sign, i)
+            if n == (1 << i) - 1:
+                s = "%s((2**%s)-1)%s" % (pre, i, suf)
                 break
+        else:
+            s = "%s%s%s" % (pre, n, suf)
 
         return s
 
@@ -3716,7 +3666,7 @@ class vhd_boolean(vhd_type):
         self.size = 1
 
     def literal(self, value, prefixed=False):
-        return "'%s'" % bool(value)
+        return "%s" % bool(value)
 
     def toStr(self, constr=True):
         return 'boolean'
