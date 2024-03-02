@@ -1244,7 +1244,7 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
     def accessIndex(self, node):
         self.visit(node.value)
         self.access = _access.INPUT
-        if isinstance(node.slice, (ast.Name, ast.Constant, ast.BinOp, ast.Call)):
+        if isinstance(node.slice, (ast.Name, ast.Constant, ast.BinOp, ast.UnaryOp, ast.Call)):
             self.visit(node.slice)
         else:
             self.visit(node.slice.value)

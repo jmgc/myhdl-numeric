@@ -2901,7 +2901,7 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
         # assert len(node.subs) == 1
         if not isinstance(node.slice.vhd, (vhd_int, vhd_nat)):
             self.write("to_integer(")
-        if isinstance(node.slice, (ast.Name, ast.Constant, ast.BinOp, ast.Call)):
+        if isinstance(node.slice, (ast.Name, ast.Constant, ast.BinOp, ast.UnaryOp, ast.Call)):
             self.visit(node.slice)
         else:
             self.visit(node.slice.value)
@@ -4873,7 +4873,7 @@ class _AnnotateTypesVisitor(ast.NodeVisitor, _ConversionMixin):
     def accessIndex(self, node):
         self.generic_visit(node)
         node.vhd = vhd_std_logic()  # XXX default
-        if isinstance(node.slice, (ast.Name, ast.Constant, ast.BinOp, ast.Call)):
+        if isinstance(node.slice, (ast.Name, ast.Constant, ast.BinOp, ast.UnaryOp, ast.Call)):
             self.visit(node.slice)
         else:
             node.slice.value.vhd = vhd_int()
