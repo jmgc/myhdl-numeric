@@ -79,7 +79,7 @@ _converting = 0
 _profileFunc = None
 
 
-class _CheckReservedWords:
+class _CheckCorrectIdentifier:
     _reserverd_words = ["abs", "access", "after", "alias", "all",
                         "and", "architecture", "array", "assert",
                         "attribute", "begin", "block", "body", "buffer",
@@ -117,7 +117,7 @@ class _CheckReservedWords:
         return True
 
 
-check_reserved_words = _CheckReservedWords()
+check_correct_identifier = _CheckCorrectIdentifier()
 
 
 class _GenerateHierarchy(object):
@@ -2708,7 +2708,7 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
             self.getName(node)
 
     def setName(self, node):
-        if not check_reserved_words(node.id):
+        if not check_correct_identifier(node.id):
             self.raiseError(node, _error.ReservedWord, node.id)
         self.write(node.id)
 
@@ -2735,7 +2735,7 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
                     length = node.vhd.size
                 s = '"%s"' % ('Z' * length)
         elif n in self.tree.vardict:
-            if not check_reserved_words(n):
+            if not check_correct_identifier(n):
                 self.raiseError(node, _error.ReservedWord, n)
             s = n
             obj = self.tree.vardict[n]
@@ -2744,7 +2744,7 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
             s = "%s%s%s" % (pre, s, suf)
 
         elif n in self.tree.argnames:
-            if not check_reserved_words(n):
+            if not check_correct_identifier(n):
                 self.raiseError(node, _error.ReservedWord, n)
             assert n in self.tree.symdict
             # ori = inferVhdlObj(obj)
@@ -2756,7 +2756,7 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
             if isinstance(node.vhdOri, vhd_int):
                 pre, suf = self.inferCast(node, node.vhd, node.vhdOri)
                 if n in constdict:
-                    if not check_reserved_words(n):
+                    if not check_correct_identifier(n):
                         self.raiseError(node, _error.ReservedWord, n)
                     if obj == constdict[n].value:
                         s = constdict[n].name
@@ -2788,7 +2788,7 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
             elif isinstance(node.vhdOri, (vhd_boolean, vhd_std_logic, vhd_real, vhd_vector)):
                 pre, suf = self.inferCast(node, node.vhd, node.vhdOri)
                 if n in constdict:
-                    if not check_reserved_words(n):
+                    if not check_correct_identifier(n):
                         self.raiseError(node, _error.ReservedWord, n)
                     if obj == constdict[n].value:
                         s = "%s%s%s" % (pre, constdict[n].name, suf)
@@ -2802,7 +2802,7 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
                     s = "%s%s%s" % (pre, s, suf)
             elif isinstance(obj, _Signal):
                 n = str(obj)
-                if not check_reserved_words(n):
+                if not check_correct_identifier(n):
                     self.raiseError(node, _error.ReservedWord, n)
                 # ori = inferVhdlObj(obj)
                 pre, suf = self.inferCast(node, node.vhd, node.vhdOri)
@@ -2812,20 +2812,20 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
                 m = _getMemInfo(obj)
                 assert m.name
                 s = m.name
-                if not check_reserved_words(s):
+                if not check_correct_identifier(s):
                     self.raiseError(node, _error.ReservedWord, s)
                 m.used = True
             elif _isRom(obj):
                 m = _getRomInfo(obj)
                 assert m.name
                 s = m.name
-                if not check_reserved_words(s):
+                if not check_correct_identifier(s):
                     self.raiseError(node, _error.ReservedWord, s)
                 m.used = True
             elif isinstance(obj, EnumItemType):
                 if n in constdict and obj == constdict[n].value:
                     s = constdict[n].name
-                    if not check_reserved_words(s):
+                    if not check_correct_identifier(s):
                         self.raiseError(node, _error.ReservedWord, s)
                     constdict[n].used = True
                 else:
