@@ -1562,7 +1562,10 @@ def _writeConstants(f, architecture):
             n = c.name
             if n == '_':
                 continue
-            t = c.vhd_type.toStr(False)
+            if isinstance(c.vhd_type, vhd_vector):
+                t = c.vhd_type.toStr(True)
+            else:
+                t = c.vhd_type.toStr(False)
             s = c.vhd_type.literal(v)
             f.write(indent)
             f.write("constant %s: %s := %s;\n" %
@@ -1602,7 +1605,7 @@ def _writeSigDecls(f, architecture):
                                                         signal.vhd_type.toStr(True),
                                                         signal.vhd_type.literal(signal.internal)),
                           file=f)
-            elif isinstance(signal.vhd_type, (vhd_unsigned, vhd_signed, vhd_sfixed)):
+            elif isinstance(signal.vhd_type, vhd_vector):
                 print("    signal %s: %s := (others => '0');" % (signal.name,
                                                                  signal.vhd_type.toStr(True)),
                       file=f)
