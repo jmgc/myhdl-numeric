@@ -58,7 +58,7 @@ class HdlObjObj(object):
         return hdl, ifx1, ifx2
 
 
-class HdlObjAttrSimple(object):
+class HdlObjAttrSimple:
     def __init__(self):
         self.Constant = 3
 
@@ -66,14 +66,14 @@ class HdlObjAttrSimple(object):
 
         # limitation for class method conversion, the object attributes
         # can only be used/accessed during elaboration.
-        Constant = int(self.Constant)
+        constant_value = int(self.Constant)
 
         @always(clk.posedge)
         def hdl():
             if srst:
                 y.next = 0
             else:
-                y.next = x + (x+1) + Constant - 3
+                y.next = x + (x+1) + constant_value - 3
 
         return hdl
 

@@ -48,6 +48,7 @@ class _error(object):
     IntbvBitWidth = "intbv object should have a bit width"
     ModbvRange = "modbv object should have full bit vector range"
     TypeInfer = "Can't infer variable type"
+    ReservedWord = "Reserved word used as variable name"
     ReturnTypeMismatch = "Return type mismatch"
     ReturnNrBitsMismatch = "Returned nr of bits mismatch"
     ReturnIntbvBitWidth = "Returned intbv instance should have bit width"

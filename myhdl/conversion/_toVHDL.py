@@ -23,10 +23,6 @@
 """ myhdl toVHDL conversion module.
 
 """
-from __future__ import absolute_import
-from __future__ import print_function
-from __future__ import division
-
 import sys
 import math
 import os
@@ -81,6 +77,47 @@ _version = __version__.replace('.', '')
 _shortversion = _version.replace('dev', '')
 _converting = 0
 _profileFunc = None
+
+
+class _CheckReservedWords:
+    _reserverd_words = ["abs", "access", "after", "alias", "all",
+                        "and", "architecture", "array", "assert",
+                        "attribute", "begin", "block", "body", "buffer",
+                        "bus", "case", "component", "configuration",
+                        "constant", "disconnect", "downto", "else",
+                        "elseif", "end", "entity", "exit", "file", "for",
+                        "function", "generate", "generic", "group",
+                        "guarded", "if", "impure", "in", "inertial",
+                        "inout", "is", "label", "library", "linkage",
+                        "literal", "loop", "map", "mod", "nand", "new",
+                        "next", "nor", "not", "null", "of", "on", "open",
+                        "or", "others", "out", "package", "port",
+                        "postponed", "procedure", "process", "pure",
+                        "range", "record", "register", "reject", "rem",
+                        "report", "return", "rol", "ror", "select",
+                        "severity", "signal", "shared", "sla", "sll", "sra",
+                        "srl", "subtype", "then", "to", "transport", "type",
+                        "unaffected", "units", "until", "use", "variable",
+                        "wait", "when", "while", "with", "xnor", "xor"]
+
+    def __call__(self, name: str):
+        _name = name.lower()
+        if _name in self._reserverd_words:
+            return False
+        if _name[0] in string.digits:
+            return False
+        if _name[0] == '_':
+            return False
+        if _name[-1] == '_':
+            return False
+        if '-' in _name:
+            return False
+        if '__' in _name:
+            return False
+        return True
+
+
+check_reserved_words = _CheckReservedWords()
 
 
 class _GenerateHierarchy(object):
@@ -1465,9 +1502,9 @@ def _writePort(f, port, entity=True):
                                          port_type))
     else:
         f.write("\n        %s: %s %s := %s" % (port.name,
-                                                   port.direction,
-                                                   port_type,
-                                                   port.vhd_type.literal(port.internal, False)))
+                                               port.direction,
+                                               port_type,
+                                               port.vhd_type.literal(port.internal, False)))
 
     if port.convert and entity:
         port_conversions = port.entity.architecture.signal_conversions
@@ -2671,6 +2708,8 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
             self.getName(node)
 
     def setName(self, node):
+        if not check_reserved_words(node.id):
+            self.raiseError(node, _error.ReservedWord, node.id)
         self.write(node.id)
 
     def getName(self, node):
@@ -2696,6 +2735,8 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
                     length = node.vhd.size
                 s = '"%s"' % ('Z' * length)
         elif n in self.tree.vardict:
+            if not check_reserved_words(n):
+                self.raiseError(node, _error.ReservedWord, n)
             s = n
             obj = self.tree.vardict[n]
             ori = inferVhdlObj(obj)
@@ -2703,6 +2744,8 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
             s = "%s%s%s" % (pre, s, suf)
 
         elif n in self.tree.argnames:
+            if not check_reserved_words(n):
+                self.raiseError(node, _error.ReservedWord, n)
             assert n in self.tree.symdict
             # ori = inferVhdlObj(obj)
             pre, suf = self.inferCast(node, node.vhd, node.vhdOri)
@@ -2713,6 +2756,8 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
             if isinstance(node.vhdOri, vhd_int):
                 pre, suf = self.inferCast(node, node.vhd, node.vhdOri)
                 if n in constdict:
+                    if not check_reserved_words(n):
+                        self.raiseError(node, _error.ReservedWord, n)
                     if obj == constdict[n].value:
                         s = constdict[n].name
                         if abs(obj) < (1 << 31):
@@ -2743,6 +2788,8 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
             elif isinstance(node.vhdOri, (vhd_boolean, vhd_std_logic, vhd_real, vhd_vector)):
                 pre, suf = self.inferCast(node, node.vhd, node.vhdOri)
                 if n in constdict:
+                    if not check_reserved_words(n):
+                        self.raiseError(node, _error.ReservedWord, n)
                     if obj == constdict[n].value:
                         s = "%s%s%s" % (pre, constdict[n].name, suf)
                         constdict[n].used = True
@@ -2754,24 +2801,32 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
                     s = str(obj)
                     s = "%s%s%s" % (pre, s, suf)
             elif isinstance(obj, _Signal):
-                s = str(obj)
+                n = str(obj)
+                if not check_reserved_words(n):
+                    self.raiseError(node, _error.ReservedWord, n)
                 # ori = inferVhdlObj(obj)
                 pre, suf = self.inferCast(node, node.vhd, node.vhdOri)
-                s = "%s%s%s" % (pre, s, suf)
+                s = "%s%s%s" % (pre, n, suf)
                 obj.used = True
             elif _isMem(obj):
                 m = _getMemInfo(obj)
                 assert m.name
                 s = m.name
+                if not check_reserved_words(s):
+                    self.raiseError(node, _error.ReservedWord, s)
                 m.used = True
             elif _isRom(obj):
                 m = _getRomInfo(obj)
                 assert m.name
                 s = m.name
+                if not check_reserved_words(s):
+                    self.raiseError(node, _error.ReservedWord, s)
                 m.used = True
             elif isinstance(obj, EnumItemType):
                 if n in constdict and obj == constdict[n].value:
                     s = constdict[n].name
+                    if not check_reserved_words(s):
+                        self.raiseError(node, _error.ReservedWord, s)
                     constdict[n].used = True
                 else:
                     s = obj._toVHDL()
