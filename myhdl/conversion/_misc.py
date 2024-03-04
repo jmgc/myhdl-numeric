@@ -34,7 +34,7 @@ class _error(object):
     ArgType = "leaf cell type error"
     NotSupported = "Not supported"
     TopLevelName = "Result of toVerilog call should be assigned to" \
-        " a top level name"
+                   " a top level name"
     SigMultipleDriven = "Signal has multiple drivers"
     UndefinedBitWidth = "Signal has undefined bit width"
     UndrivenSignal = "Signal is not driven"
@@ -59,9 +59,9 @@ class _error(object):
     ExtraArguments = "Extra positional or named arguments are not supported"
     UnsupportedYield = "Unsupported yield statement"
     UnsupportedListComp = "Unsupported list comprehension form:" \
-        " should be [intbv()[n:] for i in range(m)]"
+                          " should be [intbv()[n:] for i in range(m)]"
     ListElementAssign = "Can't assign to list element;" \
-        " use slice assignment to change its value"
+                        " use slice assignment to change its value"
     NotASignal = "Non-local object should be a Signal"
     UnsupportedType = "Object type is not supported in this context"
     InconsistentType = "Signal elements should have the same base type"
@@ -137,16 +137,16 @@ class _ConversionMixin(object):
         try:
             val = eval(c, self.tree.symdict, self.tree.vardict)
         except Exception as _:
-            raise ConversionError(_error.NotSupported,
-                                  tb.format_exc() +
-                                  ast.dump(expr, include_attributes=True))
+            self.raiseError(node, _error.NotSupported,
+                            tb.format_exc() +
+                            ast.dump(expr, include_attributes=True))
         warnings.simplefilter('default', RuntimeWarning)
         return val
 
     def raiseError(self, node, kind, msg=""):
         lineno = self.getLineNo(node)
         info = "in file %s, line %s:\n    " % \
-            (self.tree.sourcefile, self.tree.lineoffset + lineno)
+               (self.tree.sourcefile, self.tree.lineoffset + lineno)
         raise ConversionError(kind, msg, info)
 
     def require(self, node, test, msg=""):
@@ -194,6 +194,7 @@ class _UniqueSuffixGenerator(object):
     def next(self):
         self.i += 1
         return "_%s" % self.i
+
 
 _genUniqueSuffix = _UniqueSuffixGenerator()
 
