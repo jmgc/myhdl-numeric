@@ -1461,6 +1461,9 @@ def _writeEntityHeader(f, entity, doc):
     if entity.ports_list:
         f.write("    port (")
         c = ''
+        portnames = set(entity.ports_list)
+        if len(portnames) != len(entity.ports_list):
+            raise ToVHDLError(f"Duplicate port names in entity {entity.name}")
         for portname in entity.ports_list:
             p = entity.ports_dict[portname]
             f.write("%s" % c)

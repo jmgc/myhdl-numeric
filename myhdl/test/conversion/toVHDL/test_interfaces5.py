@@ -1,5 +1,6 @@
 from myhdl import Signal, intbv, always_seq, ResetSignal, now, \
     instance, delay, StopSimulation, Simulation, toVHDL
+from myhdl._errors import ToVHDLError
 from myhdl.conversion import analyze, verify
 from myhdl.test.conftest import bug
 
@@ -182,9 +183,12 @@ def c_test_six_up():
     return dut
 
 
-@bug("Detection of ports names", "vhdl")
 def test_six_verify():
-    assert verify(c_test_six_up) == 0
+    try:
+        analyze(c_test_six_up)
+        assert False, "Should have raised an exception"
+    except ToVHDLError:
+        pass
 
 
 def c_test_seven_intermediate_signals(reset, clk, intf1, intf2, intf3):
