@@ -20,7 +20,7 @@
 """ Module that implements enum.
 
 """
-from __future__ import absolute_import
+
 
 from myhdl._bin import bin
 

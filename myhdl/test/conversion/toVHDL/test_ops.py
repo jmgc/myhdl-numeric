@@ -1,12 +1,10 @@
-from __future__ import absolute_import
-from __future__ import print_function
-
-from myhdl import instance, Signal, intbv, delay
+import pytest
+from myhdl import instance, Signal, intbv, delay, toVHDL
 from myhdl.conversion import verify
 import random
-import pytest
 from random import randrange
-random.seed(2)
+from ... import genId
+
 
 NRTESTS = 10
 
@@ -62,6 +60,7 @@ def binaryOps(Bitand,
 
 
 def binaryBench(m, n):
+    random.seed(2)
 
     M = 2**m
     N = 2**n
@@ -171,7 +170,9 @@ def binaryBench(m, n):
     (8, 7)
 ])
 def testBinary(m, n):
-    assert verify(binaryBench, m, n) == 0
+    toVHDL.name = "binaryBench_" + genId(f"{m}_{n}")
+    assert verify(binaryBench, m, n) == 0, toVHDL.name
+    toVHDL.name = None
 
 
 def multiOps(
@@ -194,6 +195,7 @@ def multiOps(
 
 
 def multiBench(m, n, p):
+    random.seed(2)
 
     M = 2**m
     N = 2**n
@@ -255,7 +257,9 @@ def multiBench(m, n, p):
     (3, 7, 4)
 ])
 def testMultiOps(m, n, p):
-    assert verify(multiBench, m, n, p) == 0
+    toVHDL.name = "multiBench_" + genId(f"{m}_{n}_{p}")
+    assert verify(multiBench, m, n, p) == 0, toVHDL.name
+    toVHDL.name = None
 
 
 def unaryOps(
@@ -277,6 +281,7 @@ def unaryOps(
 
 
 def unaryBench(m):
+    random.seed(2)
 
     M = 2**m
     seqM = tuple([randrange(M) for i in range(NRTESTS)])
@@ -319,7 +324,9 @@ def unaryBench(m):
     7,
 ])
 def testUnaryOps(m):
-    assert verify(unaryBench, m) == 0
+    toVHDL.name = "unaryBench_" + genId(f"{m}")
+    assert verify(unaryBench, m) == 0, toVHDL.name
+    toVHDL.name = None
 
 
 def augmOps(Bitand,
@@ -378,6 +385,7 @@ def augmOps(Bitand,
 
 
 def augmBench(m, n):
+    random.seed(2)
 
     M = 2**m
     N = 2**n
@@ -457,4 +465,6 @@ def augmBench(m, n):
     (8, 7),
 ])
 def testAugmOps(m, n):
-    assert verify(augmBench, m, n) == 0
+    toVHDL.name = "augmBench_" + genId(f"{m}_{n}")
+    assert verify(augmBench, m, n) == 0, toVHDL.name
+    toVHDL.name = None

@@ -20,7 +20,7 @@
 """ module with the concat function.
 
 """
-from __future__ import absolute_import
+
 
 from ._intbv import intbv
 from ._Signal import _Signal

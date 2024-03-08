@@ -1,4 +1,4 @@
-from __future__ import absolute_import
+
 from myhdl import *
 
 def bench_delay():
@@ -20,7 +20,7 @@ def bench_delay():
             print(now())
 
         raise StopSimulation
-        
+
     return instances()
 
 def test_delay():

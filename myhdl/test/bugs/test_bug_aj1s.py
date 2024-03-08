@@ -1,5 +1,5 @@
-from __future__ import absolute_import
-from __future__ import print_function
+
+
 
 from myhdl import *
 from myhdl.conversion import verify
@@ -18,7 +18,7 @@ def dut():
                count.next = 97
             else:
                count.next = count-1
-    
+
     return seq
 
 

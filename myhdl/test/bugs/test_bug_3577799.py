@@ -1,4 +1,4 @@
-from __future__ import absolute_import
+
 
 from myhdl import *
 from myhdl.conversion import analyze
@@ -23,7 +23,7 @@ def bug_3577799 (
                     if count < depth:
                         rd_data.next = wr_data
                         count = count + 1
-                
+
     return seq
 
 depth = 8

@@ -1,4 +1,4 @@
-from __future__ import absolute_import
+
 from myhdl import instance, delay, Signal, intbv
 from myhdl.conversion import verify
 

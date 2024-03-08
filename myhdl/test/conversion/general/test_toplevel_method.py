@@ -1,4 +1,4 @@
-from __future__ import absolute_import
+
 
 from myhdl import always, always_comb, Signal, intbv
 from myhdl import ConversionError

@@ -1,4 +1,4 @@
-from __future__ import absolute_import
+
 from myhdl import enum, intbv, always_comb, Signal, instance, delay, \
     instances, StopSimulation, conversion
 

@@ -1,4 +1,4 @@
-from __future__ import absolute_import
+
 import warnings
 
 from myhdl._Signal import _Signal, _DelayedSignal
@@ -18,9 +18,9 @@ def Tristate(val, delay=None):
     else:
         return _Tristate(val)
 
-    
+
 class _Tristate(_Signal):
-            
+
     def __init__(self, val):
         self._drivers = []
         super(_Tristate, self).__init__(val)
@@ -48,7 +48,7 @@ class _Tristate(_Signal):
 
 
 class _TristateDriver(_Signal):
-    
+
     def __init__(self, bus):
         _Signal.__init__(self, bus._val)
         self._val = None
@@ -60,18 +60,18 @@ class _TristateDriver(_Signal):
             val = val._val
          if val is None:
              self._next = None
-         else:             
+         else:
              self._setNextVal(val)
-         _simulator._siglist.append(self._bus)   
+         _simulator._siglist.append(self._bus)
 
-    
+
 class _DelayedTristate(_DelayedSignal, _Tristate):
 
     def __init__(self, val, delay=1):
         self._drivers = []
         super(_DelayedTristate, self).__init__(val, delay)
         self._val = None
-        
+
     def _update(self):
         self._resolve()
         return super(_DelayedTristate, self)._update()

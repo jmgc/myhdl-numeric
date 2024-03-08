@@ -1,4 +1,4 @@
-from __future__ import absolute_import, print_function
+
 from random import randrange, seed
 from myhdl import instance, intbv, always_comb, Signal, delay, \
     StopSimulation, conversion, toVHDL, toVerilog

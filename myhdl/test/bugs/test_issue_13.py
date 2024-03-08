@@ -1,4 +1,4 @@
-from __future__ import absolute_import
+
 
 from myhdl import *
 from myhdl.conversion import analyze
@@ -39,5 +39,5 @@ def test_issue_13():
 
     # toVHDL.numeric_ports = False
 
-    assert analyze(issue_13, reset, clk, d, en, q) == 0 
+    assert analyze(issue_13, reset, clk, d, en, q) == 0
 

@@ -1,6 +1,7 @@
 from math import floor, fmod, ldexp
 from decimal import Decimal, ROUND_HALF_EVEN
 from myhdl import fixmath
+import hashlib
 
 
 def truediv_round(value, value_format):
@@ -81,12 +82,5 @@ def resize(value, value_format):
         return val
 
 
-class _GenId(object):
-    _id = 0
-
-    def __call__(self):
-        newId, self._id = self._id, self._id + 1
-        return str(newId)
-
-
-genId = _GenId()
+def genId(value: str):
+    return hashlib.sha1(value.encode("utf-8")).hexdigest()

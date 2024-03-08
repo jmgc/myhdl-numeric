@@ -1,4 +1,4 @@
-from __future__ import absolute_import
+
 
 from myhdl import *
 
@@ -24,9 +24,9 @@ def gray_counter (clk, reset, enable, gray_count):
         for j in range(1, 10):
             no_ones_below.next[j] = no_ones_below[j-1] and not q[j-1]
         gray_count.next[8:] = q[9:1]
-            
+
     return comb, seq
-       
+
 clk = Signal(bool(0))
 reset = ResetSignal(0, active=0, asynchronous=True)
 enable = Signal(bool(0))

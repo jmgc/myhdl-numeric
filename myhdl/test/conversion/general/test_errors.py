@@ -1,4 +1,4 @@
-from __future__ import absolute_import
+
 
 from myhdl import *
 from myhdl import ConversionError
@@ -21,7 +21,7 @@ def test_SigAugmAssignUnsupported():
         assert e.kind == _error.NotSupported
     else:
         assert False
-        
+
 def modbvRange(z, a, b):
     @always(a, b)
     def logic():
@@ -40,7 +40,7 @@ def test_modbvRange():
         assert e.kind == _error.ModbvRange
     else:
         assert False
-        
+
 def modbvSigRange(z, a, b):
     @always(a, b)
     def logic():
@@ -57,7 +57,7 @@ def test_modbvSigRange():
         assert e.kind == _error.ModbvRange
     else:
         assert False
-        
+
 
 
 

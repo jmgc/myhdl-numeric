@@ -1,15 +1,10 @@
-from __future__ import absolute_import
-from __future__ import print_function
-from __future__ import division
-
+import pytest
 from myhdl import Signal, sfixba, instance, delay, uintba, sintba, toVHDL, \
     Simulation, conversion
 from myhdl.conversion import verify
-import unittest
 import os
 import random
 from random import randrange
-import pytest
 from ... import genId
 
 path = os.path
@@ -666,41 +661,42 @@ def vector():
 
 @pytest.mark.parametrize("left, right", vectors())
 def test_AugmentedVer(left, right):
-    toVHDL.name = "AugmentedVer_" + genId()
-    assert conversion.verify(augmBench, left, right) == 0
+    toVHDL.name = "AugmentedVer_" + genId(f"{left}_{right}")
+    assert conversion.verify(augmBench, left, right) == 0, toVHDL.name
     toVHDL.name = None
 
 
 @pytest.mark.parametrize("left, right", vectors())
 def test_BinaryVer(left, right):
-    toVHDL.name = "BinaryVer_" + genId()
-    assert conversion.verify(binaryBench, left, right) == 0
+    toVHDL.name = "BinaryVer_" + genId(f"{left}_{right}")
+    assert conversion.verify(binaryBench, left, right) == 0, toVHDL.name
     toVHDL.name = None
 
 
 @pytest.mark.parametrize("left, right", div_vectors())
 def test_DivisionVer(left, right):
-    toVHDL.name = "DivisionVer_" + genId()
-    assert conversion.verify(divBench, left, right) == 0
+    toVHDL.name = "DivisionVer_" + genId(f"{left}_{right}")
+    assert conversion.verify(divBench, left, right) == 0, toVHDL.name
     toVHDL.name = None
 
 
 @pytest.mark.parametrize("delta, i, j", resize_vectors())
 def testResizeVer(delta, i, j):
-    toVHDL.name = "ResizeVer_" + genId()
-    assert conversion.verify(resizeCheck, delta, i, j) == 0
+    import warnings
+    toVHDL.name = "ResizeVer_" + genId(f"{delta}_{i}_{j}")
+    assert conversion.verify(resizeCheck, delta, i, j) == 0, toVHDL.name
     toVHDL.name = None
 
 
 @pytest.mark.parametrize("m, n, p", multi_vectors())
 def testMultiVer(m, n, p):
-    toVHDL.name = "MultiVer_" + genId()
-    assert conversion.verify(multiBench, m, n, p) == 0
+    toVHDL.name = "MultiVer_" + genId(f"{m}_{n}_{p}")
+    assert conversion.verify(multiBench, m, n, p) == 0, toVHDL.name
     toVHDL.name = None
 
 
 @pytest.mark.parametrize("left", vector())
 def testUnaryVer(left):
-    toVHDL.name = "UnaryVer_" + genId()
-    assert conversion.verify(unaryBench, left) == 0
+    toVHDL.name = "UnaryVer_" + genId(f"{left}")
+    assert conversion.verify(unaryBench, left) == 0, toVHDL.name
     toVHDL.name = None

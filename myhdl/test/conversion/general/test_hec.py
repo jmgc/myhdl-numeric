@@ -1,4 +1,4 @@
-from __future__ import absolute_import, print_function
+
 import random
 from random import randrange
 from myhdl import intbv, concat, downrange, instance, Signal, delay

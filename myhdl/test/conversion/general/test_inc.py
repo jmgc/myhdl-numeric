@@ -1,4 +1,4 @@
-from __future__ import absolute_import, print_function
+
 
 import sys
 import os
@@ -15,7 +15,7 @@ ACTIVE_LOW, INACTIVE_HIGH = bool(0), bool(1)
 
 def incRef(count, enable, clock, reset, n):
     """ Incrementer with enable.
-    
+
     count -- output
     enable -- control input, increment when 1
     clock -- clock input
@@ -32,19 +32,19 @@ def incRef(count, enable, clock, reset, n):
                 if enable:
                     count.next = (count + 1) % n
     return logic
-                
+
 def inc(count, enable, clock, reset, n):
-    
+
     """ Incrementer with enable.
-    
+
     count -- output
     enable -- control input, increment when 1
     clock -- clock input
     reset -- asynchronous reset input
     n -- counter max value
-    
+
     """
-    
+
     @always(clock.posedge, reset.negedge)
     def incProcess():
         if reset == 0:
@@ -52,11 +52,11 @@ def inc(count, enable, clock, reset, n):
         else:
             if enable:
                 count.next = (count + 1) % n
-                
+
     return incProcess
 
 def inc2(count, enable, clock, reset, n):
-    
+
     @always(clock.posedge, reset.negedge)
     def incProcess():
         if reset == ACTIVE_LOW:
@@ -86,10 +86,10 @@ def incFunc(count, enable, clock, reset, n):
             count.next = incFuncFunc(count, enable)
 
     return incFuncGen
-    
+
 
 def incTask(count, enable, clock, reset, n):
-    
+
     def incTaskFunc(cnt, enable, reset, n):
         if enable:
             cnt[:] = (cnt + 1) % n
@@ -111,7 +111,7 @@ def incTask(count, enable, clock, reset, n):
 
 
 def incTaskFreeVar(count, enable, clock, reset, n):
-    
+
     def incTaskFunc():
         if enable:
             count.next = (count + 1) % n
@@ -130,7 +130,7 @@ def incTaskFreeVar(count, enable, clock, reset, n):
 def IncBench(inc):
 
     NR_CYCLES = 201
-      
+
     m = 8
     n = 2 ** m
 
@@ -163,13 +163,13 @@ def IncBench(inc):
     return inc_inst, clockgen, monitor
 
 
-def test_incReg():  
+def test_incReg():
     assert verify(IncBench, incRef) == 0
 
-def test_inc():  
+def test_inc():
     assert verify(IncBench, inc) == 0
 
-def test_inc2():  
+def test_inc2():
     assert verify(IncBench, inc2) == 0
 
 def testIncTask():
@@ -177,5 +177,5 @@ def testIncTask():
 
 def testIncFunc():
     assert verify(IncBench, incFunc) == 0
-    
+
 

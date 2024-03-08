@@ -1,5 +1,5 @@
-from __future__ import absolute_import
-from __future__ import print_function
+
+
 
 import sys
 import os
@@ -19,7 +19,7 @@ def bug_1740778 ():
 
     """
     s = Signal(intbv(0, min=-13, max=46))
-    
+
     @instance
     def logic():
         v = intbv(0, min=-15, max=45)
@@ -29,10 +29,10 @@ def bug_1740778 ():
         print(int(s.val))
         print(s.min)
         print(s.max)
-        
+
     return logic
 
 
-def test_bug_1740778 ():  
+def test_bug_1740778 ():
     assert verify(bug_1740778) == 0
-    
+

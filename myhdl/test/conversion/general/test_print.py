@@ -1,4 +1,4 @@
-from __future__ import absolute_import, print_function
+import pytest
 from myhdl import instance, Signal, intbv, delay, enum, conversion
 from myhdl import ConversionError
 from myhdl.conversion._misc import _error
@@ -6,10 +6,23 @@ from myhdl.conversion._misc import _error
 t_State = enum("START", "RUN", "STOP")
 
 
-def PrintBench():
+def print_check(si1):
+    @instance
+    def logic():
+        yield delay(5)
+        print("Hello World!", int(si1))
+        yield delay(5)
+        print("Hello World, another time!")
+
+    return logic
+
+
+def print_bench():
     si1 = Signal(intbv(0)[8:])
     si2 = Signal(intbv(0, min=-10, max=12))
     sb = Signal(bool(0))
+
+    check = print_check(si1)
 
     @instance
     def logic():
@@ -66,16 +79,16 @@ def PrintBench():
         print(int(si1.signed()))
         print(int(si2.signed()))
 
-    return logic
+    return logic, check
 
 
-def testPrint():
-    assert conversion.verify(PrintBench) == 0
+def test_print():
+    assert conversion.verify(print_bench) == 0
 
 
 # format string errors and unsupported features
 
-def PrintError1():
+def print_error1():
     @instance
     def logic():
         i1 = intbv(12)[8:]
@@ -87,14 +100,14 @@ def PrintError1():
 
 def testPrintError1():
     try:
-        conversion.verify(PrintError1)
+        conversion.verify(print_error1)
     except ConversionError as e:
         assert e.kind == _error.UnsupportedFormatString
     else:
         assert False
 
 
-def PrintError2():
+def print_error2():
     @instance
     def logic():
         i1 = intbv(12)[8:]
@@ -104,16 +117,16 @@ def PrintError2():
     return logic
 
 
-def testPrintError2():
+def test_print_error2():
     try:
-        conversion.verify(PrintError2)
+        conversion.verify(print_error2)
     except ConversionError as e:
         assert e.kind == _error.FormatString
     else:
         assert False
 
 
-def PrintError3():
+def print_error3():
     @instance
     def logic():
         i1 = intbv(12)[8:]
@@ -124,16 +137,16 @@ def PrintError3():
     return logic
 
 
-def testPrintError3():
+def test_print_error3():
     try:
-        conversion.verify(PrintError3)
+        conversion.verify(print_error3)
     except ConversionError as e:
         assert e.kind == _error.FormatString
     else:
         assert False
 
 
-def PrintError4():
+def print_error4():
     @instance
     def logic():
         i1 = intbv(12)[8:]
@@ -143,16 +156,16 @@ def PrintError4():
     return logic
 
 
-def testPrintError4():
+def test_print_error4():
     try:
-        conversion.verify(PrintError4)
+        conversion.verify(print_error4)
     except ConversionError as e:
         assert e.kind == _error.UnsupportedFormatString
     else:
         assert False
 
 
-def PrintError5():
+def print_error5():
     @instance
     def logic():
         i1 = intbv(12)[8:]
@@ -162,10 +175,29 @@ def PrintError5():
     return logic
 
 
-def testPrintError5():
+def test_print_error5():
     try:
-        conversion.verify(PrintError5)
+        conversion.verify(print_error5)
     except ConversionError as e:
         assert e.kind == _error.UnsupportedFormatString
+    else:
+        assert False
+
+
+def print_error6():
+    @instance
+    def logic():
+        output = intbv(12)[8:]
+        yield delay(10)
+        print("%s" % output)
+
+    return logic
+
+
+def test_print_error6():
+    try:
+        conversion.verify(print_error6)
+    except ConversionError as e:
+        assert e.kind == _error.ReservedWord
     else:
         assert False

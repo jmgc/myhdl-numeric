@@ -1,4 +1,4 @@
-from __future__ import absolute_import, print_function
+
 
 import os
 path = os.path
@@ -24,13 +24,13 @@ def bin2gray2(B, G, width):
     return logic
 
 def bin2gray(B, G, width):
-    
+
     """ Gray encoder.
 
     B -- input intbv signal, binary encoded
     G -- output intbv signal, gray encoded
     width -- bit width
-    
+
     """
 
     @always_comb
@@ -41,9 +41,9 @@ def bin2gray(B, G, width):
             G.next[i] = Bext[i+1] ^ Bext[i]
 
     return logic
-           
-      
- 
+
+
+
 def bin2grayBench(width, bin2gray):
 
     B = Signal(intbv(0)[width:])
@@ -69,7 +69,7 @@ def bin2grayBench(width, bin2gray):
 
 def test1():
     assert verify(bin2grayBench, width=8, bin2gray=bin2gray) == 0
-    
+
 def test2():
     assert verify(bin2grayBench, width=8, bin2gray=bin2gray2) == 0
 

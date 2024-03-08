@@ -1,5 +1,3 @@
-from __future__ import generators
-
 import unittest
 from unittest import TestCase
 import random
@@ -22,7 +20,7 @@ class TestInc(TestCase):
         while 1:
             yield delay(10)
             clock.next = not clock
-    
+
     def stimulus(self, enable, clock, reset):
         reset.next = ACTIVE_LOW
         yield negedge(clock)
@@ -43,7 +41,7 @@ class TestInc(TestCase):
             yield delay(1)
             # print "%d count %s expect %s" % (now(), count, expect)
             self.assertEqual(count, expect)
-                
+
     def bench(self):
 
         n = 253
@@ -62,28 +60,28 @@ class TestInc(TestCase):
         """ Check increment operation """
         sim = self.bench()
         sim.run(quiet=1)
-        
+
     def test2(self):
         """ Check increment operation with suspended simulation runs """
         sim = self.bench()
         while sim.run(duration=randrange(1, 6), quiet=1):
             pass
 
-          
+
 if __name__ == '__main__':
     unittest.main()
 
 
-            
-            
-
-    
-
-    
-        
 
 
-                
 
-        
+
+
+
+
+
+
+
+
+
 

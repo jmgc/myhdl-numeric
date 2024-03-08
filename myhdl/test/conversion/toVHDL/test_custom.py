@@ -1,4 +1,4 @@
-from __future__ import absolute_import, print_function
+
 
 import random
 from myhdl.test.conftest import bug

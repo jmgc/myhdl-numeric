@@ -1,5 +1,3 @@
-from __future__ import generators
-
 import unittest
 from unittest import TestCase
 
@@ -24,17 +22,17 @@ def nextLn(Ln):
 class TestOriginalGrayCode(TestCase):
 
     def testOriginalGrayCode(self):
-        
+
         """ Check that the code is an original Gray code """
 
         Rn = []
-        
+
         def stimulus(B, G, n):
             for i in range(2**n):
                 B.next = intbv(i)
                 yield delay(10)
                 Rn.append(bin(G, width=n))
-        
+
         Ln = ['0', '1'] # n == 1
         for n in range(2, MAX_WIDTH):
             Ln = nextLn(Ln)
@@ -51,9 +49,9 @@ class TestOriginalGrayCode(TestCase):
 class TestGrayCodeProperties(TestCase):
 
     def testSingleBitChange(self):
-        
+
         """ Check that only one bit changes in successive codewords """
-        
+
         def test(B, G, width):
             B.next = intbv(0)
             yield delay(10)
@@ -63,7 +61,7 @@ class TestGrayCodeProperties(TestCase):
                 yield delay(10)
                 diffcode = bin(G ^ G_Z)
                 self.assertEqual(diffcode.count('1'), 1)
-        
+
         for width in range(1, MAX_WIDTH):
             B = Signal(intbv(-1))
             G = Signal(intbv(0))
@@ -75,7 +73,7 @@ class TestGrayCodeProperties(TestCase):
 
 
     def testUniqueCodeWords(self):
-        
+
         """ Check that all codewords occur exactly once """
 
         def test(B, G, width):
@@ -87,7 +85,7 @@ class TestGrayCodeProperties(TestCase):
             actual.sort()
             expected = range(2**width)
             self.assertEqual(actual, expected)
-       
+
         for width in range(1, MAX_WIDTH):
             B = Signal(intbv(-1))
             G = Signal(intbv(0))
@@ -95,22 +93,22 @@ class TestGrayCodeProperties(TestCase):
             check = test(B, G, width)
             sim = Simulation(dut, check)
             sim.run(quiet=1)
-            
+
 
 if __name__ == '__main__':
     unittest.main()
 
 
-            
-            
-
-    
-
-    
-        
 
 
-                
 
-        
+
+
+
+
+
+
+
+
+
 

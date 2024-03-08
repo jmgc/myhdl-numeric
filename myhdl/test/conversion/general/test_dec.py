@@ -1,4 +1,4 @@
-from __future__ import absolute_import, print_function
+
 
 import os
 path = os.path
@@ -14,7 +14,7 @@ ACTIVE_LOW, INACTIVE_HIGH = 0, 1
 
 def decRef(count, enable, clock, reset, n):
     """ Decrementer with enable.
-    
+
     count -- output
     enable -- control input, decrement when 1
     clock -- clock input
@@ -34,11 +34,11 @@ def decRef(count, enable, clock, reset, n):
                     else:
                         count.next = count - 1
     return logic
-                    
-                
+
+
 def dec(count, enable, clock, reset, n):
     """ Decrementer with enable.
-    
+
     count -- output
     enable -- control input, decrement when 1
     clock -- clock input
@@ -82,7 +82,7 @@ def decFunc(count, enable, clock, reset, n):
 
 
 def decTask(count, enable, clock, reset, n):
-    
+
     def decTaskFunc(cnt, enable, reset, n):
         if enable:
             if cnt == -n:
@@ -107,7 +107,7 @@ def decTask(count, enable, clock, reset, n):
 
 
 def decTaskFreeVar(count, enable, clock, reset, n):
-    
+
     def decTaskFunc():
         if enable:
             if count == -n:
@@ -130,7 +130,7 @@ def decTaskFreeVar(count, enable, clock, reset, n):
 
 
 def DecBench(dec):
-    
+
     m = 8
     n = 2 ** (m-1)
 
@@ -181,29 +181,29 @@ def DecBench(dec):
 
 def testDecRef():
     assert verify(DecBench, decRef) == 0
-    
+
 def testDec():
     assert verify(DecBench, dec) == 0
-    
+
 def testDecFunc():
     assert verify(DecBench, decFunc) == 0
-    
+
 def testDecTask():
     assert verify(DecBench, decTask) == 0
 
-    
-    
+
+
 ## def testDecTaskFreeVar():
 ##     assert verify(DecBench, decTaskFreeVar) == 0
 
 ##     def testDecRef(self):
 ##         sim = self.bench(decRef)
 ##         sim.run(quiet=1)
-        
+
 ##     def testDec(self):
 ##         sim = self.bench(dec)
 ##         sim.run(quiet=1)
-        
+
 ##     def testDecFunc(self):
 ##         sim = self.bench(decFunc)
 ##         sim.run(quiet=1)
@@ -212,19 +212,19 @@ def testDecTask():
 ##     def testDecTask(self):
 ##         sim = self.bench(decTask)
 ##         sim.run(quiet=1)
-        
+
 ##     def testDecTaskFreeVar(self):
 ##         sim = self.bench(decTaskFreeVar)
-##         sim.run(quiet=1)            
-            
-
-    
-
-    
-        
+##         sim.run(quiet=1)
 
 
-                
 
-        
+
+
+
+
+
+
+
+
 

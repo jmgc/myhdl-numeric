@@ -19,7 +19,7 @@
 #  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 
 """ Run the intbv.signed() unit tests. """
-from __future__ import absolute_import
+
 
 from random import randrange
 
@@ -30,7 +30,7 @@ class TestIntbvSigned:
     '''Test cases to verify the intbv.signed() member function'''
 
     def testPlainIntbvInstance(self):
-        '''Test a plain intbv instance with .signed() 
+        '''Test a plain intbv instance with .signed()
 
         ----+----+----+----+----+----+----+----
            -3   -2   -1    0    1    2    3

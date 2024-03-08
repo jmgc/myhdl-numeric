@@ -1,5 +1,5 @@
-from __future__ import absolute_import
-from __future__ import print_function
+
+
 
 import os
 path = os.path
@@ -48,6 +48,6 @@ def testForLoopError1():
         assert e.kind == _error.Requirement
     else:
         assert False
-    
-    
+
+
 

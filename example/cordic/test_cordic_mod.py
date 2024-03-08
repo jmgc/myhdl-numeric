@@ -6,8 +6,6 @@
 #
 # The test is simulated, analyzed and finally verified using a vhdl simulator.
 
-from __future__ import print_function, absolute_import
-
 import random
 
 from myhdl import Signal, instance, always_seq, ResetSignal, delay, now, \
@@ -90,7 +88,7 @@ def cordic_mod(reset, clk, values, mode=cordic_modes.ROTATING):
                  len(values.theta_in))
     OFFSET_BITS = GUARD_BITS + m.ceil(m.log(length, 2))
     BITS = length + OFFSET_BITS
-    HALF = 1.0 
+    HALF = 1.0
     QUARTER = HALF / 2.0
     indexes = range(0, BITS)
 
@@ -384,7 +382,7 @@ class TestCordic(TestCase):
     def test_CordicTestBench(self):
         sim = Simulation(cordicTestBench())
         sim.run(quiet=True)
-        
+
     def test_Conversion(self):
         clk = Signal(False)
         reset = ResetSignal(True, True, False)

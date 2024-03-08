@@ -3,7 +3,7 @@ When an interface signal gets passed into a function, it
 can get renamed to the name of the argument. When the
 function is called multiple times, this causes name collisions """
 
-from __future__ import absolute_import
+
 import pytest
 from myhdl import Signal, always_comb
 from myhdl.conversion import analyze

@@ -1,4 +1,4 @@
-from __future__ import absolute_import
+
 
 from myhdl import *
 from myhdl.conversion import verify
@@ -10,7 +10,7 @@ def dut():
     b = Signal(intbv(0, min=0, max=256))
     c = Signal(intbv(0, min=0, max=256))
     d = Signal(intbv(0, min=0, max=256))
-    
+
     @always_comb
     def logic():
         rx.next = a + b - (c + d)

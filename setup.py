@@ -1,6 +1,5 @@
 """ myhdl's distribution and installation script. """
 
-from __future__ import print_function
 import ast
 import fnmatch
 import re
@@ -9,8 +8,8 @@ import sys
 
 from collections import defaultdict
 
-if sys.version_info < (2, 6) or (3, 0) <= sys.version_info < (3, 4):
-    raise RuntimeError("Python version 2.6, 2.7 or >= 3.4 required.")
+if (3, 0) <= sys.version_info < (3, 10):
+    raise RuntimeError("Python version >= 3.10 required.")
 
 
 # Prefer setuptools over distutils
@@ -54,10 +53,8 @@ setup(
         'License :: OSI Approved :: GNU Lesser General Public License v2 (LGPLv2)',
         'Operating System :: OS Independent',
         'Programming Language :: Python',
-        'Programming Language :: Python :: 2',
-        'Programming Language :: Python :: 2.6',
-        'Programming Language :: Python :: 2.7',
         'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.4',
+        'Programming Language :: Python :: 3.10',
+        'Programming Language :: Python :: 3.11',
     ]
 )

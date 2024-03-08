@@ -1,5 +1,3 @@
-from __future__ import generators
-
 from myhdl import *
 
 def trigger(event):
@@ -26,16 +24,16 @@ q = queue()
 def Producer(q):
     yield delay(120)
     for i in range(5):
-        print "%s: PUT item %s" % (now(), i)
+        print("%s: PUT item %s" % (now(), i))
         q.put(i)
         yield delay(max(5, 45 - 10*i))
 
 def Consumer(q):
     yield delay(100)
     while 1:
-        print "%s: TRY to get item" % now()
+        print("%s: TRY to get item" % now())
         yield q.get()
-        print "%s: GOT item %s" % (now(), q.item)
+        print("%s: GOT item %s" % (now(), q.item))
         yield delay(30)
 
 def main():
@@ -43,7 +41,7 @@ def main():
     C = Consumer(q)
     sim = Simulation(P, C)
     sim.run()
-    
+
 
 if __name__ == '__main__':
     main()

@@ -1,4 +1,4 @@
-from __future__ import absolute_import, print_function
+
 from myhdl import Signal, intbv, ResetSignal, always_seq, instance, delay, \
     StopSimulation, conversion
 import os

@@ -1,11 +1,11 @@
-from __future__ import absolute_import
+
 
 from myhdl import *
 
-INT_CONDITION_0 = 0 
-INT_CONDITION_1 = 1 
-BOOL_CONDITION_0 = False 
-BOOL_CONDITION_1 = True 
+INT_CONDITION_0 = 0
+INT_CONDITION_1 = 1
+BOOL_CONDITION_0 = False
+BOOL_CONDITION_1 = True
 
 def bug_boolconst(sigin, sigout):
 

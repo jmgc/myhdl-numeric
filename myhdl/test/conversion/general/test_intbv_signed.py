@@ -19,13 +19,13 @@
 #  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 
 """ Run the intbv.signed() unit tests. """
-from __future__ import absolute_import, print_function
+
 
 from myhdl import *
 
 
 def PlainIntbv():
-    '''Test a plain intbv instance with .signed() 
+    '''Test a plain intbv instance with .signed()
 
     ----+----+----+----+----+----+----+----
        -3   -2   -1    0    1    2    3
@@ -157,7 +157,7 @@ def PlainIntbv():
         a23 = intbv(4, min=-1, max=8)
         b = a23.signed()
         assert b == 4
- 
+
         # intbv with negative range, pos number, and msb set, return signed()
         # Expect the number to returned as is
         a24 = intbv(7, min=-1, max=8)
@@ -230,7 +230,7 @@ def SignedConcat():
     def logic():
         print("Signed Concat test")
         yield delay(10)
-        
+
         # concat 3 bits
         # Expect the signed function to return a negative value
         a = intbv(0)[3:]
@@ -243,15 +243,15 @@ def SignedConcat():
         # Expect a negative number
         b = intbv(5,min=0,max=8)
         assert concat(b, True, True).signed() == -9
-        
+
     return logic
 
 def test_PlainIntbv():
     assert conversion.verify(PlainIntbv) == 0
-    
+
 def test_SlicedSigned():
     assert conversion.verify(SlicedSigned) == 0
-    
+
 def test_SignedConcat():
     assert conversion.verify(SignedConcat) == 0
-    
+

@@ -1,17 +1,17 @@
-from __future__ import absolute_import
+
 from myhdl import *
 from myhdl.conversion import analyze
 
 def issue_18(dout, din, addr, we, clk, depth=128):
     """  Ram model """
-    
+
     mem = [Signal(intbv(0)[8:]) for i in range(depth)]
-    
+
     @always(clk.posedge)
     def write():
         if we:
             mem[addr].next = din
-                
+
     @always_comb
     def read():
         dout.next = mem[addr]

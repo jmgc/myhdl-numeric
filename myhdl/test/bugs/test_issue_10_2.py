@@ -2,8 +2,8 @@
 # -*- coding: utf-8 -*-
 """Failed VHDL code example
 """
-from __future__ import absolute_import
-from __future__ import print_function
+
+
 
 from myhdl import *
 from myhdl.conversion import verify
@@ -30,12 +30,12 @@ def Logic(flags, position):
 
     @instance
     def doit():
-        flags.next = 4 
+        flags.next = 4
         position.next = 28
         yield delay(10)
         conc.next = concat(flags, position)
         yield delay(10)
-        print(int(conc)) 
+        print(int(conc))
     return doit
 
 def test_issue_10_2():
