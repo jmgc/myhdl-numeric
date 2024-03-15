@@ -1875,7 +1875,7 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
                 if vhd.size == ori.size:
                     pre, suf = "unsigned(", ")"
                 else:
-                    self.raiseError(node, _error.InconsistentType, "Vector size mismatch")
+                    self.raiseError(node, _error.InconsistentType, f"Vector size mismatch {vhd.size} != {ori.size}")
             elif isinstance(ori, vhd_std_logic):
                 pre, suf = "c_l2u(", ", %s)" % vhd.size
             elif isinstance(ori, vhd_nat):
@@ -1900,7 +1900,7 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
                 if vhd.size == ori.size:
                     pre, suf = "signed(", ")"
                 else:
-                    self.raiseError(node, _error.InconsistentType, "Vector size mismatch")
+                    self.raiseError(node, _error.InconsistentType, f"Vector size mismatch {vhd.size} != {ori.size}")
             elif isinstance(ori, vhd_std_logic):
                 pre, suf = "c_l2s(", ", %s)" % vhd.size
             else:
@@ -1934,7 +1934,8 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
                 if vhd.size[0] + 1 == ori.size and vhd.size[1] == 0:
                     pre, suf = "sfixed(", ")"
                 else:
-                    self.raiseError(node, _error.InconsistentType, "Vector size mismatch")
+                    self.raiseError(node, _error.InconsistentType,
+                                    f"Vector size mismatch {vhd.size[0] + 1} != {ori.size} or {vhd.size[1]} != 0")
             elif isinstance(ori, vhd_std_logic):
                 pre, suf = "c_l2f(", ", %s, %s)" % (vhd.size[0],
                                                     vhd.size[1])
@@ -1958,26 +1959,26 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
                 elif vhd.size == ori.size:
                     pre, suf = "std_logic_vector(", ")"
                 else:
-                    self.raiseError(node, _error.InconsistentType, "Vector size mismatch")
+                    self.raiseError(node, _error.InconsistentType, f"Vector size mismatch {vhd.size} < {ori.size}")
             elif isinstance(ori, vhd_signed):
                 if vhd.size > ori.size:
                     pre, suf = "std_logic_vector(resize(", ", %s))" % vhd.size
                 elif vhd.size == ori.size:
                     pre, suf = "std_logic_vector(", ")"
                 else:
-                    self.raiseError(node, _error.InconsistentType, "Vector size mismatch")
+                    self.raiseError(node, _error.InconsistentType, f"Vector size mismatch {vhd.size} < {ori.size}")
             elif isinstance(ori, vhd_sfixed):
                 size = ori.size[0] - ori.size[1] + 1
                 if vhd.size == size:
                     pre, suf = "std_logic_vector(", ")"
                 else:
-                    self.raiseError(node, _error.InconsistentType, "Vector size mismatch %d != %d" % (vhd.size, size))
+                    self.raiseError(node, _error.InconsistentType, f"Vector size mismatch {vhd.size} != {size}")
             elif isinstance(ori, vhd_vector):
                 if vhd.size != ori.size:
-                    self.raiseError(node, _error.InconsistentType, "Vector size mismatch")
+                    self.raiseError(node, _error.InconsistentType, f"Vector size mismatch: {vhd.size} != {ori.size}")
             elif isinstance(ori, vhd_std_logic):
                 if vhd.size != 1:
-                    self.raiseError(node, _error.InconsistentType, "Vector size mismatch")
+                    self.raiseError(node, _error.InconsistentType, "Vector size mismatch, should be 1")
             elif isinstance(ori, vhd_nat):
                 pre, suf = "std_logic_vector(c_n2u(", ", %s))" % vhd.size
             elif isinstance(ori, vhd_int):
@@ -2516,6 +2517,8 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
             typemark = 'string'
             if isinstance(node.vhd, vhd_unsigned):
                 typemark = 'unsigned'
+            if '"' in node.value:
+                node.value = node.value.replace('"', '""')
             self.write("%s'(\"%s\")" % (typemark, node.value))
 
     def visit_Continue(self, node, *args):
@@ -2641,7 +2644,14 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
                 if isinstance(item, EnumItemType):
                     itemRepr = item._toVHDL()
                 elif hasattr(obj, '_nrbits'):
-                    itemRepr = self.BitRepr(item, obj)
+                    if isinstance(item, str):
+                        if item in self.constdict:
+                            self.constdict[item].used = True
+                            itemRepr = item
+                        else:
+                            self.raiseError(node, _error.UnknownSymbol, item)
+                    else:
+                        itemRepr = self.BitRepr(item, obj)
                 else:
                     itemRepr = i
                 if idx + 1 >= len(test.case):
@@ -3659,8 +3669,6 @@ class vhd_string(vhd_type):
         vhd_type.__init__(self)
         self._name = 'string'
 
-    pass
-
 
 class vhd_enum(vhd_type):
     def __init__(self, tipe):
@@ -3786,6 +3794,8 @@ class vhd_vector(vhd_type):
         if value is None:
             return "(others => 'Z')"
         else:
+            if isinstance(value, int):
+                value = bitarray(value, self.size, 0)
             return '"%s"' % str(value)
 
     __add__ = __sub__ = __mul__ = __floordiv__ = vhd_type._not_implemented
@@ -4703,13 +4713,35 @@ class _AnnotateTypesVisitor(ast.NodeVisitor, _ConversionMixin):
                     r = vhd_vector(l.size)
                 else:
                     self.raiseError(node, _error.InconsistentType,
-                                    "Vector cannot be compared to an unsigned with bigger size")
+                                    f"Vector cannot be compared to an unsigned with bigger size: {l.size}, {r.size}")
             elif maybeNegative(l):
                 r = vhd_signed(r.size + 1)
         elif isinstance(l, vhd_vector):
-            self.raiseError(node, _error.InconsistentType, "Vector cannot be compared")
+            if len(node.ops) == 1 and isinstance(node.ops[0], (ast.Eq, ast.NotEq)):
+                if isinstance(r, vhd_vector):
+                    if l.size != r.size:
+                        self.raiseError(node, _error.InconsistentType,
+                                        f"Vector cannot be compared to a vector with different size {l.size} != {r.size}")
+                elif isinstance(r, vhd_int):
+                    r = l
+                else:
+                    self.raiseError(node, _error.InconsistentType,
+                                    f"Vector cannot be compared with {type(r)}")
+            else:
+                self.raiseError(node, _error.InconsistentType, f"Vector cannot be compared with {type(r)}")
         elif isinstance(r, vhd_vector):
-            self.raiseError(node, _error.InconsistentType, "Vector cannot be compared")
+            if len(node.ops) == 1 and isinstance(node.ops[0], (ast.Eq, ast.NotEq)):
+                if isinstance(l, vhd_vector):
+                    if l.size != r.size:
+                        self.raiseError(node, _error.InconsistentType,
+                                        f"Vector cannot be compared to a vector with different size {l.size} != {r.size}")
+                elif isinstance(l, vhd_int):
+                    l = r
+                else:
+                    self.raiseError(node, _error.InconsistentType,
+                                    f"Vector cannot be compared with {type(l)}")
+            else:
+                self.raiseError(node, _error.InconsistentType, f"Vector cannot be compared with {type(l)}")
 
         left.vhd = l
         # Case for the in operator

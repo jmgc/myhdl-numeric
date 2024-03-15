@@ -12,7 +12,7 @@ random.seed(2)
 from myhdl import *
 
 from .util import setupCosimulation
-from ... import genId
+from ... import gen_id
 
 
 def binaryOps(

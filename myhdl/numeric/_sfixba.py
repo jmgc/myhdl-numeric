@@ -1305,3 +1305,6 @@ class sfixba(bitarray):
 
     def signed(self):
         return copy(self)
+
+    def __hash__(self):
+        return hash((self._val, self._high, self._low))

@@ -458,3 +458,6 @@ class sintba(bitarray):
         result._resize(value)
         result._wrap()
         return result
+
+    def __hash__(self):
+        return hash((self._val, self._high, 0))

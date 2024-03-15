@@ -915,12 +915,14 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
                 if isinstance(val, bool):
                     val = int(val)  # cast bool to int first
                 if isinstance(val, (EnumItemType, int)):
-                    cases.append((node.left, val))
                     if isinstance(arg, ast.Name):
                         name = arg.id
                         if (name in self.tree.objlist) and \
                                 (self.tree.symdict[name] == val):
                             cases.append((node.left, name))
+                    else:
+                        cases.append((node.left, val))
+
             if cases:
                 node.case = cases
             # check whether it can be part of an edge check

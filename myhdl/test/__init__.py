@@ -82,5 +82,8 @@ def resize(value, value_format):
         return val
 
 
-def genId(value: str):
-    return hashlib.sha1(value.encode("utf-8")).hexdigest()
+def gen_id(*values):
+    h = hashlib.blake2b(digest_size=16)
+    for value in values:
+        h.update(str(value).encode('ascii'))
+    return h.hexdigest()

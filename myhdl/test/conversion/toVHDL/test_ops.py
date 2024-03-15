@@ -3,7 +3,7 @@ from myhdl import instance, Signal, intbv, delay, toVHDL
 from myhdl.conversion import verify
 import random
 from random import randrange
-from ... import genId
+from ... import gen_id
 
 
 NRTESTS = 10
@@ -170,7 +170,7 @@ def binaryBench(m, n):
     (8, 7)
 ])
 def testBinary(m, n):
-    toVHDL.name = "binaryBench_" + genId(f"{m}_{n}")
+    toVHDL.name = "binaryBench_" + gen_id(m, n)
     assert verify(binaryBench, m, n) == 0, toVHDL.name
     toVHDL.name = None
 
@@ -257,7 +257,7 @@ def multiBench(m, n, p):
     (3, 7, 4)
 ])
 def testMultiOps(m, n, p):
-    toVHDL.name = "multiBench_" + genId(f"{m}_{n}_{p}")
+    toVHDL.name = "multiBench_" + gen_id(m, n, p)
     assert verify(multiBench, m, n, p) == 0, toVHDL.name
     toVHDL.name = None
 
@@ -324,7 +324,7 @@ def unaryBench(m):
     7,
 ])
 def testUnaryOps(m):
-    toVHDL.name = "unaryBench_" + genId(f"{m}")
+    toVHDL.name = "unaryBench_" + gen_id(m)
     assert verify(unaryBench, m) == 0, toVHDL.name
     toVHDL.name = None
 
@@ -465,6 +465,6 @@ def augmBench(m, n):
     (8, 7),
 ])
 def testAugmOps(m, n):
-    toVHDL.name = "augmBench_" + genId(f"{m}_{n}")
+    toVHDL.name = "augmBench_" + gen_id(m, n)
     assert verify(augmBench, m, n) == 0, toVHDL.name
     toVHDL.name = None

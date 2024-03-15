@@ -691,3 +691,6 @@ class bitarray(object):
     @property
     def internal(self):
         return self._val
+
+    def __hash__(self):
+        return hash((self._val, self._high, self._low))

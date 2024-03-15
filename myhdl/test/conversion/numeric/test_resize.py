@@ -1,7 +1,7 @@
 from pytest import mark
 from myhdl import Signal, uintba, sintba, sfixba, always_comb, \
     instance, delay, conversion, fixmath, toVHDL
-from ... import genId
+from ... import gen_id
 
 
 def sfixba_resize_sfixba():
@@ -78,6 +78,6 @@ def sfixba_resize(delta, i, j):
 
 @mark.parametrize("delta, i, j", resize_vectors())
 def test_resize(delta, i, j):
-    toVHDL.name = "sfixba_resize_" + genId(f"{delta}_{i}_{j}")
+    toVHDL.name = "sfixba_resize_" + gen_id(delta, i, j)
     assert conversion.verify(sfixba_resize, delta, i, j) == 0
     toVHDL.name = None
