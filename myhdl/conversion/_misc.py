@@ -20,8 +20,6 @@
 """ myhdl toVerilog package.
 
 """
-from __future__ import absolute_import
-
 import warnings
 import ast
 import traceback as tb
@@ -55,6 +53,7 @@ class _error(object):
     ReturnTypeInfer = "Can't infer return type"
     ShadowingSignal = "Port is shadowed by internal signal"
     ShadowingVar = "Variable has same name as a hierarchical Signal"
+    ShadowingEnum = "Enumeration label has same name as another element"
     FreeVarTypeError = "Free variable should be a Signal or an int"
     ExtraArguments = "Extra positional or named arguments are not supported"
     UnsupportedYield = "Unsupported yield statement"

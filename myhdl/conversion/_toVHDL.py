@@ -1833,11 +1833,15 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
     def inferCast(self, node, vhd, ori):
         pre, suf = "", ""
         if isinstance(vhd, vhd_nat):
-            if not isinstance(ori, vhd_int):
+            if type(ori) is vhd_vector:
+                self.raiseError(node, _error.InconsistentType, f"Vector cannot be converted to natural")
+            elif not isinstance(ori, vhd_int):
                 pre, suf = "to_integer(", ")"
         elif isinstance(vhd, vhd_int):
             if isinstance(ori, vhd_enum):
                 pre, suf = f"{ori.toStr(False)}'pos(", ")"
+            elif type(ori) is vhd_vector:
+                self.raiseError(node, _error.InconsistentType, f"Vector cannot be converted to integer")
             elif not isinstance(ori, vhd_int):
                 pre, suf = "to_integer(", ")"
         elif isinstance(vhd, vhd_real):
@@ -4498,6 +4502,17 @@ class _AnnotateTypesVisitor(ast.NodeVisitor, _ConversionMixin):
             node.vhd = vhd_int(-1)
         elif node.attr == 'is_signed':
             node.vhd = vhd_boolean()
+        elif node.value.vhd is None and isinstance(node.obj, EnumItemType):
+            node.vhd = vhd_enum(node.obj)
+            if node.attr.lower() in self.tree.vardict:
+                self.raiseError(node, _error.ShadowingEnum,
+                                f"Label: {node.attr}")
+            elif node.attr.lower() in self.tree.sigdict:
+                self.raiseError(node, _error.ShadowingEnum,
+                                f"Label: {node.attr}")
+            elif not check_correct_identifier(node.attr):
+                self.raiseError(node, _error.ReservedWord,
+                                f"Enumeration label: {node.attr}")
         else:
             node.vhd = copy(node.value.vhd)
         node.vhdOri = copy(node.vhd)

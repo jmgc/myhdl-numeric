@@ -1,6 +1,7 @@
 
 from myhdl import enum, intbv, always_comb, Signal, instance, delay, \
-    instances, StopSimulation, conversion
+    instances, StopSimulation, conversion, ConversionError
+from myhdl.conversion._misc import _error as errors
 
 bitwise_op = enum('BW_AND', 'BW_ANDN', 'BW_OR', 'BW_XOR')
 
@@ -72,3 +73,67 @@ def bench_enum():
 
 def test_enum():
     assert conversion.verify(bench_enum) == 0
+
+
+def bench_bad_enum_var():
+    t_state = enum('IDLE', 'RUNNING', 'STOPPED', 'PAUSED')
+
+    idle = Signal(False)
+
+    @instance
+    def check():
+        running = 0
+        value = t_state.RUNNING
+        data = t_state.IDLE
+        yield delay(10)
+
+    return check
+
+
+def bench_bad_enum_sig():
+    t_state = enum('IDLE', 'RUNNING', 'STOPPED', 'PAUSED')
+
+    idle = Signal(False)
+
+    @instance
+    def check():
+        idle.next = True
+        data = t_state.IDLE
+        yield delay(10)
+
+    return check
+
+
+def bench_bad_enum_keyword():
+    t_state = enum('IDLE', 'RUNNING', 'STOPPED', 'CASE')
+
+    idle = Signal(False)
+
+    @instance
+    def check():
+        idle.next = True
+        data = t_state.CASE
+        yield delay(10)
+
+    return check
+
+
+def test_bad_enum_var():
+    try:
+        assert conversion.analyze(bench_bad_enum_var) == 0
+    except ConversionError as e:
+        assert e.kind == errors.ShadowingEnum
+
+
+def test_bad_enum_sig():
+    try:
+        assert conversion.analyze(bench_bad_enum_sig) == 0
+    except ConversionError as e:
+        assert e.kind == errors.ShadowingEnum
+
+
+def test_bad_enum_keyword():
+    try:
+        assert conversion.analyze(bench_bad_enum_keyword) == 0
+    except ConversionError as e:
+        assert e.kind == errors.ReservedWord
