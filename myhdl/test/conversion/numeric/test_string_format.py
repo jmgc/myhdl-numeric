@@ -8,14 +8,17 @@ def string_format():
 
     @instance
     def bench():
-        print(f"a={a}")
-        print(f"b={b}")
+        print(f"str: a={a}")
+        print(f"str: b={b}")
         yield delay(10)
-        print(f"a={a:d}")
-        print(f"b={b:d}")
+        print(f"dec: a={a:d}")
+        print(f"dec: b={b:d}")
         yield delay(10)
-        print(f"a={a:x}")
-        print(f"b={b:x}")
+        print(f"oct: a={a:o}")
+        print(f"oct: b={b:o}")
+        yield delay(10)
+        print(f"hex: a={a:x}")
+        print(f"hex: b={b:x}")
         yield delay(10)
         print(f"a={a}\nb={b}")
         print("a,\n")
@@ -62,5 +65,22 @@ def string_format_error_hex():
 def test_string_error_hex():
     try:
         assert conversion.verify(string_format_error_hex) == 0
+    except ConversionError as e:
+        assert e.kind == errors.UnsupportedType
+
+
+def string_format_error_oct():
+
+    @instance
+    def bench():
+        print(f"{1:o}")
+        yield delay(10)
+
+    return bench
+
+
+def test_string_error_oct():
+    try:
+        assert conversion.verify(string_format_error_oct) == 0
     except ConversionError as e:
         assert e.kind == errors.UnsupportedType

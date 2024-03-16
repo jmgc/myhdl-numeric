@@ -441,12 +441,20 @@ class sintba(bitarray):
             return str(self)
         elif format_spec == 'd':
             return str(int(self._val))
+        elif format_spec == 'o':
+            digits = self.high // 3
+            if self.high % 3:
+                digits += 1
+            mask = (1 << (digits * 3)) - 1
+            result = f"{self._val & mask:0{digits}o}"
+            return result
         elif format_spec == 'x':
             digits = self.high // 4
             if self.high % 4:
                 digits += 1
-            mask = (1 << (self.high - self.low)) - 1
-            return f"{self._val & mask:0{digits}x}"
+            mask = (1 << (digits * 4)) - 1
+            result = f"{self._val & mask:0{digits}x}"
+            return result
         else:
             raise TypeError(f"unsupported format string passed to {type(self).__name__}.__format__")
 

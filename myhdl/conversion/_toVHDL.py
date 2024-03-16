@@ -2579,6 +2579,12 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
                         pre, suf = "integer'image(", ")"
                     else:
                         pre, suf = "integer'image(to_integer(", "))"
+                elif format_spec == 'o':
+                    if isinstance(node.vhdOri, (vhd_string, vhd_int)):
+                        self.raiseError(node, _error.UnsupportedType,
+                                        f"Integer formatting not supported for type {type(node.vhdOri)}")
+                    else:
+                        pre, suf = "to_ostring(", ")"
                 elif format_spec == 'x':
                     if isinstance(node.vhdOri, (vhd_string, vhd_int)):
                         self.raiseError(node, _error.UnsupportedType,
