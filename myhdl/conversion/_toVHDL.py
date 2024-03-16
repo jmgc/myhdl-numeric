@@ -2557,20 +2557,30 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
     def visit_FormattedValue(self, node):
         if node.conversion in (-1, 115):
             if node.format_spec is None:
-                if not isinstance(node.vhdOri, vhd_string):
+                if isinstance(node.vhdOri, vhd_int):
+                    pre, suf = "integer'image(", ")"
+                elif not isinstance(node.vhdOri, vhd_string):
                     pre, suf = "to_string(", ")"
                 else:
                     pre, suf = "string'(", ")"
             elif isinstance(node.format_spec, ast.JoinedStr):
                 format_spec = node.format_spec.values[0].value
-                if format_spec == 'd':
-                    if type(node.vhdOri) is vhd_vector or isinstance(node.vhdOri, vhd_string):
+                if format_spec == 'b':
+                    if type(node.vhdOri) is vhd_vector or isinstance(node.vhdOri, (vhd_string, vhd_int)):
                         self.raiseError(node, _error.UnsupportedType,
                                         f"Integer formatting not supported for type {type(node.vhdOri)}")
                     else:
+                        pre, suf = "to_bstring(", ")"
+                elif format_spec == 'd':
+                    if type(node.vhdOri) is vhd_vector or isinstance(node.vhdOri, vhd_string):
+                        self.raiseError(node, _error.UnsupportedType,
+                                        f"Integer formatting not supported for type {type(node.vhdOri)}")
+                    elif isinstance(node.vhdOri, vhd_int):
+                        pre, suf = "integer'image(", ")"
+                    else:
                         pre, suf = "integer'image(to_integer(", "))"
                 elif format_spec == 'x':
-                    if isinstance(node.vhdOri, vhd_string):
+                    if isinstance(node.vhdOri, (vhd_string, vhd_int)):
                         self.raiseError(node, _error.UnsupportedType,
                                         f"Integer formatting not supported for type {type(node.vhdOri)}")
                     else:
