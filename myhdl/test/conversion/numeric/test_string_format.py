@@ -1,10 +1,10 @@
-
 from myhdl import uintba, sintba, Signal, instance, delay, conversion
 
 
 def string_format():
     a = Signal(uintba(23, 8))
     b = Signal(sintba(-53, 8))
+
     @instance
     def bench():
         print(f"a={a}")
@@ -17,6 +17,10 @@ def string_format():
         print(f"b={b:x}")
         yield delay(10)
         print(f"a={a}\nb={b}")
+        print("a,\n")
+        print("c")
+        print("\na\n")
+        print("end")
 
     return bench
 
