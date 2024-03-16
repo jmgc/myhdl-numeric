@@ -2523,7 +2523,18 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
                 typemark = 'unsigned'
             if '"' in node.value:
                 node.value = node.value.replace('"', '""')
-            self.write("%s'(\"%s\")" % (typemark, node.value))
+            if '\n' in node.value:
+                substrings = node.value.split('\n')
+                if substrings:
+                    self.write(f"{typemark}'(\"{substrings[0]}\")")
+                    for substring in substrings[1:]:
+                        self.write(f" & LF")
+                        if substring:
+                            self.write(f" & {typemark}'(\"{subtrings}\")" % (typemark, substring))
+                else:
+                    self.write(f" LF")
+            else:
+                self.write(f"{typemark}'(\"{node.value}\")")
 
     def visit_Continue(self, node, *args):
         self.write("next;")
@@ -2543,6 +2554,37 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
         if isinstance(expr, ast.Call) and hasattr(expr, 'tree'):
             self.write(';')
 
+    def visit_FormattedValue(self, node):
+        if node.conversion in (-1, 115):
+            if node.format_spec is None:
+                if not isinstance(node.vhdOri, vhd_string):
+                    pre, suf = "to_string(", ")"
+                else:
+                    pre, suf = "string'(", ")"
+            elif isinstance(node.format_spec, ast.JoinedStr):
+                format_spec = node.format_spec.values[0].value
+                if format_spec == 'd':
+                    if type(node.vhdOri) is vhd_vector or isinstance(node.vhdOri, vhd_string):
+                        self.raiseError(node, _error.UnsupportedType,
+                                        f"Integer formatting not supported for type {type(node.vhdOri)}")
+                    else:
+                        pre, suf = "integer'image(to_integer(", "))"
+                elif format_spec == 'x':
+                    if isinstance(node.vhdOri, vhd_string):
+                        self.raiseError(node, _error.UnsupportedType,
+                                        f"Integer formatting not supported for type {type(node.vhdOri)}")
+                    else:
+                        pre, suf = "to_hstring(", ")"
+                else:
+                    self.raiseError(node, _error.UnsupportedType,
+                                    f"Format {node.format_spec.values[0].value} not supported")
+            self.write(pre)
+            self.visit(node.value)
+            self.write(suf)
+
+        else:
+            pass
+
     def visit_IfExp(self, node):
         # propagate the node's vhd attribute
         node.body.vhd = node.orelse.vhd = node.vhd
@@ -2554,6 +2596,13 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
         self.write(', if_false => ')
         self.visit(node.orelse)
         self.write(')')
+
+    def visit_JoinedStr(self, node):
+        if node.values:
+            self.visit(node.values[0])
+            for value in node.values[1:]:
+                self.write(" & ")
+                self.visit(value)
 
     def visit_For(self, node):
         self.labelStack.append(node.breakLabel)
@@ -4812,6 +4861,16 @@ class _AnnotateTypesVisitor(ast.NodeVisitor, _ConversionMixin):
         # make it possible to detect loop variable
         self.tree.vardict[var] = _loopInt(-1)
         self.generic_visit(node)
+
+    def visit_FormattedValue(self, node):
+        self.generic_visit(node)
+        node.vhd = vhd_string()
+        node.vhdOri = node.value.vhd
+
+    def visit_JoinedStr(self, node):
+        self.generic_visit(node)
+        node.vhd = vhd_string()
+        node.vhdOri = copy(node.vhd)
 
     def visit_Name(self, node):
         if node.id in self.tree.vardict:

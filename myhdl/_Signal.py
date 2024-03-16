@@ -582,6 +582,11 @@ class _Signal(object):
         else:
             return str(self._val)
 
+    def __format__(self, fmt):
+        if fmt == "s":
+            return str(self)
+        return format(self._val, fmt)
+
     def __repr__(self):
         return "Signal(" + repr(self._val) + ")"
 
