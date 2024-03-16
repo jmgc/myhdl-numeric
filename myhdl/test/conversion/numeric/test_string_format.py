@@ -15,6 +15,8 @@ def string_format():
         yield delay(10)
         print(f"a={a:x}")
         print(f"b={b:x}")
+        yield delay(10)
+        print(f"a={a}\nb={b}")
 
     return bench
 

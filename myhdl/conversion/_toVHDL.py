@@ -2530,7 +2530,7 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
                     for substring in substrings[1:]:
                         self.write(f" & LF")
                         if substring:
-                            self.write(f" & {typemark}'(\"{subtrings}\")" % (typemark, substring))
+                            self.write(f" & {typemark}'(\"{substring}\")")
                 else:
                     self.write(f" LF")
             else:
