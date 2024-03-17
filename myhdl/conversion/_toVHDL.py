@@ -1411,18 +1411,25 @@ def _writeCustomPackage(f, name, hierarchy, fixed_point=False):
         for t in sortedList:
             print("%s" % t.toStr(True), file=f)
             print(file=f)
+    array_types = set()
     if hierarchy.mem_types:
         sortedList = list(hierarchy.mem_types.values())
         sortedList.sort(key=lambda x: x.toStr(False))
         for t in sortedList:
+            if t.toStr(True) in array_types:
+                continue
             print(file=f)
             print("%s;" % t.toStr(True), file=f)
+            array_types.add(t.toStr(True))
     if hierarchy.rom_types:
         sortedList = list(hierarchy.rom_types.values())
         sortedList.sort(key=lambda x: x.toStr(False))
         for t in sortedList:
+            if t.toStr(True) in array_types:
+                continue
             print(file=f)
             print("%s;" % t.toStr(True), file=f)
+            array_types.add(t.toStr(True))
     print(file=f)
     print("end package %s;" % name, file=f)
     print(file=f)
