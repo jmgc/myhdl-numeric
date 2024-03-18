@@ -1568,8 +1568,8 @@ def _writeConstants(f, architecture):
                 str_rom = str_indent
             f.write('\n' + (' ' * str_len) + ");\n")
         else:
-            v = c.value.value
             n = c.name
+            v = c.value.value
             if n == '_':
                 continue
             if isinstance(c.vhd_type, vhd_vector):
@@ -1580,6 +1580,8 @@ def _writeConstants(f, architecture):
             f.write(indent)
             f.write("constant %s: %s := %s;\n" %
                     (n, t, s))
+        if not check_correct_identifier(n):
+            raise ToVHDLError(f"Invalid constant identifier: {n} in entity {architecture.entity.name}")
     f.write("\n")
 
 
@@ -1598,6 +1600,9 @@ def _writeSigDecls(f, architecture):
     for signal in sorted_list:
         if not signal.used:
             continue
+
+        if not check_correct_identifier(signal.name):
+            raise ToVHDLError(f"Invalid signal identifier {signal.name} in entity {architecture.entity.name}")
 
         if isinstance(signal.vhd_type, vhd_array):
             print("    signal %s: %s;" % (signal.name,
@@ -2031,8 +2036,8 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
             size = int(math.ceil(math.log(n + 1, 2))) + 1  # sign bit!
             self.write("%s'sd" % size)
 
-    def writeDeclaration(self, obj, name, kind="", direction="", endchar=";",
-                         constr=True):
+    def write_declaration(self, obj, name, kind="", direction="", endchar=";",
+                          constr=True):
         if isinstance(obj, EnumItemType):
             tipe = obj._type._name
         elif isinstance(obj, _Ram):
@@ -2053,15 +2058,17 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
             direction += " "
         self.write("%s%s: %s%s%s" % (kind, name, direction, tipe, endchar))
 
-    def writeDeclarations(self):
+    def write_declarations(self, node):
         if self.tree.hasPrint:
             self.writeline()
             self.write("variable print: line;")
         for name, obj in self.tree.vardict.items():
             if isinstance(obj, _loopInt):
                 continue  # hack for loop vars
+            if not check_correct_identifier(name):
+                self.raiseError(node, _error.ReservedWord, f"Identifier: {name}")
             self.writeline()
-            self.writeDeclaration(obj, name, kind="variable")
+            self.write_declaration(obj, name, kind="variable")
 
     def indent(self):
         self.ind += ' ' * 4
@@ -2566,6 +2573,10 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
             if node.format_spec is None:
                 if isinstance(node.vhdOri, vhd_int):
                     pre, suf = "integer'image(", ")"
+                elif isinstance(node.vhdOri, vhd_boolean):
+                    pre, suf = "", ""
+                elif isinstance(node.vhdOri, vhd_std_logic):
+                    pre, suf = "(", " = std_logic'('1'))"
                 elif not isinstance(node.vhdOri, vhd_string):
                     pre, suf = "to_string(", ")"
                 else:
@@ -3167,7 +3178,7 @@ class _ConvertAlwaysVisitor(_ConvertVisitor):
             self.write(senslist[-1])
         self.write(") is")
         self.indent()
-        self.writeDeclarations()
+        self.write_declarations(node)
         self.dedent()
         self.writeline()
         self.write("begin")
@@ -3200,7 +3211,7 @@ class _ConvertInitialVisitor(_ConvertVisitor):
         self.writeDoc(node)
         self.write("%s: process is" % self.tree.name)
         self.indent()
-        self.writeDeclarations()
+        self.write_declarations(node)
         self.dedent()
         self.writeline()
         self.write("begin")
@@ -3244,7 +3255,7 @@ class _ConvertAlwaysCombVisitor(_ConvertVisitor):
         self.write(senslist[-1])
         self.write(") is")
         self.indent()
-        self.writeDeclarations()
+        self.write_declarations(node)
         self.dedent()
         self.writeline()
         self.write("begin")
@@ -3301,7 +3312,7 @@ class _ConvertAlwaysDecoVisitor(_ConvertVisitor):
             self.write(senslist[-1])
         self.write(") is")
         self.indent()
-        self.writeDeclarations()
+        self.write_declarations(node)
         self.dedent()
         self.writeline()
         self.write("begin")
@@ -3384,7 +3395,7 @@ class _ConvertAlwaysSeqVisitor(_ConvertVisitor):
             self.write(reset)
         self.write(") is")
         self.indent()
-        self.writeDeclarations()
+        self.write_declarations(node)
         self.dedent()
         self.writeline()
         self.write("begin")
@@ -3443,8 +3454,8 @@ class _ConvertFunctionVisitor(_ConvertVisitor):
             endchar = ";"
             obj = self.tree.symdict[name]
             self.writeline()
-            self.writeDeclaration(obj, name, direction="in", constr=False,
-                                  endchar="")
+            self.write_declaration(obj, name, direction="in", constr=False,
+                                   endchar="")
 
     def visit_FunctionDef(self, node):
         self.write("function %s(" % self.tree.name)
@@ -3454,7 +3465,7 @@ class _ConvertFunctionVisitor(_ConvertVisitor):
         self.write(") return ")
         self.writeOutputDeclaration()
         self.write(" is")
-        self.writeDeclarations()
+        self.write_declarations(node)
         self.dedent()
         self.writeline()
         self.write("begin")
@@ -3490,8 +3501,8 @@ class _ConvertTaskVisitor(_ConvertVisitor):
             direction = (inout_port and "inout") or \
                         (output_port and "out") or "in"
             self.writeline()
-            self.writeDeclaration(obj, name, direction=direction,
-                                  constr=False, endchar="")
+            self.write_declaration(obj, name, direction=direction,
+                                   constr=False, endchar="")
 
     def visit_FunctionDef(self, node):
         self.write("procedure %s" % self.tree.name)
@@ -3501,7 +3512,7 @@ class _ConvertTaskVisitor(_ConvertVisitor):
             self.writeInterfaceDeclarations()
             self.write(")")
         self.write(" is")
-        self.writeDeclarations()
+        self.write_declarations(node)
         self.dedent()
         self.writeline()
         self.write("begin")
