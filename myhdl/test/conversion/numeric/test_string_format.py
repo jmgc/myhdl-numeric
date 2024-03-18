@@ -27,6 +27,13 @@ def string_format():
         print(f"{1}")
         print(f"{-1}")
         print("end")
+        yield delay(10)
+        print(f"{False}")
+        print(f"{True}")
+        print(f"{a[0]}")
+        print("%s" % False)
+        print("%s" % True)
+        print("%s" % a[0])
 
     return bench
 
