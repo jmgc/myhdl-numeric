@@ -2574,9 +2574,9 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
                 if isinstance(node.vhdOri, vhd_int):
                     pre, suf = "integer'image(", ")"
                 elif isinstance(node.vhdOri, vhd_boolean):
-                    pre, suf = "", ""
+                    pre, suf = "to_string(", ")"
                 elif isinstance(node.vhdOri, vhd_std_logic):
-                    pre, suf = "(", " = std_logic'('1'))"
+                    pre, suf = "to_string(", " = std_logic'('1'))"
                 elif not isinstance(node.vhdOri, vhd_string):
                     pre, suf = "to_string(", ")"
                 else:
@@ -2584,13 +2584,14 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
             elif isinstance(node.format_spec, ast.JoinedStr):
                 format_spec = node.format_spec.values[0].value
                 if format_spec == 'b':
-                    if type(node.vhdOri) is vhd_vector or isinstance(node.vhdOri, (vhd_string, vhd_int)):
+                    if type(node.vhdOri) is vhd_vector or isinstance(node.vhdOri,
+                                                                     (vhd_string, vhd_int, vhd_boolean, vhd_std_logic)):
                         self.raiseError(node, _error.UnsupportedType,
                                         f"Integer formatting not supported for type {type(node.vhdOri)}")
                     else:
                         pre, suf = "to_bstring(", ")"
                 elif format_spec == 'd':
-                    if type(node.vhdOri) is vhd_vector or isinstance(node.vhdOri, vhd_string):
+                    if type(node.vhdOri) is vhd_vector or isinstance(node.vhdOri, (vhd_string, vhd_boolean)):
                         self.raiseError(node, _error.UnsupportedType,
                                         f"Integer formatting not supported for type {type(node.vhdOri)}")
                     elif isinstance(node.vhdOri, vhd_int):
@@ -2598,13 +2599,13 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
                     else:
                         pre, suf = "integer'image(to_integer(", "))"
                 elif format_spec == 'o':
-                    if isinstance(node.vhdOri, (vhd_string, vhd_int)):
+                    if isinstance(node.vhdOri, (vhd_string, vhd_int, vhd_boolean, vhd_std_logic)):
                         self.raiseError(node, _error.UnsupportedType,
                                         f"Integer formatting not supported for type {type(node.vhdOri)}")
                     else:
                         pre, suf = "to_ostring(", ")"
                 elif format_spec == 'x':
-                    if isinstance(node.vhdOri, (vhd_string, vhd_int)):
+                    if isinstance(node.vhdOri, (vhd_string, vhd_int, vhd_boolean, vhd_std_logic)):
                         self.raiseError(node, _error.UnsupportedType,
                                         f"Integer formatting not supported for type {type(node.vhdOri)}")
                     else:
@@ -2612,6 +2613,9 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
                 else:
                     self.raiseError(node, _error.UnsupportedType,
                                     f"Format {node.format_spec.values[0].value} not supported")
+            else:
+                self.raiseError(node, _error.UnsupportedType,
+                                f"Conversion {node.conversion} not supported")
             self.write(pre)
             self.visit(node.value)
             self.write(suf)
