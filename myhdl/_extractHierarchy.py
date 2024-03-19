@@ -21,7 +21,6 @@
 
 """
 
-
 import inspect
 import re
 import string
@@ -33,7 +32,7 @@ from ._enum import EnumItemType
 from .numeric._bitarray import bitarray
 from ._Signal import _Signal, _isListOfSigs
 from ._getcellvars import _getCellVars
-from ._misc import _isGenSeq
+from ._misc import _isGenSeq, _get_instances
 from ._resolverefs import _resolveRefs
 from ._util import _flatten, _genfunc, _isTupleOfInts, _isTupleOfFloats, _isTupleOfBitArray
 
@@ -41,16 +40,15 @@ _profileFunc = None
 
 
 class _error:
-    pass
+    NoInstances = "No instances found"
+    InconsistentHierarchy = "Inconsistent hierarchy - are all" \
+                            " instances returned ?"
+    InconsistentToplevel = "Inconsistent top level %s for %s - should be 1"
+    MissingInstance = "\n{}:{}\nIn block {} there is an instance not returned: {}"
+    MissingInstances = "\n{}:{}\nIn block {} there are instances not returned: {}"
 
 
-_error.NoInstances = "No instances found"
-_error.InconsistentHierarchy = "Inconsistent hierarchy - are all" \
-                               " instances returned ?"
-_error.InconsistentToplevel = "Inconsistent top level %s for %s - should be 1"
-
-
-class _Constant(object):
+class _Constant:
     def __init__(self, orig_name, value):
         self.name = None
         self.orig_name = orig_name
@@ -59,7 +57,7 @@ class _Constant(object):
         self.used = False
 
 
-class _Instance(object):
+class _Instance:
     __slots__ = ['level', 'obj', 'subs', 'constdict', 'sigdict', 'memdict',
                  'romdict', 'name', 'func', 'frame',
                  ]
@@ -82,7 +80,7 @@ class _Instance(object):
 _memInfoMap = {}
 
 
-class _MemInfo(object):
+class _MemInfo:
     __slots__ = ['mem', 'name', 'elObj', 'depth', 'type', '_used', '_driven',
                  '_read']
 
@@ -131,7 +129,7 @@ def _isMem(mem):
 _romInfoMap = {}
 
 
-class _RomInfo(object):
+class _RomInfo:
     __slots__ = ['mem', 'orig_name', 'name', 'elObj', 'depth', 'type', '_used']
 
     def __init__(self, orig_name, mem):
@@ -176,7 +174,7 @@ def _isRom(mem):
     return id(mem) in _romInfoMap
 
 
-class _UserCode(object):
+class _UserCode:
     __slots__ = ['code', 'namespace', 'funcname', 'func', 'sourcefile',
                  'sourceline']
 
@@ -268,7 +266,7 @@ class _UserVhdlInstance(_UserVhdlCode):
         return s
 
 
-class _CallFuncVisitor(object):
+class _CallFuncVisitor:
 
     def __init__(self):
         self.linemap = {}
@@ -283,7 +281,7 @@ class _CallFuncVisitor(object):
         self.lineno = node.lineno
 
 
-class _HierExtr(object):
+class _HierExtr:
 
     def __init__(self, name, dut, *args, **kwargs):
 
@@ -322,13 +320,15 @@ class _HierExtr(object):
         absnames[id(obj)] = name
 
         if not top_inst.level == 1:
-            raise ExtractHierarchyError(_error.InconsistentToplevel %
-                                        (top_inst.level, name))
+            raise ExtractHierarchyError(_error.InconsistentToplevel % (top_inst.level, name),
+                                        f"\nCheck the return of instances: {list(_get_instances(top_inst.frame.f_locals).keys())}")
         for inst in hierarchy:
             obj, subs = inst.obj, inst.subs
             if id(obj) not in names:
                 raise ExtractHierarchyError(_error.InconsistentHierarchy)
+
             inst.name = names[id(obj)]
+            _HierExtr._check_instances(inst)
             tn = absnames[id(obj)]
 
             for sn, so in subs:
@@ -340,6 +340,20 @@ class _HierExtr(object):
                         sni = "%s_%s" % (sn, i)
                         names[id(soi)] = sni
                         absnames[id(soi)] = "%s_%s_%s" % (tn, sn, i)
+
+    @staticmethod
+    def _check_instances(inst):
+        insts = set(k for k, v in _get_instances(inst.frame.f_locals).items()
+                    if not (isinstance(v, (list, tuple, set)) and len(v) == 0))
+        returned = set(sub[0] for sub in inst.subs)
+        insts -= returned
+        if insts:
+            file = inst.frame.f_code.co_filename
+            line = inst.frame.f_lineno
+            if len(insts) == 1:
+                raise ExtractHierarchyError(_error.MissingInstance.format(file, line, inst.name, insts.pop()))
+            else:
+                raise ExtractHierarchyError(_error.MissingInstances.format(file, line, inst.name, insts))
 
     def extractor(self, frame, event, arg):
         if event == "call":
@@ -480,8 +494,8 @@ class _HierExtr(object):
                 assert id(arg) not in self.userCodeMap[hdl]
                 code = specs[spec]
                 self.userCodeMap[hdl][id(arg)] = classMap[spec](code, namespace,
-                                                           funcname, func,
-                                                           sourcefile, sourceline)
+                                                                funcname, func,
+                                                                sourcefile, sourceline)
 
 
 def _infer_args(arg):
