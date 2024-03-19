@@ -2,7 +2,7 @@ from __future__ import absolute_import, print_function
 
 import unittest
 from myhdl import always, Signal, sfixba, always_comb, instance, delay, \
-    StopSimulation, toVHDL, toVerilog, conversion
+    StopSimulation, toVHDL, conversion
 import os
 path = os.path
 
