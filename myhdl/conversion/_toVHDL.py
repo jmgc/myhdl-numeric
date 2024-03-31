@@ -1563,7 +1563,10 @@ def _writeConstants(f, architecture):
             str_indent = ',\n' + (' ' * str_len)
             for idx, v in enumerate(c.value.mem):
                 f.write(str_rom)
-                s = c.vhd_type.type.literal(v)
+                try:
+                    s = c.vhd_type.type.literal(v)
+                except ToVHDLError as e:
+                    raise ToVHDLError(f"Invalid constant value: {v} in entity {architecture.entity.name}") from e
                 f.write("%s => %s" % (idx, s))
                 str_rom = str_indent
             f.write('\n' + (' ' * str_len) + ");\n")
@@ -3623,7 +3626,7 @@ class vhd_nat(vhd_int):
         return "natural"
 
     def literal(self, value, prefixed=False):
-        limit = 1 << 32
+        limit = 1 << 31
         if value >= limit or value < 0:
             raise ToVHDLError("Not representable natural value: %d" % value)
         s = str(int(value))
