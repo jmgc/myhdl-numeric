@@ -2248,7 +2248,16 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
         self.visit(node.test)
         self.indent()
         self.writeline()
-        self.write('report "*** AssertionError ***"')
+        if isinstance(node.msg, ast.JoinedStr):
+            self.write('report ')
+            self.visit(node.msg)
+            self.write('')
+        elif isinstance(node.msg, ast.Constant):
+            self.write('report ')
+            self.visit(node.msg)
+            self.write('')
+        else:
+            self.write('report "*** AssertionError ***"')
         self.writeline()
         self.write("severity error;")
         self.dedent()
@@ -4610,6 +4619,12 @@ class _AnnotateTypesVisitor(ast.NodeVisitor, _ConversionMixin):
     def visit_Assert(self, node):
         self.visit(node.test)
         node.test.vhd = vhd_boolean()
+        if isinstance(node.msg, ast.JoinedStr):
+            self.visit(node.msg)
+            node.msg.vhd = vhd_string()
+        elif isinstance(node.msg, ast.Constant):
+            self.visit(node.msg)
+            node.msg.vhd = vhd_string()
 
     def visit_AugAssign(self, node):
         self.visit(node.target)

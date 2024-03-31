@@ -94,3 +94,20 @@ def test_string_error_oct():
         assert conversion.verify(string_format_error_oct) == 0
     except ConversionError as e:
         assert e.kind == errors.UnsupportedType
+
+
+def assert_string_format():
+
+    @instance
+    def bench():
+        value = True
+        assert True, f"{value}"
+        assert True, "Hello assert!!!"
+        print(f"{False}")
+        yield delay(10)
+
+    return bench
+
+
+def test_assert_message():
+    assert conversion.verify(assert_string_format) == 0
