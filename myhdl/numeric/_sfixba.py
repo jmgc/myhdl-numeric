@@ -1139,12 +1139,6 @@ class sfixba(bitarray):
             value = other
         elif isinstance(other, sintba):
             value = type(self)(other, maths=self)
-        elif type(other) is bitarray:
-            if (other.high - other.low) > self.high:
-                mask = (1 << (other.high - other.low)) - 1
-                value = mask & self._val
-            else:
-                return NotImplemented
         else:
             return NotImplemented
         high = max(self._high, value._high)

@@ -548,7 +548,7 @@ class _Signal(object):
 
     def __ne__(self, other):
         if isinstance(other, _Signal):
-            return self._val != other._val
+            return not (self._val == other._val)
         return self.val != other
 
     def __lt__(self, other):
