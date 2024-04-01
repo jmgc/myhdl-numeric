@@ -110,18 +110,18 @@ def bitarray_constants():
         h.next = v[h.high:]
         i.next = data
         yield delay(10)
-        assert h == uintba(0)
+        assert h == uintba(0, h.val)
         assert i == data
         print("%s, %s" % (h, v))
         yield delay(10)
         h.next = w[h.high:]
         yield delay(10)
-        assert h == uintba(0)
+        assert h == uintba(0, h.val)
         print("%s, %s" % (h, w))
         yield delay(10)
         w.next[0] = 1
         v.next = sfixba(0.1, 7, -8).scalb(8)
-        h.next = uintba(3)
+        h.next = uintba(3, h.val)
         yield delay(10)
         print(w, v, h)
         yield delay(10)
