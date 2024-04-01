@@ -8,7 +8,7 @@ from myhdl.conversion import verify, analyze
 from myhdl import ConversionError
 from myhdl.conversion._misc import _error
 
-def ForLoopError1(a, out):
+def ForLoopError1(a, out_value):
     @instance
     def logic():
         while 1:
@@ -17,9 +17,9 @@ def ForLoopError1(a, out):
             for i in range(1, 4, -1):
                 if a[i] == 1:
                     var += 1
-            out.next = var
+            out_value.next = var
     return logic
-        
+
 def LoopBench(LoopTest):
 
     a = Signal(intbv(-1)[16:])
@@ -36,7 +36,7 @@ def LoopBench(LoopTest):
             print(z)
 
     return stimulus, looptest_inst
-      
+
 
 def testForLoopError1():
     try:
@@ -45,6 +45,6 @@ def testForLoopError1():
         assert e.kind == _error.Requirement
     else:
         assert False
-   
-    
+
+
 
