@@ -18,7 +18,7 @@
 #  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 
 from __future__ import absolute_import
-from .._version import __version__
+from .. import __version__
 
 _version = __version__.replace('.', '')
 _shortversion = _version.replace('dev', '')

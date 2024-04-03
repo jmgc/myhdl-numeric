@@ -38,7 +38,7 @@ from .._modbv import modbv
 from .._concat import concat
 from .._delay import delay
 from .._misc import downrange
-from .._errors import ConversionError
+from .. import ConversionError
 from .._always_comb import _AlwaysComb
 from .._always_seq import _AlwaysSeq
 from .._always import _Always
@@ -435,8 +435,10 @@ def _getNritems(obj):
     """Return the number of items in an objects' type"""
     if isinstance(obj, _Signal):
         obj = obj._init
-    if isinstance(obj, (intbv, bitarray)):
+    if isinstance(obj, intbv):
         return obj.max - obj.min
+    elif isinstance(obj, bitarray):
+        return 1 << len(obj)
     elif isinstance(obj, EnumItemType):
         return len(obj._type)
     else:
@@ -706,9 +708,7 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
                 node.obj = method
         if isinstance(obj, EnumType):
             if not hasattr(obj, node.attr):
-                pass
-            assert hasattr(obj, node.attr), "%s.%s" % \
-                                            (node.value.id, node.attr)
+                self.raiseError(node, f"{node.value.id}.{node.attr}")
             node.obj = getattr(obj, node.attr)
             if obj not in _enumTypeSet:
                 _enumTypeSet.add(obj)

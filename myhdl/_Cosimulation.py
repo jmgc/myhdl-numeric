@@ -26,7 +26,7 @@ import shlex
 import subprocess
 
 from ._intbv import intbv
-from ._errors import CosimulationError
+from . import CosimulationError
 from ._simulator import _simulator
 from os import set_inheritable
 

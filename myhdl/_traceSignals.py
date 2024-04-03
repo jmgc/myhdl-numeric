@@ -26,11 +26,11 @@
 import time
 import sys
 import shutil
-from ._version import __version__
+from . import __version__
 from ._enum import EnumItemType
 from ._simulator import _simulator
 from ._extractHierarchy import _HierExtr
-from ._errors import TraceSignalsError
+from . import TraceSignalsError
 from ._ShadowSignal import _TristateSignal, _TristateDriver
 import os
 

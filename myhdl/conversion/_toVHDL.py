@@ -39,7 +39,7 @@ import string
 from collections import namedtuple
 from io import StringIO
 
-from .._version import __version__
+from .. import __version__
 from .._enum import EnumItemType, EnumType
 from .._intbv import intbv
 from .._modbv import modbv
@@ -49,7 +49,7 @@ from .._Signal import posedge, negedge
 from .._delay import delay
 from .._misc import downrange
 from .._bin import bin
-from .._errors import ToVHDLError, ToVHDLWarning, ConversionError
+from .. import ToVHDLError, ToVHDLWarning, ConversionError
 from .._extractHierarchy import (_HierExtr, _isMem, _isRom, _getMemInfo,
                                  _UserVhdlCode, _MemInfo,
                                  _RomInfo, _Constant, _getRomInfo,
@@ -3401,12 +3401,12 @@ class _ConvertAlwaysSeqVisitor(_ConvertVisitor):
         senslist = self.tree.senslist
         edge = senslist[0]
         reset = self.tree.reset
-        asynchronous = reset is not None and reset.asynchronous
+        isasync = reset is not None and reset.isasync
         sigregs = self.tree.sigregs
         varregs = self.tree.varregs
         self.write("%s: process (" % self.tree.name)
         self.write(edge.sig)
-        if asynchronous:
+        if isasync:
             self.write(', ')
             self.write(reset)
         self.write(") is")
@@ -3416,7 +3416,7 @@ class _ConvertAlwaysSeqVisitor(_ConvertVisitor):
         self.writeline()
         self.write("begin")
         self.indent()
-        if not asynchronous:
+        if not isasync:
             self.writeline()
             self.write("if %s then" % edge._toVHDL())
             self.indent()
@@ -3433,7 +3433,7 @@ class _ConvertAlwaysSeqVisitor(_ConvertVisitor):
                 self.write("%s := %s;" % (n, _convertInitVal(reg, init)))
             self.dedent()
             self.writeline()
-            if asynchronous:
+            if isasync:
                 self.write("elsif %s then" % edge._toVHDL())
             else:
                 self.write("else")
@@ -3444,7 +3444,7 @@ class _ConvertAlwaysSeqVisitor(_ConvertVisitor):
             self.writeline()
             self.write("end if;")
             self.dedent()
-        if not asynchronous:
+        if not isasync:
             self.writeline()
             self.write("end if;")
             self.dedent()

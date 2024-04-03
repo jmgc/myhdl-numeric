@@ -4,17 +4,17 @@ from myhdl import *
 ACTIVE_LOW, INACTIVE_HIGH = 0, 1
 
 def Inc(count, enable, clock, reset):
-    
+
     """ Incrementer with enable.
-    
+
     count -- output
     enable -- control input, increment when 1
     clock -- clock input
     reset -- asynchronous reset input
     n -- counter max value
-    
+
     """
-    
+
     @always_seq(clock.posedge, reset=reset)
     def incLogic():
         if enable:
@@ -28,7 +28,7 @@ def testbench():
     count = Signal(modbv(0)[m:])
     enable = Signal(bool(0))
     clock  = Signal(bool(0))
-    reset = ResetSignal(0, active=0, asynchronous=True)
+    reset = ResetSignal(0, active=0, isasync=True)
 
     inc_1 = Inc(count, enable, clock, reset)
 
@@ -50,12 +50,12 @@ def testbench():
 
     @instance
     def monitor():
-        print "enable  count"
+        print("enable  count")
         yield reset.posedge
         while 1:
             yield clock.posedge
             yield delay(1)
-            print "   %s      %s" % (enable, count)
+            print(f"   {enable}      {count}")
 
     return clockGen, stimulus, inc_1, monitor
 
@@ -71,7 +71,7 @@ m = 8
 count = Signal(modbv(0)[m:])
 enable = Signal(bool(0))
 clock  = Signal(bool(0))
-reset = ResetSignal(0, active=0, asynchronous=True)
+reset = ResetSignal(0, active=0, isasync=True)
 
 inc_inst = Inc(count, enable, clock, reset)
 inc_inst = toVerilog(Inc, count, enable, clock, reset)
@@ -80,12 +80,12 @@ inc_inst = toVHDL(Inc, count, enable, clock, reset)
 
 if __name__ == '__main__':
     main()
-           
-           
-    
-        
-    
 
-    
-             
-        
+
+
+
+
+
+
+
+

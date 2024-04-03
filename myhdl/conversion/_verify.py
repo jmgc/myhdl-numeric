@@ -11,7 +11,7 @@ from collections import namedtuple
 from .._Simulation import Simulation
 from ._toVHDL import toVHDL
 from ._toVerilog import toVerilog
-from .._version import __version__
+from .. import __version__
 
 _version = __version__.replace('.', '')
 # strip 'dev' for version

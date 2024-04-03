@@ -28,8 +28,8 @@ from warnings import warn
 from types import GeneratorType
 
 from ._Cosimulation import Cosimulation
-from ._errors import StopSimulation, _SuspendSimulation
-from ._errors import SimulationError
+from . import StopSimulation, _SuspendSimulation
+from . import SimulationError
 from ._simulator import _simulator
 from ._Waiter import _Waiter, _inferWaiter, _SignalTupleWaiter
 from ._util import _flatten, _printExcInfo

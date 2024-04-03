@@ -18,16 +18,14 @@
 #  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 
 """ Module with the always function. """
-
-
-
+import inspect
 from types import FunctionType
 
-from ._errors import InstanceError
-from ._util import _isGenFunc, _makeAST
-from ._Waiter import _inferWaiter
-from ._resolverefs import _AttrRefTransformer
-from ._visitors import _SigNameVisitor
+from myhdl import InstanceError
+from myhdl._util import _isGenFunc, _makeAST
+from myhdl._Waiter import _inferWaiter
+from myhdl._resolverefs import _AttrRefTransformer
+from myhdl._visitors import _SigNameVisitor
 
 
 class _error:
@@ -36,35 +34,63 @@ _error.NrOfArgs = "decorated generator function should not have arguments"
 _error.ArgType = "decorated object should be a generator function"
 
 
+class _CallInfo:
+
+    def __init__(self, name, modctxt, symdict):
+        self.name = name
+        self.modctxt = modctxt
+        self.symdict = symdict
+
+
+def _getCallInfo():
+    """Get info on the caller of an Instantiator.
+
+    An Instantiator should be used in a block context.
+    This function gets the required info about the caller.
+    It uses the frame stack:
+    0: this function
+    1: the instantiator decorator
+    2: the block function that defines instances
+    3: the caller of the block function, e.g. the BlockInstance.
+    """
+    funcrec = inspect.stack()[2]
+    name = funcrec[3]
+    frame = funcrec[0]
+    symdict = dict(frame.f_globals)
+    symdict.update(frame.f_locals)
+    modctxt = False
+    return _CallInfo(name, modctxt, symdict)
+
+
 def instance(genfunc):
+    callinfo = _getCallInfo()
     if not isinstance(genfunc, FunctionType):
         raise InstanceError(_error.ArgType)
     if not _isGenFunc(genfunc):
         raise InstanceError(_error.ArgType)
     if genfunc.__code__.co_argcount > 0:
         raise InstanceError(_error.NrOfArgs)
-    return _Instantiator(genfunc)
+    return _Instantiator(genfunc, callinfo=callinfo)
 
 
-class _Instantiator(object):
+class _Instantiator:
 
-    def __init__(self, genfunc):
+    def __init__(self, genfunc, callinfo):
+        self.callinfo = callinfo
+        self.callername = callinfo.name
+        self.modctxt = callinfo.modctxt
         self.genfunc = genfunc
         self.gen = genfunc()
         # infer symdict
         f = self.funcobj
         varnames = f.__code__.co_varnames
         symdict = {}
-        for n, v in f.__globals__.items():
+        for n, v in callinfo.symdict.items():
             if n not in varnames:
                 symdict[n] = v
-        # handle free variables
-        freevars = f.__code__.co_freevars
-        if freevars:
-            closure = (c.cell_contents for c in f.__closure__)
-            symdict.update(zip(freevars, closure))
         self.symdict = symdict
 
+        # print modname, genfunc.__name__
         tree = self.ast
         # print ast.dump(tree)
         v = _AttrRefTransformer(self)
@@ -75,6 +101,12 @@ class _Instantiator(object):
         self.outputs = v.outputs
         self.inouts = v.inouts
         self.embedded_func = v.embedded_func
+        self.sigdict = v.sigdict
+        self.losdict = v.losdict
+
+    @property
+    def name(self):
+        return self.funcobj.__name__
 
     @property
     def funcobj(self):

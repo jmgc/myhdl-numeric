@@ -24,7 +24,7 @@ import warnings
 import ast
 import traceback as tb
 
-from .._errors import ConversionError
+from .. import ConversionError
 
 
 class _error(object):

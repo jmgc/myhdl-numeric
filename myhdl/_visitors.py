@@ -1,10 +1,12 @@
 import ast
 
-from myhdl._intbv import intbv
-from myhdl._Signal import _Signal, _isListOfSigs
+from ._intbv import intbv
+from ._Signal import _Signal, _isListOfSigs
+from .numeric._bitarray import bitarray
 
 
 class _SigNameVisitor(ast.NodeVisitor):
+
     def __init__(self, symdict):
         self.toplevel = 1
         self.symdict = symdict
@@ -13,6 +15,8 @@ class _SigNameVisitor(ast.NodeVisitor):
         self.inouts = set()
         self.embedded_func = None
         self.context = 'input'
+        self.sigdict = {}
+        self.losdict = {}
 
     def visit_Module(self, node):
         for n in node.body:
@@ -29,25 +33,31 @@ class _SigNameVisitor(ast.NodeVisitor):
     def visit_If(self, node):
         if not node.orelse:
             if isinstance(node.test, ast.Name) and \
-               node.test.id == '__debug__':
+                    node.test.id == '__debug__':
                 return  # skip
         self.generic_visit(node)
 
     def visit_Name(self, node):
-        nid = node.id
-        if nid not in self.symdict:
+        n = node.id
+        if n not in self.symdict:
             return
-        s = self.symdict[nid]
-        if isinstance(s, (_Signal, intbv)) or _isListOfSigs(s):
+        s = self.symdict[n]
+        if isinstance(s, (_Signal, intbv, bitarray)) or _isListOfSigs(s):
             if self.context == 'input':
-                self.inputs.add(nid)
+                self.inputs.add(n)
             elif self.context == 'output':
-                self.outputs.add(nid)
+                self.outputs.add(n)
             elif self.context == 'inout':
-                self.inouts.add(nid)
+                self.inouts.add(n)
+            elif self.context == 'pass':
+                pass
             else:
                 print(self.context)
                 raise AssertionError("bug in _SigNameVisitor")
+        if isinstance(s, _Signal):
+            self.sigdict[n] = s
+        elif _isListOfSigs(s):
+            self.losdict[n] = s
 
     def visit_Assign(self, node):
         self.context = 'output'
@@ -57,7 +67,14 @@ class _SigNameVisitor(ast.NodeVisitor):
         self.visit(node.value)
 
     def visit_Attribute(self, node):
+        present_context = self.context
+        if isinstance(node.value, ast.Name):
+            if node.value.id in self.symdict:
+                if isinstance(self.symdict[node.value.id], (_Signal, intbv, bitarray)):
+                    if node.attr in ('high', 'low', 'min', 'max', 'is_signed'):
+                        self.context = 'pass'
         self.visit(node.value)
+        self.context = present_context
 
     def visit_Call(self, node):
         fn = None
@@ -86,4 +103,6 @@ class _SigNameVisitor(ast.NodeVisitor):
         pass  # skip
 
     def visit_Print(self, node):
-        pass  # skip
+        self.context = 'pass'
+        self.generic_visit(node)
+        self.context == 'input'

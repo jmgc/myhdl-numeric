@@ -1,5 +1,5 @@
 from myhdl import uintba, Signal, instance, delay, conversion, Simulation, StopSimulation
-from myhdl._errors import ToVHDLError
+from myhdl import ToVHDLError
 
 
 def tuple_list_types(mem_in, mem_out):

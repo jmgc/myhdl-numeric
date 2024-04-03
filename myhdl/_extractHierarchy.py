@@ -27,7 +27,7 @@ import string
 import sys
 import ast
 
-from ._errors import ExtractHierarchyError, ToVerilogError, ToVHDLError
+from . import ExtractHierarchyError, ToVerilogError, ToVHDLError
 from ._enum import EnumItemType
 from .numeric._bitarray import bitarray
 from ._Signal import _Signal, _isListOfSigs

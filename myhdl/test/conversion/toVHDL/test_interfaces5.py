@@ -1,6 +1,6 @@
 from myhdl import Signal, intbv, always_seq, ResetSignal, now, \
     instance, delay, StopSimulation, Simulation, toVHDL
-from myhdl._errors import ToVHDLError
+from myhdl import ToVHDLError
 from myhdl.conversion import analyze, verify
 from myhdl.test.conftest import bug
 

@@ -20,45 +20,42 @@
 """ Module with the always_comb function. """
 from types import FunctionType
 
-from ._errors import AlwaysCombError
+from . import AlwaysCombError
 from ._Signal import _Signal, _isListOfSigs
 from ._util import _isGenFunc
+from ._instance import _getCallInfo
 from ._always import _Always
 
 
 class _error:
     pass
+
+
 _error.ArgType = "always_comb argument should be a classic function"
 _error.NrOfArgs = "always_comb argument should be a function without arguments"
 _error.Scope = "always_comb argument should be a local function"
-_error.SignalAsInout = "signal (%s) used as inout in always_comb" \
-    " function argument"
-_error.EmbeddedFunction = "embedded functions in always_comb function" \
-    " argument not supported"
+_error.SignalAsInout = "signal (%s) used as inout in always_comb function argument"
+_error.EmbeddedFunction = "embedded functions in always_comb function argument not supported"
 _error.EmptySensitivityList = "sensitivity list is empty"
 
 
 def always_comb(func):
+    callinfo = _getCallInfo()
     if not isinstance(func, FunctionType):
         raise AlwaysCombError(_error.ArgType)
     if _isGenFunc(func):
         raise AlwaysCombError(_error.ArgType)
     if func.__code__.co_argcount > 0:
         raise AlwaysCombError(_error.NrOfArgs)
-    c = _AlwaysComb(func)
+    c = _AlwaysComb(func, callinfo=callinfo)
     return c
 
 
-# class _AlwaysComb(_Instantiator):
 class _AlwaysComb(_Always):
 
-    def __init__(self, func):
+    def __init__(self, func, callinfo):
         senslist = []
-        super(_AlwaysComb, self).__init__(func, senslist)
-
-        inouts = self.inouts | self.inputs.intersection(self.outputs)
-        if inouts:
-            raise AlwaysCombError(_error.SignalAsInout % inouts)
+        super(_AlwaysComb, self).__init__(func, senslist, callinfo=callinfo)
 
         if self.embedded_func:
             raise AlwaysCombError(_error.EmbeddedFunction)

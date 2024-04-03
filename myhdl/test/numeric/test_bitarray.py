@@ -32,14 +32,15 @@ random.seed(2)  # random, but deterministic
 
 import operator
 import warnings
+from myhdl import bitarray, always_comb, Signal, Simulation, StopSimulation
 
-from myhdl import bitarray
 
 def wrap(val, format):
     length = format._high - format._low
     mask = (1 << length) - 1
     val &= mask
     return val
+
 
 class TestBitVectorInit(TestCase):
     def testDefaultValue(self):
@@ -134,6 +135,7 @@ def getSlice(s, i, j):
     sj = len(exts) - j
     return exts[si:sj]
 
+
 def getSliceLeftOpen(s, j):
     ext = '0' * (j - len(s) + 1)
     exts = ext + s
@@ -141,6 +143,7 @@ def getSliceLeftOpen(s, j):
         return exts[:-j]
     else:
         return exts
+
 
 def setItem(s, i, val):
     ext = '0' * (i - len(s) + 1)
@@ -160,6 +163,7 @@ def setSliceLeftOpen(s, j, val):
         return val + exts[-j:]
     else:
         return val
+
 
 class TestBitVectorIndexing(TestCase):
     def seqsSetup(self):
@@ -301,6 +305,7 @@ class TestBitVectorIndexing(TestCase):
                     ref = int(s_ref, 2)
                     self.assertEqual(ba.__index__(), ref)
                     self.assertEqual(len(ba), len(s_ref))
+
 
 class TestBitVectorAsInt(TestCase):
     def seqSetup(self, imin, imax, jmin=0, jmax=None):
@@ -518,14 +523,19 @@ class TestBitVectorAsInt(TestCase):
 
     def testLt(self):
         self.assertRaises(TypeError, self.comparisonCheck, (operator.lt,))
+
     def testLe(self):
         self.assertRaises(TypeError, self.comparisonCheck, (operator.le,))
+
     def testGt(self):
         self.assertRaises(TypeError, self.comparisonCheck, (operator.gt,))
+
     def testGe(self):
         self.assertRaises(TypeError, self.comparisonCheck, (operator.ge,))
+
     def testEq(self):
         self.assertRaises(TypeError, self.comparisonCheck, (operator.eq,))
+
     def testNe(self):
         self.assertRaises(TypeError, self.comparisonCheck, (operator.ne,))
 
@@ -607,6 +617,7 @@ class TestBitVectorBounds(TestCase):
     def testIRShift(self):
         self.checkOp(operator.irshift)
 
+
 class TestBitVectorBinary(TestCase):
 
     def seqSetup(self, imin, imax, jmin=0, jmax=None):
@@ -655,6 +666,26 @@ class TestBitVectorCopy(TestCase):
             self.assertEqual(result.and_reduce(), and_val)
             self.assertEqual(result.or_reduce(), or_val)
             self.assertEqual(result.xor_reduce(), xor_val)
+
+
+class TestBitVectorMisc(TestCase):
+
+    def comb_bench(self, a, b, c):
+
+        @always_comb
+        def bench():
+            a.next = b.val
+            c.next = a.high
+
+        return bench
+
+    def testComb(self):
+        a = Signal(bitarray(0, 16, 0))
+        b = Signal(bitarray(0, 16, 0))
+        c = Signal(bitarray(0, 16, 0))
+
+        Simulation(self.comb_bench(a, b, c)).run(quiet=True)
+
 
 if __name__ == "__main__":
     unittest.main()
