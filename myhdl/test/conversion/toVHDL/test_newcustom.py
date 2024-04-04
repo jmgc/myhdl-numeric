@@ -1,15 +1,18 @@
+import os
+
+path = os.path
 
 import random
-from myhdl.test.conftest import bug
 from random import randrange
-from myhdl import instance, always, always_comb, intbv, Signal, delay, \
-    StopSimulation, toVHDL, conversion
-from myhdl import ConversionError
-from myhdl.conversion._misc import _error
-import os
-path = os.path
+
 random.seed(2)
 
+from myhdl.test.conftest import bug
+
+from myhdl import (Signal, intbv, delay, instance, toVHDL,
+                   always, always_comb, StopSimulation, conversion)
+
+from myhdl import ConversionError
 
 ACTIVE_LOW, INACTIVE_HIGH = 0, 1
 
@@ -23,6 +26,7 @@ def incRef(count, enable, clock, reset, n):
     reset -- asynchronous reset input
     n -- counter max value
     """
+
     @instance
     def logic():
         while 1:
@@ -32,11 +36,13 @@ def incRef(count, enable, clock, reset, n):
             else:
                 if enable:
                     count.next = (count + 1) % n
+
     return logic
 
 
 def incGen(count, enable, clock, reset, n):
     """ Generator with __vhdl__ is not permitted """
+
     @instance
     def logic():
         incGen.vhdl_code = "Template string"
@@ -47,6 +53,7 @@ def incGen(count, enable, clock, reset, n):
             else:
                 if enable:
                     count.next = (count + 1) % n
+
     return logic
 
 
@@ -59,6 +66,7 @@ def inc(count, enable, clock, reset, n):
     reset -- asynchronous reset input
     n -- counter max value
     """
+
     @always(clock.posedge, reset.negedge)
     def incProcess():
         # make it fail in conversion
@@ -73,22 +81,21 @@ def inc(count, enable, clock, reset, n):
 
     inc.vhdl_code = \
         """
-process ($clock, $reset) begin
-    if ($reset = '0') then
-        $count <= (others => '0');
-    elsif rising_edge($clock) then
-        if ($enable = '1') then
-            $count <= ($count + 1) mod $n;
-        end if;
-    end if;
-end process;
-"""
+        process ($clock, $reset) begin
+            if ($reset = '0') then
+                $count <= (others => '0');
+            elsif rising_edge($clock) then
+                if ($enable = '1') then
+                    $count <= ($count + 1) mod $n;
+                end if;
+            end if;
+        end process;
+        """
 
     return incProcess
 
 
 def incErr(count, enable, clock, reset, n):
-
     @always(clock.posedge, reset.negedge)
     def incProcess():
         # make it fail in conversion
@@ -103,23 +110,22 @@ def incErr(count, enable, clock, reset, n):
 
     incErr.vhdl_code = \
         """
-always @(posedge $clock, negedge $reset) begin
-    if ($reset == 0) begin
-        $count <= 0;
-    end
-    else begin
-        if ($enable) begin
-            $count <= ($countq + 1) %% $n;
+        always @(posedge $clock, negedge $reset) begin
+            if ($reset == 0) begin
+                $count <= 0;
+            end
+            else begin
+                if ($enable) begin
+                    $count <= ($countq + 1) %% $n;
+                end
+            end
         end
-    end
-end
-"""
+        """
 
     return incProcess
 
 
 def inc_comb(nextCount, count, n):
-
     @always_comb
     def logic():
         # make if fail in conversion
@@ -128,16 +134,15 @@ def inc_comb(nextCount, count, n):
 
     nextCount.driven = "wire"
 
-    inc_comb.vhdl_code =\
+    inc_comb.vhdl_code = \
         """
-$nextCount <= ($count + 1) mod $n;
-"""
+        $nextCount <= ($count + 1) mod $n;
+        """
 
     return logic
 
 
 def inc_seq(count, nextCount, enable, clock, reset):
-
     @always(clock.posedge, reset.negedge)
     def logic():
         if reset == ACTIVE_LOW:
@@ -146,26 +151,25 @@ def inc_seq(count, nextCount, enable, clock, reset):
             if (enable):
                 count.next = nextCount
 
-    count.driven = True
+    count.driven = "reg"
 
     inc_seq.vhdl_code = \
         """
-process ($clock, $reset) begin
-    if ($reset = '0') then
-        $count <= (others => '0');
-    elsif rising_edge($clock) then
-        if ($enable = '1') then
-            $count <= $nextCount;
-        end if;
-    end if;
-end process;
-"""
+        process ($clock, $reset) begin
+            if ($reset = '0') then
+                $count <= (others => '0');
+            elsif rising_edge($clock) then
+                if ($enable = '1') then
+                    $count <= $nextCount;
+                end if;
+            end if;
+        end process;
+        """
 
-    return logic
+    return []
 
 
 def inc2(count, enable, clock, reset, n):
-
     nextCount = Signal(intbv(0, min=0, max=n))
 
     comb = inc_comb(nextCount, count, n)
@@ -186,9 +190,11 @@ def clockGen(clock):
         while 1:
             yield delay(10)
             clock.next = not clock
+
     return logic
 
-NRTESTS = 2  # 1000
+
+NRTESTS = 1000
 
 ENABLES = tuple([min(1, randrange(5)) for i in range(NRTESTS)])
 
@@ -208,6 +214,7 @@ def stimulus(enable, clock, reset):
             enable.next = ENABLES[i]
             yield clock.negedge
         raise StopSimulation
+
     return logic
 
 
@@ -223,12 +230,14 @@ def check(count, enable, clock, reset, n):
             if enable:
                 expect = (expect + 1) % n
             yield delay(1)
+            # print "%d count %s expect %s count_v %s" % (now(), count, expect, count_v)
+            # assert count == expect
             print(int(count))
+
     return logic
 
 
 def customBench(inc):
-
     m = 8
     n = 2 ** m
 
@@ -250,7 +259,6 @@ def testIncRef():
     toVHDL.name = None
 
 
-@bug("Detection of ports", "vhdl")
 def testInc():
     toVHDL.name = "newCustomBenchInc"
     assert conversion.verify(customBench, inc) == 0
@@ -279,8 +287,6 @@ def testIncGen():
         pass
     else:
         assert False
-    finally:
-        toVHDL.name = None
 
 
 def testIncErr():
@@ -291,5 +297,3 @@ def testIncErr():
         pass
     else:
         assert False
-    finally:
-        toVHDL.name = None
