@@ -336,6 +336,8 @@ class bitarray(object):
 
     def __getitem__(self, key):
         if isinstance(key, slice):
+            if key.step is not None and key.step.__index__() != 1:
+                raise TypeError(f"Step {key.step} not supported")
             i, j = key.start, key.stop
             if j is None:  # default
                 j = self._low
@@ -686,6 +688,19 @@ class bitarray(object):
         result = type(value)(0, high, low)
         result._resize(value)
         result._wrap()
+        return result
+
+    def swap(self):
+        result = type(self)(0, self._high, self._low)
+        if self._val != 0:
+            value = self._val
+            reverse_buffer = 0
+            for _ in range(self._high-self._low):
+                reverse_buffer <<= 1
+                reverse_buffer |= value & 1
+                value >>= 1
+            result._val = reverse_buffer
+            result._wrap()
         return result
 
     @property

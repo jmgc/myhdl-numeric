@@ -81,8 +81,14 @@ package pck_myhdl_%(version)s is
 
     function tern_op(cond: boolean; if_true: signed; if_false: signed) return signed;
     
-    function ceil_log2 (arg: integer) return natural;
-
+    function ceil_log2(arg: integer) return natural;
+    
+    function swap(arg: std_logic_vector) return std_logic_vector;
+    
+    function swap(arg: unresolved_unsigned) return unresolved_unsigned;
+    
+    function swap(arg: unresolved_signed) return unresolved_signed;
+    
     procedure finish_simulation;
 """
     result += """
@@ -113,6 +119,8 @@ package pck_myhdl_%(version)s is
     function bool (arg: sfixed) return boolean;
 
     function floor (arg: sfixed) return sfixed;
+
+    function swap(arg: sfixed) return sfixed;
 
     function c_l2f (arg: std_logic; high: integer; low: integer) return sfixed;
 
@@ -329,6 +337,25 @@ package body pck_myhdl_%(version)s is
         result := result + integer(ceil(log2(real(value))));
         return result;
     end function ceil_log2;
+    
+    function swap(arg: std_logic_vector) return std_logic_vector is
+        variable result: std_logic_vector(arg'range);
+    begin
+        for i in arg'range loop
+            result(i) := arg(arg'left - i);
+        end loop;
+        return result;
+    end function swap;
+    
+    function swap(arg: unresolved_unsigned) return unresolved_unsigned is
+    begin
+        return unresolved_unsigned(swap(std_logic_vector(arg)));
+    end function swap;
+    
+    function swap(arg: unresolved_signed) return unresolved_signed is
+    begin
+        return unresolved_signed(swap(std_logic_vector(arg)));
+    end function swap;
 """
     result += """
     function c_l2u (arg: std_logic; size: natural) return unsigned is
@@ -472,6 +499,11 @@ package body pck_myhdl_%(version)s is
                             fixed_truncate);
         return result;
     end function floor;
+
+    function swap(arg: sfixed) return sfixed is
+    begin
+        return sfixed(swap(std_logic_vector(arg)));
+    end function swap;
 
     function c_l2f (arg: std_logic; high: integer; low: integer) return sfixed is
         constant r_high: integer := maximum(high, 1);

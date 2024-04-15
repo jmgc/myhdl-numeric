@@ -1,6 +1,6 @@
 import pytest
-from myhdl import Signal, sfixba, instance, delay, uintba, sintba, toVHDL, \
-    Simulation, conversion
+from myhdl import Signal, sfixba, instance, delay, bitarray, uintba, sintba, toVHDL, \
+    Simulation, conversion, StopSimulation
 from myhdl.conversion import verify
 import os
 import random
@@ -699,4 +699,46 @@ def testMultiVer(m, n, p):
 def testUnaryVer(left):
     toVHDL.name = "UnaryVer_" + gen_id(left)
     assert conversion.verify(unaryBench, left) == 0, toVHDL.name
+    toVHDL.name = None
+
+
+def swap_test_bench():
+
+    @instance
+    def calculus():
+        a = bitarray(0b110, 3, 0)
+        b = bitarray(0b011, 3, 0)
+        c = uintba(a)
+        d = uintba(b)
+        e = sintba(a)
+        f = sintba(b)
+        g = sfixba(a)
+        h = sfixba(b)
+        yield delay(10)
+        print(f"a: {a}, b: {b}")
+        yield delay(10)
+        assert a.swap() == b, f"bitarray swap failed: {a.swap()} != {b}"
+        assert b.swap() == a, f"bitarray swap failed: {b.swap()} != {a}"
+        yield delay(10)
+        assert c.swap() == d, f"uintba swap failed: {c.swap()} != {d}"
+        assert d.swap() == c, f"uintba swap failed: {d.swap()} != {c}"
+        yield delay(10)
+        k = e.swap()
+        assert bitarray(k) == bitarray(f), f"sintba swap failed: {e.swap()} != {f}"
+        l = f.swap()
+        assert bitarray(l) == bitarray(e), f"sintba swap failed: {f.swap()} != {e}"
+        yield delay(10)
+        m = g.swap()
+        assert bitarray(m) == bitarray(h), f"sfixba swap failed: {g.swap()} != {h}"
+        n = h.swap()
+        assert bitarray(n) == bitarray(g), f"sfixba swap failed: {h.swap()} != {g}"
+        yield delay(10)
+        raise StopSimulation
+
+    return calculus
+
+
+def testSwap():
+    toVHDL.name = "swap_tst"
+    assert conversion.verify(swap_test_bench) == 0, toVHDL.name
     toVHDL.name = None

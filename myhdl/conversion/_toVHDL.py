@@ -364,6 +364,8 @@ class _GenerateHierarchy(object):
                         vhd_obj = inferVhdlObj(var)
                         if isinstance(vhd_obj, vhd_enum):
                             self.enum_types[vhd_obj._type] = vhd_obj
+                        if isinstance(vhd_obj, vhd_sfixed):
+                            self.sfixed = True
                         vhd_vars_dict[name] = \
                             vhd_variable(name, var, vhd_obj, entity=entity,
                                          used=True, architecture=architecture)

@@ -687,5 +687,13 @@ class TestBitVectorMisc(TestCase):
         Simulation(self.comb_bench(a, b, c)).run(quiet=True)
 
 
+class TestSwapBitVector(TestCase):
+    def testSwap(self):
+        a = bitarray(0b110, 3, 0)
+        b = bitarray(0b011, 3, 0)
+        self.assertEqual(b.swap(), a)
+        self.assertEqual(a.swap(), b)
+
+
 if __name__ == "__main__":
     unittest.main()
