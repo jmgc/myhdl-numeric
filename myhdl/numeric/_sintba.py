@@ -367,15 +367,6 @@ class sintba(bitarray):
     def __float__(self):
         return float(self._val)
 
-    def __oct__(self):
-        return oct(self._val)
-
-    def __hex__(self):
-        return hex(self._val)
-
-    def __index__(self):
-        return self._val
-
     # comparisons
     def __eq__(self, other):
         if isinstance(other, int):
@@ -431,10 +422,10 @@ class sintba(bitarray):
             "({0:#x}, high={1})".format(self._val, self._high)
 
     def __format__(self, format_spec):
-        if format_spec == '':
-            return str(self)
+        if format_spec in ('', 's'):
+            return self.__str__()
         elif format_spec == 'd':
-            return str(int(self._val))
+            return str(self.__index__())
         elif format_spec == 'o':
             digits = self.high // 3
             if self.high % 3:
@@ -450,7 +441,7 @@ class sintba(bitarray):
             result = f"{self._val & mask:0{digits}x}"
             return result
         else:
-            raise TypeError(f"unsupported format string passed to {type(self).__name__}.__format__")
+            raise NotImplementedError
 
     def resize(self, *args):
         length = len(args)

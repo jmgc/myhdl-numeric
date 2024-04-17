@@ -593,14 +593,6 @@ class bitarray(object):
         result._wrap()
         return result
 
-    # XXX __complex__ seems redundant ??? (complex() works as such?)
-
-    def __oct__(self):
-        return oct(self._val)
-
-    def __hex__(self):
-        return hex(self._val)
-
     def __index__(self):
         return self._val
 
@@ -635,6 +627,12 @@ class bitarray(object):
     def __repr__(self):
         return "bitarray('%s', high=%d, low=%d)" % \
             (self.__str__(), self._high, self._low)
+
+    def __format__(self, format_spec):
+        if format_spec in ('s', ''):
+            return self.__str__()
+        else:
+            return format(self.__index__(), format_spec)
 
     def unsigned(self):
         return copy(self)

@@ -1041,7 +1041,7 @@ class sfixba(bitarray):
         else:
             return 0
 
-    def bin(self):
+    def _bin(self):
         val = self._abs()
 
         if self._high != 1 or self._low != 0:
@@ -1065,11 +1065,15 @@ class sfixba(bitarray):
             result = '.'
 
         if self._val < 0:
-            return "-0b" + result
+            return "-", result
         else:
-            return "+0b" + result
+            return "+", result
 
-    def oct(self):
+    def bin(self):
+        return "{0}0b{1}".format(*self._bin())
+
+    def _oct(self):
+        val = self._abs()
         bits = 3
         if self._low < 0:
             delta = -self._low % bits
@@ -1078,16 +1082,22 @@ class sfixba(bitarray):
                 delta = bits - delta
                 dec = 1 + (-self._low // bits)
 
-            value = self._val << delta
-            msg = oct(value)
+            value = val << delta
+            msg = format(value, 'o')
             dec = len(msg) - dec
             msg = msg[:dec] + '.' + msg[dec:]
         else:
             value = self._val << self._low
-            msg = oct(value)
-        return msg
+            msg = format(value, 'o')
+        if self._val < 0:
+            return "-", msg
+        else:
+            return "+", msg
 
-    def hex(self):
+    def oct(self):
+        return "{0}0o{1}".format(*self._oct())
+
+    def _hex(self):
         bits = 4
 
         if self._high != 1 or self._low != 0:
@@ -1121,13 +1131,28 @@ class sfixba(bitarray):
             result = '.'
 
         if self._val < 0:
-            result = '-' + "0x" + result
+            result = '-', result
         else:
-            result = '+' + "0x" + result
+            result = '+', result
 
         return result
 
-    __oct__ = __hex__ = __index__ = bitarray._not_implemented_unary
+    def hex(self):
+        return "{0}0x{1}".format(*self._hex())
+
+    def __format__(self, format_spec):
+        if format_spec in ('', 's'):
+            return self.__str__()
+        elif format_spec == 'b':
+            return "{}{}".format(*self._bin())
+        elif format_spec == 'o':
+            return "{}{}".format(*self._oct())
+        elif format_spec == 'x':
+            return "{}{}".format(*self._hex())
+        else:
+            raise NotImplementedError
+
+    __index__ = bitarray._not_implemented_unary
 
     # comparisons
     def __eq__(self, other):
