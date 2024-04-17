@@ -136,6 +136,9 @@ def enum(*names, **kwargs):
         def __index__(self):
             return int(self._val, 2)
 
+        def __format__(self, format_spec):
+            return format(int(self), format_spec)
+
     class Enum(EnumType):
         def __init__(self, names, codedict, nrbits, encoding):
             self.__dict__['_names'] = names
