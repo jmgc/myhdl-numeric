@@ -66,7 +66,8 @@ def string_format_error_hex():
 
     @instance
     def bench():
-        print(f"{1:h}")
+        print(f"{1:x}")
+        print(f"{-1:x}")
         yield delay(10)
 
     return bench
@@ -84,6 +85,7 @@ def string_format_error_oct():
     @instance
     def bench():
         print(f"{1:o}")
+        print(f"{-1:o}")
         yield delay(10)
 
     return bench
