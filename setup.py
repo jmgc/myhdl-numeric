@@ -8,7 +8,7 @@ import sys
 
 from collections import defaultdict
 
-if (3, 0) <= sys.version_info < (3, 10):
+if (3, 0) <= sys.version_info < (3, 11):
     raise RuntimeError("Python version >= 3.10 required.")
 
 
