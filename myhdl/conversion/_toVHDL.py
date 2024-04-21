@@ -2635,7 +2635,8 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
             self.write(suf)
 
         else:
-            pass
+            self.raiseError(node, _error.UnsupportedType,
+                            f"Conversion {node.conversion} not supported")
 
     def visit_IfExp(self, node):
         # propagate the node's vhd attribute

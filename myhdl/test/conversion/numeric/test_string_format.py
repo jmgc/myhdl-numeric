@@ -80,6 +80,24 @@ def test_string_error_hex():
         assert e.kind == errors.UnsupportedType
 
 
+def string_format_error_repr():
+
+    @instance
+    def bench():
+        print(f"{1!r}")
+        print(f"{-1!r}")
+        yield delay(10)
+
+    return bench
+
+
+def test_string_error_repr():
+    try:
+        assert conversion.verify(string_format_error_repr) == 0
+    except ConversionError as e:
+        assert e.kind == errors.UnsupportedType
+
+
 def string_format_error_oct():
 
     @instance
