@@ -91,11 +91,6 @@ def enum(*names, **kwargs):
         def __int__(self):
             return self.__index__()
 
-        def __hex__(self):
-            return hex(self.__index__())
-
-        __str__ = __repr__
-
         def _toVerilog(self, dontcare=False):
             val = self._val
             if dontcare:
