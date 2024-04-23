@@ -1,6 +1,6 @@
 from pytest import mark
-from myhdl import Signal, uintba, sintba, sfixba, always_comb, \
-    instance, delay, conversion, fixmath, toVHDL
+from myhdl import Signal, uintba, sintba, sfixba, bitarray, \
+    instance, delay, conversion, fixmath, toVHDL, StopSimulation
 from ... import gen_id
 
 
@@ -81,3 +81,23 @@ def test_resize(delta, i, j):
     toVHDL.name = "sfixba_resize_" + gen_id(delta, i, j)
     assert conversion.verify(sfixba_resize, delta, i, j) == 0
     toVHDL.name = None
+
+
+def assign_boolean():
+    c = True
+    @instance
+    def logic():
+        a = bitarray(0, 8, 0)
+        yield delay(10)
+        a[7] = True
+        a[6:5] = False
+        a[4:3] = c
+        print('a:', a)
+        yield delay(10)
+        raise StopSimulation
+
+    return logic
+
+
+def test_assign_boolean():
+    assert conversion.verify(assign_boolean) == 0, f"{conversion.filename}"
