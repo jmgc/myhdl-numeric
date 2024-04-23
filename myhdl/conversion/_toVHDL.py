@@ -2000,6 +2000,7 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
             elif isinstance(ori, vhd_std_logic):
                 if vhd.size != 1:
                     self.raiseError(node, _error.InconsistentType, "Vector size mismatch, should be 1")
+                pre, suf = "(others => ", ")"
             elif isinstance(ori, vhd_nat):
                 pre, suf = "std_logic_vector(c_n2u(", ", %s))" % vhd.size
             elif isinstance(ori, vhd_int):
@@ -2839,12 +2840,20 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
         n = node.id
         if n == 'False':
             if isinstance(node.vhd, vhd_std_logic):
+                assert node.vhd.size == 1
                 s = "'0'"
+            elif isinstance(node.vhd, vhd_vector):
+                assert node.vhd.size == 1
+                s = '"0"'
             else:
                 s = "False"
         elif n == 'True':
             if isinstance(node.vhd, vhd_std_logic):
+                assert node.vhd.size == 1
                 s = "'1'"
+            elif isinstance(node.vhd, vhd_vector):
+                assert node.vhd.size == 1
+                s = '"1"'
             else:
                 s = "True"
         elif n == 'None':

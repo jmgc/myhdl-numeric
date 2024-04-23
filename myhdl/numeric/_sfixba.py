@@ -227,6 +227,10 @@ class sfixba(bitarray):
             else:
                 self._guard_bits = guard_bits
 
+        if isinstance(value, bool):
+            if high - low != 1:
+                raise TypeError("Initialisation with a bool must have a size of 1")
+
         if isinstance(value, int):
             if value == 0:
                 self._zero(value, high, low)

@@ -33,6 +33,10 @@ class bitarray(object):
         if (high is not None) and (low is not None) and (high == low):
             raise TypeError(type(self).__name__ + " must have a size.")
 
+        if isinstance(value, bool):
+            if high - low != 1:
+                raise TypeError("Initialisation with a bool must have a size of 1")
+
         if isinstance(value, int):
             if value == 0:
                 self._zero(value, high, low)

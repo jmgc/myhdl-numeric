@@ -584,6 +584,7 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
             self.raiseError(node, _error.NotSupported, e)
 
     def visit_BinOp(self, node):
+        bit_operators = (ast.BitAnd, ast.BitOr, ast.BitXor)
         self.visit(node.left)
         self.visit(node.right)
         # Not compatible with collections
@@ -594,6 +595,11 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
             r = node.right.obj
             if isinstance(r, _Signal):
                 r = r._val
+            if not isinstance(node.op, bit_operators):
+                if isinstance(l, bool):
+                    l = int(l)
+                if isinstance(r, bool):
+                    r = int(r)
             if isinstance(node.op, ast.Add):
                 self._add_size(node, l, r)
             elif isinstance(node.op, ast.Sub):
@@ -613,7 +619,7 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
                     self._mod_size(node, l, r)
             elif isinstance(node.op, ast.Mult):
                 self._mul_size(node, l, r)
-            elif isinstance(node.op, (ast.BitAnd, ast.BitOr, ast.BitXor)):
+            elif isinstance(node.op, bit_operators):
                 self._bitop_size(node, l, r)
             elif isinstance(node.op, (ast.LShift, ast.RShift, ast.Pow)):
                 node.obj = node.left.obj
