@@ -34,7 +34,9 @@ class bitarray(object):
             raise TypeError(type(self).__name__ + " must have a size.")
 
         if isinstance(value, bool):
-            if high - low != 1:
+            if high is None:
+                value = int(value)
+            elif high - low != 1:
                 raise TypeError("Initialisation with a bool must have a size of 1")
 
         if isinstance(value, int):
