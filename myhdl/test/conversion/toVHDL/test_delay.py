@@ -1,5 +1,5 @@
-
 from myhdl import *
+
 
 def bench_delay():
     clock = Signal(False)
@@ -22,6 +22,7 @@ def bench_delay():
         raise StopSimulation
 
     return instances()
+
 
 def test_delay():
     assert conversion.verify(bench_delay) == 0
