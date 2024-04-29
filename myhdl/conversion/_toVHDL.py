@@ -23,6 +23,7 @@
 """ myhdl toVHDL conversion module.
 
 """
+import struct
 import sys
 import math
 import os
@@ -1011,6 +1012,7 @@ class vhd_architecture(object):
         self.components_list = components_list
         self.entity = entity
         self.signal_conversions = []
+        self.timescale = None
 
     def _clean_signal_names(self):
         for signal in self.sigs_dict.values():
@@ -1163,6 +1165,7 @@ class _ToVHDLConvertor(object):
                  "version",
                  "one_file",
                  "vhdl_files",
+                 "_timescale"
                  )
 
     def __init__(self):
@@ -1180,6 +1183,7 @@ class _ToVHDLConvertor(object):
         self.version = 2008
         self.one_file = True
         self.vhdl_files = []
+        self._timescale = "1 ns"
 
     def __call__(self, func, *args, **kwargs):
         global _converting
@@ -1250,6 +1254,7 @@ class _ToVHDLConvertor(object):
 
         for entity in hierarchy.entities_list:
             entity.architecture.name = arch
+            entity.architecture.timescale = self._timescale
 
         entities_files = []
         cpname = "pck_" + name
@@ -1339,6 +1344,29 @@ class _ToVHDLConvertor(object):
             sig._clear()
 
         return h.top
+
+    @property
+    def timescale(self):
+        return self._timescale
+
+    @timescale.setter
+    def timescale(self, value: str):
+        if type(value) is not str:
+            raise ToVHDLError("VHDL timescale must be a string")
+        values = str.split(value, ' ')
+        if len(values) != 2:
+            raise ToVHDLError("VHDL timescale must have a number and a unit separated by a space")
+        number_str, unit = values
+
+        try:
+            number = int(number_str)
+        except ValueError:
+            raise ToVHDLError("VHDL timescale number must be an integer")
+
+        if unit not in ['fs', 'ps', 'ns', 'us', 'ms', 'sec', 'min', 'hr']:
+            raise ToVHDLError("VHDL timescale unit must be one of 'fs', 'ps', 'ns', 'us', 'ms', 'sec', 'min', 'hr'")
+
+        self._timescale = value
 
     def _reviseMems(self, full_mems, memlist):
         for m in memlist:
@@ -1738,6 +1766,7 @@ def _convertGens(architecture, vfile):
             blockBuf.write(str(tree))
             continue
         tree.constdict = constdict
+        tree.timescale = architecture.timescale
         for n in tree.constdict:
             if n in tree.vardict:
                 obj = tree.vardict[n]
@@ -2367,7 +2396,7 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
         elif f is now:
             pre, suf = self.inferCast(node, node.vhd, node.vhdOri)
             self.write(pre)
-            self.write("(now / 1 ns)")
+            self.write(f"(now / {self.tree.timescale})")
             self.write(suf)
             return
         elif f is ord:
@@ -2421,7 +2450,7 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
             self.write(f.__name__)
         elif f is delay:
             self.visit(node.args[0])
-            self.write(" * 1 ns")
+            self.write(f" * {self.tree.timescale}")
             return
         elif f is concat:
             pre, suf = self.inferCast(node, node.vhd, node.vhdOri)
