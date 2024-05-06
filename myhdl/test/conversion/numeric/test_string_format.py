@@ -1,11 +1,11 @@
-from myhdl import uintba, sintba, Signal, instance, delay, conversion, ConversionError
+from myhdl import uintba, sintba, bitarray, Signal, instance, delay, conversion, ConversionError
 from myhdl.conversion._misc import _error as errors
 
 
 def string_format():
     a = Signal(uintba(23, 8))
     b = Signal(sintba(-53, 8))
-
+    c = Signal(bitarray(3, 8, 0))
     @instance
     def bench():
         print(f"str: a={a}")
@@ -19,6 +19,10 @@ def string_format():
         yield delay(10)
         print(f"hex: a={a:x}")
         print(f"hex: b={b:x}")
+        print(f"hex: c={c:x}")
+        print(f"hex: a={a.val:x}")
+        print(f"hex: b={b.val:x}")
+        print(f"hex: c={c.val:x}")
         yield delay(10)
         print(f"a={a}\nb={b}")
         print("a,\n")

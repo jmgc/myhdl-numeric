@@ -421,28 +421,6 @@ class sintba(bitarray):
         return type(self).__name__ + \
             "({0:#x}, high={1})".format(self._val, self._high)
 
-    def __format__(self, format_spec):
-        if format_spec in ('', 's'):
-            return self.__str__()
-        elif format_spec == 'd':
-            return str(self.__index__())
-        elif format_spec == 'o':
-            digits = self.high // 3
-            if self.high % 3:
-                digits += 1
-            mask = (1 << (digits * 3)) - 1
-            result = f"{self._val & mask:0{digits}o}"
-            return result
-        elif format_spec == 'x':
-            digits = self.high // 4
-            if self.high % 4:
-                digits += 1
-            mask = (1 << (digits * 4)) - 1
-            result = f"{self._val & mask:0{digits}x}"
-            return result
-        else:
-            raise NotImplementedError
-
     def resize(self, *args):
         length = len(args)
         value = self
