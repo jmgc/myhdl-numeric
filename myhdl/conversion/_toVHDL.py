@@ -2534,7 +2534,7 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
                 raise ToVHDLError("'in' rigth operand not valid. It "
                                   "must be a tuple: %s" %
                                   ast.dump(node))
-            operand = " or"
+            operand = " %s" % opmap[ast.Or]
             self.write(in_pre)
             for idx, item in enumerate(items):
                 if idx + 1 >= len(items):
