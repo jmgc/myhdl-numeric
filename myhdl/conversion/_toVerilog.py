@@ -42,7 +42,7 @@ from .._modbv import modbv
 from .._delay import delay
 from .._enum import EnumItemType, EnumType
 from .._simulator import now
-from .._extractHierarchy import (_HierExtr, _isMem, _getMemInfo,
+from .._extractHierarchy import (_HierExtr, _isMem, _getMemInfo, _MemInfo,
                                  _UserVerilogCode)
 from .._instance import _Instantiator
 from .._Signal import _Signal, posedge, negedge
@@ -52,7 +52,6 @@ from ..conversion._misc import (_error, _kind, _context,
 from ..conversion._analyze import (_analyzeSigs, _analyzeGens, _analyzeTopFunc,
                                    _Ram, _Rom)
 from collections.abc import Callable
-
 
 _converting = 0
 _profileFunc = None
@@ -258,6 +257,8 @@ def _writeModuleHeader(f, intf, doc):
     print(file=f)
     for portname in intf.argnames:
         s = intf.argdict[portname]
+        if isinstance(s, _MemInfo):
+            raise ToVerilogError(_error.ListAsPort, portname)
         if s._name is None:
             raise ToVerilogError(_error.ShadowingSignal, portname)
         if s._inList:
@@ -882,15 +883,79 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
             v = Visitor(node.tree, self.funcBuf)
             v.visit(node.tree)
 
+    def write_obj(self, obj):
+        if obj is None:
+            # NameConstant
+            self.write(nameconstant_map[obj])
+        elif isinstance(obj, bool):
+            self.write(nameconstant_map[obj])
+        elif isinstance(obj, int):
+            # Num
+            if self.context == _context.PRINT:
+                self.write('"%s"' % obj)
+            else:
+                self.write(self.IntRepr(obj))
+        elif isinstance(obj, str):
+            # Str
+            s = obj
+            if self.context == _context.PRINT:
+                self.write('"%s"' % s)
+            elif len(s) == s.count('0') + s.count('1'):
+                self.write("%s'b%s" % (len(s), s))
+            else:
+                self.write(s)
+
     def visit_Compare(self, node):
+        pre, suf = "(", ")"
+        op, right = node.ops[0], node.comparators[0]
         self.context = None
         if node.signed:
             self.context = _context.SIGNED
-        self.write("(")
-        self.visit(node.left)
-        self.write(" %s " % opmap[type(node.ops[0])])
-        self.visit(node.comparators[0])
-        self.write(")")
+        if isinstance(op, (ast.In, ast.NotIn)):
+            if isinstance(op, ast.NotIn):
+                in_pre = "%s (" % opmap[ast.Not]
+                in_suf = ")"
+            else:
+                in_pre = "("
+                in_suf = ")"
+
+            isRomInfo = False
+            if isinstance(right, ast.Tuple):
+                items = right.elts
+            elif isinstance(right, ast.Name) and \
+                    right.id in self.tree.symdict and \
+                    isinstance(self.tree.symdict[right.id], tuple):
+                n = right.id
+                items = self.tree.symdict[right.id]
+                isRomInfo = True
+            else:
+                raise ToVerilogError("'in' rigth operand not valid. It "
+                                     "must be a tuple: %s" %
+                                     ast.dump(node))
+            operand = " %s" % opmap[ast.Or]
+            self.write(in_pre)
+            for idx, item in enumerate(items):
+                if idx + 1 >= len(items):
+                    operand = ""
+                self.write(pre)
+                self.visit(node.left)
+                self.write(" %s " % opmap[ast.Eq])
+                if isRomInfo:
+                    self.write_obj(items[idx])
+                else:
+                    self.visit(item)
+                self.write(suf)
+                self.write(operand)
+                if idx + 1 < len(items):
+                    self.writeline()
+                    self.write("        ")
+            self.write(in_suf)
+        else:
+            self.write(pre)
+            self.visit(node.left)
+            self.write(" %s " % opmap[type(op)])
+            self.visit(right)
+            self.write(suf)
         self.context = None
 
     if sys.version_info >= (3, 9, 0):
@@ -1319,9 +1384,10 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
         if lower is None and upper is None:
             return
 
-        if isinstance(lower, ast.BinOp) and isinstance(lower.left, ast.Name) and isinstance(upper,
-                                                                                            ast.Name) and upper.id == lower.left.id and isinstance(
-            lower.op, ast.Add):
+        if (isinstance(lower, ast.BinOp) and isinstance(lower.left, ast.Name) and isinstance(upper,
+                                                                                            ast.Name) and upper.id ==
+                lower.left.id and isinstance(
+            lower.op, ast.Add)):
             self.write("[")
             self.visit(upper)
             self.write("+:")
