@@ -134,7 +134,9 @@ class _VerificationClass(object):
         vals['unitname'] = name.lower()
         vals['version'] = _version
         if hdl == "VHDL" and toVHDL.timescale is not None:
-            vals['timescale'] = toVHDL.timescale
+            ts = toVHDL.timescale.split(" ")
+            ts = ''.join(ts)
+            vals['timescale'] = ts
 
         elaborate = hdlsim.elaborate
         if elaborate is not None:
