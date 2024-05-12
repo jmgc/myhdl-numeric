@@ -1,6 +1,6 @@
 # This makefile assumes that 32bit Modelsim is installed.
 # If you have a 64 bit version, run 'ARCH=64 make'
-ARCH?=32
+ARCH?=64
 CFLAGS_32= -m32
 CFLAGS_64= -m64
 
