@@ -83,7 +83,7 @@ registerSimulator(
     name="vcom",
     hdl="VHDL",
     analyze="vcom -2008 -work work_%(topname)s_vcom %(file_name)s",
-    simulate='vsim work_%(topname)s_vcom.%(topname)s -quiet -c -do "run -all; quit -f"',
+    simulate='vsim work_%(topname)s_vcom.%(topname)s -quiet -t %(timescale)s -c -do "run -all; quit -f"',
     skiplines=6,
     skipchars=2,
     ignore=("# **", "# //", "#    Time:", "# run -all"),
@@ -133,6 +133,8 @@ class _VerificationClass(object):
         vals['topname'] = name
         vals['unitname'] = name.lower()
         vals['version'] = _version
+        if hdl == "VHDL" and toVHDL.timescale is not None:
+            vals['timescale'] = toVHDL.timescale
 
         elaborate = hdlsim.elaborate
         if elaborate is not None:

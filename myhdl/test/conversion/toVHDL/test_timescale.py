@@ -26,12 +26,16 @@ def bench_delay():
 
 def test_delay_ns():
     toVHDL.timescale = '1 ns'
+    toVHDL.name = 'test_delay_ns'
     assert conversion.verify(bench_delay) == 0
+    toVHDL.name = None
 
 
 def test_delay_ps():
     toVHDL.timescale = '1 ps'
+    toVHDL.name = 'test_delay_ps'
     assert conversion.verify(bench_delay) == 0
+    toVHDL.name = None
 
 
 def test_timescale_fail():
