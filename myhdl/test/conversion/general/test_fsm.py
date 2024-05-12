@@ -82,14 +82,14 @@ def FSMBench(FramerCtrl, t_State):
             yield delay(10)
             clk.next = not clk
 
-    table = (12, 8, 8, 4, 11, 8, 8, 7, 6, 8, 8)
+    TABLE = (12, 8, 8, 4, 11, 8, 8, 7, 6, 8, 8)
 
     @instance
     def stimulus():
         for i in range(3):
             yield clk.posedge
-        for i in range(len(table)):
-            n = table[i]
+        for i in range(len(TABLE)):
+            n = TABLE[i]
             syncFlag.next = 1
             yield clk.posedge
             syncFlag.next = 0

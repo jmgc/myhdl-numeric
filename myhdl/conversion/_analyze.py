@@ -80,6 +80,7 @@ def _analyzeSigs(hierarchy, hdl='Verilog', initlevel=0):
     curlevel = initlevel
     siglist = []
     memlist = []
+    romlist = []
     prefixes = []
 
     for inst in hierarchy:
@@ -87,13 +88,14 @@ def _analyzeSigs(hierarchy, hdl='Verilog', initlevel=0):
         name = inst.name
         sigdict = inst.sigdict
         memdict = inst.memdict
+        romdict = inst.romdict
         delta = curlevel - level
         curlevel = level
         assert (delta >= -1)
         if delta > -1:  # same or higher level
             prefixes = prefixes[:curlevel - 1]
         # skip processing and prefixing in context without signals
-        if not (sigdict or memdict):
+        if not (sigdict or memdict or romdict):
             prefixes.append("")
             continue
         prefixes.append(name)
@@ -115,11 +117,16 @@ def _analyzeSigs(hierarchy, hdl='Verilog', initlevel=0):
                 continue
             m.name = _makeName(n, prefixes)
             memlist.append(m)
+        for n, m in romdict.items():
+            if m.used and m not in romlist:
+                if m.name is  None:
+                    m.name = _makeName(n, prefixes)
+                romlist.append(m)
 
     if hdl != "VHDL":
         _analyzeMems(memlist, hdl)
 
-    return siglist, memlist
+    return siglist, memlist, romlist
 
 
 def _analyzeMems(memlist, hdl):

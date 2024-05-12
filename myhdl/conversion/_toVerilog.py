@@ -57,6 +57,49 @@ _converting = 0
 _profileFunc = None
 
 
+class _CheckCorrectIdentifier:
+    _reserved_words = ["always", "and", "assign", "automatic",
+                       "begin", "buf", "bufif0", "bufif1", "case",
+                       "casex", "casez", "cell", "cmos", "config",
+                       "deassign", "default", "defparam", "design",
+                       "disable", "edge", "else", "end", "endcase",
+                       "endconfig", "endfunction", "endgenerate",
+                       "endmodule", "endprimitive", "endspecify",
+                       "endtable", "endtask", "event", "for", "force",
+                       "forever", "fork", "function", "generate",
+                       "genvar", "highz0", "highz1", "if", "ifnone",
+                       "incdir", "include", "initial", "inout", "input",
+                       "instance", "integer", "join", "large", "liblist",
+                       "library", "localparam", "macromodule", "medium",
+                       "module", "nand", "negedge", "nmos", "nor",
+                       "not", "notif0", "notif1", "or", "output",
+                       "parameter", "pmos", "posedge", "primitive",
+                       "pull0", "pull1", "pullup", "pulldown",
+                       "pulsestyle_ondetect", "pulsestyle_onevent",
+                       "rcmos", "real", "realtime", "reg", "release",
+                       "repeat", "rnmos", "rpmos", "rtran", "rtranif0",
+                       "rtranif1", "scalared", "signed", "small",
+                       "specify", "specpa", "strong0", "strong1",
+                       "supply0", "supply1", "table", "task", "time",
+                       "tran", "tranif0", "tranif1", "tri", "tri0",
+                       "tri1", "triand", "trior", "trireg", "vectored",
+                       "wait", "wand", "weak0", "weak1", "while",
+                       "wire", "wor", "xnor", "xor"]
+
+    def __call__(self, name: str):
+        if name in self._reserved_words:
+            return False
+        if name[0] not in '_' + string.ascii_letters:
+            return False
+        for c in name[1:]:
+            if c not in '_' + string.ascii_letters + string.digits + "$":
+                return False
+        return True
+
+
+check_correct_identifier = _CheckCorrectIdentifier()
+
+
 def _checkArgs(arglist):
     for arg in arglist:
         if not isinstance(arg, (GeneratorType, _Instantiator, _UserVerilogCode)):
@@ -158,7 +201,7 @@ class _ToVerilogConvertor(object):
         # print h.top
         _checkArgs(arglist)
         genlist = _analyzeGens(arglist, h.absnames)
-        siglist, memlist = _analyzeSigs(h.hierarchy)
+        siglist, memlist, romlist = _analyzeSigs(h.hierarchy)
         _annotateTypes(genlist)
 
         intf = _analyzeTopFunc(func, *args, **kwargs)
@@ -170,7 +213,7 @@ class _ToVerilogConvertor(object):
 
         _writeFileHeader(vfile, vpath, self.timescale)
         _writeModuleHeader(vfile, intf, doc)
-        _writeSigDecls(vfile, intf, siglist, memlist)
+        _writeSigDecls(vfile, intf, siglist, memlist, romlist)
         _convertGens(genlist, vfile)
         _writeModuleFooter(vfile)
 
@@ -257,6 +300,8 @@ def _writeModuleHeader(f, intf, doc):
     print(file=f)
     for portname in intf.argnames:
         s = intf.argdict[portname]
+        if not check_correct_identifier(portname):
+            raise ToVerilogError(_error.ReservedWord, portname)
         if isinstance(s, _MemInfo):
             raise ToVerilogError(_error.ListAsPort, portname)
         if s._name is None:
@@ -285,11 +330,14 @@ def _writeModuleHeader(f, intf, doc):
     print(file=f)
 
 
-def _writeSigDecls(f, intf, siglist, memlist):
+def _writeSigDecls(f, intf, siglist, memlist, romlist):
     constwires = []
     for s in siglist:
         if not s._used:
             continue
+
+        if not check_correct_identifier(s._name):
+            raise ToVerilogError(_error.ReservedWord, s._name)
 
         if s._name in intf.argnames:
             continue
@@ -333,6 +381,8 @@ def _writeSigDecls(f, intf, siglist, memlist):
     for m in memlist:
         if not m._used:
             continue
+        if not check_correct_identifier(m.name):
+            raise ToVerilogError(_error.ReservedWord, m.name)
         # infer attributes for the case of named signals in a list
         for i, s in enumerate(m.mem):
             if not m._driven and s._driven:
@@ -401,10 +451,31 @@ def _writeSigDecls(f, intf, siglist, memlist):
             c = int(s.val)
         else:
             raise ToVerilogError("Unexpected type for constant signal", s._name)
+        if not check_correct_identifier(s._name):
+            raise ToVerilogError(_error.ReservedWord, s._name)
         c_len = s._nrbits
         c_str = "%s" % c
         print("assign %s = %s'd%s;" % (s._name, c_len, c_str), file=f)
     # print(file=f)
+    for r in romlist:
+        if r.used:
+            if not check_correct_identifier(r.name):
+                raise ToVerilogError(_error.ReservedWord, r.name)
+            tipe = type(r.elObj)
+            if tipe is bool:
+                print(f"logic {r.name}[0:{r.depth - 1:d}];", file=f)
+                print(f"initial begin", file=f)
+                for i, v in enumerate(r.mem):
+                    print(f"    {r.name}[{i:d}] = {namespace_const[v]};", file=f)
+                print(f"end", file=f)
+            elif tipe is int:
+                print(f"integer {r.name}[0:{r.depth - 1:d}];", file=f)
+                print(f"initial begin", file=f)
+                for i, v in enumerate(r.mem):
+                    print(f"    {r.name}[{i:d}] = {_intRepr(v)};", file=f)
+                print(f"end", file=f)
+            else:
+                raise ToVerilogError(_error.UnsupportedType, repr(r.elObj))
     # shadow signal assignments
     for s in siglist:
         if hasattr(s, 'toVerilog') and s._driven:
@@ -629,6 +700,8 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
 
     def writeDeclarations(self):
         for name, obj in self.tree.vardict.items():
+            if not check_correct_identifier(name):
+                raise ToVerilogError(_error.ReservedWord, name)
             self.writeline()
             self.writeDeclaration(obj, name, "reg")
 
@@ -941,7 +1014,7 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
                 self.visit(node.left)
                 self.write(" %s " % opmap[ast.Eq])
                 if isRomInfo:
-                    self.write_obj(items[idx])
+                    self.write("%s[%d]" % (n, idx))
                 else:
                     self.visit(item)
                 self.write(suf)
@@ -1385,9 +1458,9 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
             return
 
         if (isinstance(lower, ast.BinOp) and isinstance(lower.left, ast.Name) and isinstance(upper,
-                                                                                            ast.Name) and upper.id ==
+                                                                                             ast.Name) and upper.id ==
                 lower.left.id and isinstance(
-            lower.op, ast.Add)):
+                    lower.op, ast.Add)):
             self.write("[")
             self.visit(upper)
             self.write("+:")
