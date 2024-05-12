@@ -81,7 +81,7 @@ _profileFunc = None
 
 
 class _CheckCorrectIdentifier:
-    _reserverd_words = ["abs", "access", "after", "alias", "all",
+    _reserved_words = ["abs", "access", "after", "alias", "all",
                         "and", "architecture", "array", "assert",
                         "attribute", "begin", "block", "body", "buffer",
                         "bus", "case", "component", "configuration",
@@ -103,7 +103,7 @@ class _CheckCorrectIdentifier:
 
     def __call__(self, name: str):
         _name = name.lower()
-        if _name in self._reserverd_words:
+        if _name in self._reserved_words:
             return False
         if _name[0] in string.digits:
             return False
@@ -212,8 +212,8 @@ class _GenerateHierarchy(object):
 
             self._check_generators(p_entity_obj)
             gen_list = _analyzeGens(p_entity_obj, absnames)
-            sigs_list, mems_list = _analyzeSigs([p_entity], hdl='VHDL',
-                                                initlevel=p_entity.level - 1)
+            sigs_list, mems_list, _ = _analyzeSigs([p_entity], hdl='VHDL',
+                                                   initlevel=p_entity.level - 1)
             _annotateTypes(gen_list)
 
             elargs = self._instance_args(p_entity)
@@ -4882,7 +4882,8 @@ class _AnnotateTypesVisitor(ast.NodeVisitor, _ConversionMixin):
                 if isinstance(r, vhd_vector):
                     if l.size != r.size:
                         self.raiseError(node, _error.InconsistentType,
-                                        f"Vector cannot be compared to a vector with different size {l.size} != {r.size}")
+                                        f"Vector cannot be compared to a vector with different size {l.size} != "
+                                        f"{r.size}")
                 elif isinstance(r, vhd_int):
                     r = l
                 else:
@@ -4895,7 +4896,8 @@ class _AnnotateTypesVisitor(ast.NodeVisitor, _ConversionMixin):
                 if isinstance(l, vhd_vector):
                     if l.size != r.size:
                         self.raiseError(node, _error.InconsistentType,
-                                        f"Vector cannot be compared to a vector with different size {l.size} != {r.size}")
+                                        f"Vector cannot be compared to a vector with different size {l.size} != "
+                                        f"{r.size}")
                 elif isinstance(l, vhd_int):
                     l = r
                 else:

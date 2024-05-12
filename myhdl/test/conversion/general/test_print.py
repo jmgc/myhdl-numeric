@@ -9,6 +9,7 @@ t_State = enum("START", "RUN", "STOP")
 def print_check(si1):
     @instance
     def logic():
+        yield delay(2)
         print("Hello World!", int(si1))
         yield delay(5)
         print("Hello World, another time!")
