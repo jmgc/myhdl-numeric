@@ -2694,7 +2694,7 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
         # Take care of wildcard name '_'
         if var == '_':
             var = 'i'
-            while var in self.tree.symdict:
+            while var in self.tree.symdict or var in self.tree.constdict or var in self.tree.sigdict:
                 var += 'i'
             if "_" in self.tree.vardict:
                 v = self.tree.vardict['_']

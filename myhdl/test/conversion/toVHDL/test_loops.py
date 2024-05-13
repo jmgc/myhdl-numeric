@@ -7,8 +7,25 @@ from random import randrange
 
 from myhdl import *
 from myhdl.conversion import verify, analyze
-from myhdl import ConversionError
+from myhdl import ConversionError, StopSimulation
 from myhdl.conversion._misc import _error
+
+
+def no_var_loop():
+    i = 10
+
+    @instance
+    def logic():
+        for _ in range(10):
+            print(f"{i}")
+            yield delay(1)
+        raise StopSimulation
+    return logic
+
+
+def test_no_var_loop():
+    assert verify(no_var_loop) == 0
+
 
 def ForLoopError1(a, out):
     @instance
