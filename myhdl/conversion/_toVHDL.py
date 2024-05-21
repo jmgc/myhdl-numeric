@@ -1334,7 +1334,7 @@ class _ToVHDLConvertor(object):
                     print(contents, file=vfile)
         else:
             for file_name, contents in complete_files:
-                vpath = os.path.join(directory, "%s.vhd" % file_name)
+                vpath = os.path.join(directory, f"{file_name}.vhd")
                 self.vhdl_files.append(vpath)
                 with open(vpath, 'w') as vfile:
                     _writeFileHeader(vfile, vpath)
