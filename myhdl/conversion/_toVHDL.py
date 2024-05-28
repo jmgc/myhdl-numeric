@@ -4930,8 +4930,7 @@ class _AnnotateTypesVisitor(ast.NodeVisitor, _ConversionMixin):
                     isinstance(values.vhdOri, vhd_array):
                 right = values
             else:
-                raise ToVHDLError("In is not a valid operand: %s" %
-                                  ast.dump(node))
+                self.raiseError(node, _error.UnsupportedType, "In is not a valid operand: %s" % ast.dump(node))
         self.inferCompareType(node, left, right)
         node.vhdOri = copy(node.vhd)
 
