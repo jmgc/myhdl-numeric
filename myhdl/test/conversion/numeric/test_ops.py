@@ -742,3 +742,29 @@ def testSwap():
     toVHDL.name = "swap_tst"
     assert conversion.verify(swap_test_bench) == 0, toVHDL.name
     toVHDL.name = None
+
+
+def bitarray_numeric_test_bench():
+
+    @instance
+    def calculus():
+        a = bitarray(0b00010110, 8, 0)
+        b = 23
+        yield delay(10)
+        print(f"a: {a}, b: {b}")
+        c = a & uintba(b, a)
+        d = a & sintba(b, a)
+        yield delay(10)
+        assert c == uintba(22, c), f"bitarray & uintba failed: {c} != {uintba(22, c)}"
+        assert d == sintba(22, d), f"bitarray & sintba failed: {d} != {sintba(22, d)}"
+
+        yield delay(10)
+        raise StopSimulation
+
+    return calculus
+
+
+def test_bitarray_numeric():
+    toVHDL.name = "bitarray_numeric_tst"
+    assert conversion.verify(bitarray_numeric_test_bench) == 0, toVHDL.name
+    toVHDL.name = None

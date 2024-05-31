@@ -3961,6 +3961,11 @@ class vhd_vector(vhd_type):
     def __inv__(self):
         return self
 
+    def __len__(self):
+        if self.size is None:
+            return 0
+        return self.size
+
     @staticmethod
     def inferBinaryOpCast(node, left, right, op):
         ns, os = node.vhd.size, node.vhdOri.size
@@ -4410,6 +4415,13 @@ class vhd_sfixed(vhd_type):
 
     def maybeNegative(self):
         return True
+
+    def __len__(self):
+        if self.size is None:
+            return 0
+        elif type(self.size) is tuple:
+            return self.size[0] - self.size[1] + 1
+        return self.size
 
     @staticmethod
     def inferBinaryOpCast(node, left, right, op):
@@ -4999,13 +5011,20 @@ class _AnnotateTypesVisitor(ast.NodeVisitor, _ConversionMixin):
 
     def inferBitOpType(self, node):
         left = node.left.vhdOri
-        if isinstance(left, vhd_int):
-            self.raiseError(node, _error.UnsupportedType, "Bitwise operation not supported for int")
         right = node.right.vhdOri
+        if isinstance(left, vhd_int):
+            if isinstance(right, vhd_vector):
+                left = copy(right)
+            else:
+                self.raiseError(node, _error.UnsupportedType, "Bitwise operation not supported for int")
         if isinstance(right, vhd_int):
-            self.raiseError(node, _error.UnsupportedType, "Bitwise operation not supported for int")
+            if isinstance(left, vhd_vector):
+                right = copy(left)
+            else:
+                self.raiseError(node, _error.UnsupportedType, "Bitwise operation not supported for int")
         high = 0
-        if isinstance(left, vhd_unsigned) != isinstance(right, vhd_unsigned):
+        if (isinstance(left, vhd_unsigned) & isinstance(right, vhd_signed)) or \
+            (isinstance(left, vhd_signed) & isinstance(right, vhd_unsigned)):
             high = 1
         if isinstance(node.op, ast.BitAnd):
             obj = left & right
