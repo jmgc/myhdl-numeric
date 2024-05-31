@@ -131,28 +131,57 @@ class sfixba(bitarray):
 
         i = -1
         for i, arg in enumerate(args):
-            if i > 0:
-                if isinstance(arg, fixmath):
-                    maths = arg
-                    break
-                elif isinstance(arg, sfixba):
-                    value_format = arg
-                    maths = arg
-                    break
             if i == 0:
                 value = arg
-            elif i == 1:
-                high = arg
-            elif i == 2:
-                low = arg
-            elif i == 3:
-                overflow = arg
-            elif i == 4:
-                rounding = arg
-            elif i == 5:
-                guard_bits = int(arg)
             else:
-                raise TypeError("Too much positional arguments")
+                if isinstance(arg, fixmath):
+                    if i == 1:
+                        maths = arg
+                        if len(args) > 2:
+                            raise TypeError("Fix maths in an improper position")
+                    elif i == 2 and (value_format is not None or high is not None):
+                        maths = arg
+                        if len(args) > 3:
+                            raise TypeError("Fix maths in an improper position")
+                    elif i == 3 and high is not None and low is not None and value_format is None:
+                        maths = arg
+                        if len(args) > 4:
+                            raise TypeError("Fix maths in an improper position")
+                    else:
+                        raise TypeError("Fix maths in an improper position")
+                elif isinstance(arg, sfixba):
+                    if i == 1:
+                        value_format = arg
+                        maths = arg
+                        if len(args) > 2:
+                            raise TypeError("Format type in an improper position")
+                    elif i == 2 and (value_format is not None or high is not None):
+                        maths = arg
+                        if len(args) > 3:
+                            raise TypeError("Math type in an improper position")
+                    elif i == 3 and high is not None and low is not None and value_format is None:
+                        maths = arg
+                        if len(args) > 4:
+                            raise TypeError("Math type in an improper position")
+                    else:
+                        raise TypeError("Format type in an improper position")
+                elif isinstance(arg, bitarray):
+                    if i == 1:
+                        value_format = arg
+                    else:
+                        raise TypeError("Format type in an improper position")
+                elif i == 1:
+                    high = arg
+                elif i == 2:
+                    low = arg
+                elif i == 3:
+                    overflow = arg
+                elif i == 4:
+                    rounding = arg
+                elif i == 5:
+                    guard_bits = int(arg)
+                else:
+                    raise TypeError("Too much positional arguments")
 
         if isinstance(value, bitarray):
             if not value.is_signed:

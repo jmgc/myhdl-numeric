@@ -1211,5 +1211,13 @@ class TestSFixBaCopy(TestCase):
                 self.assertEqual(len(n), len(m))
 
 
+def test_sfixba_from_bitarray():
+    from myhdl import bitarray
+    a = bitarray(0b10010110, 8, 0)
+    b = 23
+    c = a & sfixba(b, a)
+    assert c == sfixba(22, c), f"bitarray & sfixba failed: {c} != {sfixba(22, c)}"
+
+
 if __name__ == "__main__":
     unittest.main()
