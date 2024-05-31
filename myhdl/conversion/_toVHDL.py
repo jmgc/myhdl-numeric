@@ -4999,7 +4999,11 @@ class _AnnotateTypesVisitor(ast.NodeVisitor, _ConversionMixin):
 
     def inferBitOpType(self, node):
         left = node.left.vhdOri
+        if isinstance(left, vhd_int):
+            self.raiseError(node, _error.UnsupportedType, "Bitwise operation not supported for int")
         right = node.right.vhdOri
+        if isinstance(right, vhd_int):
+            self.raiseError(node, _error.UnsupportedType, "Bitwise operation not supported for int")
         high = 0
         if isinstance(left, vhd_unsigned) != isinstance(right, vhd_unsigned):
             high = 1
