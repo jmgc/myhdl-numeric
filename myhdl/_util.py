@@ -102,10 +102,11 @@ def _makeAST(f):
 
 
 def _genfunc(gen):
-    from myhdl._always_comb import _AlwaysComb
-    from myhdl._always_seq import _AlwaysSeq
-    from myhdl._always import _Always
-    if isinstance(gen, (_AlwaysComb, _AlwaysSeq, _Always)):
+    from ._always_comb import _AlwaysComb
+    from ._always_seq import _AlwaysSeq
+    from ._always import _Always
+    from ._block import _Block
+    if isinstance(gen, (_AlwaysComb, _AlwaysSeq, _Always, _Block)):
         func = gen.func
     else:
         func = gen.genfunc
