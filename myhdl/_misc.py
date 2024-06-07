@@ -34,7 +34,8 @@ from ._instance import _Instantiator
 
 
 def _isGenSeq(obj):
-    if isinstance(obj, (Cosimulation, _Instantiator)):
+    from ._block import _Block
+    if isinstance(obj, (Cosimulation, _Instantiator, _Block)):
         return True
     if not isinstance(obj, (list, tuple, set)):
         return False
@@ -48,6 +49,20 @@ def _isGenSeq(obj):
 def _get_instances(locals):
     l = {k: v for k, v in locals.items() if _isGenSeq(v)}
     return l
+
+def _check_instances(inst, error):
+    error_str = "\n{}:{}\nIn block {} there is an instance not returned: {}"
+    insts = set(k for k, v in _get_instances(inst.frame.f_locals).items()
+                if not (isinstance(v, (list, tuple, set)) and len(v) == 0))
+    returned = set(sub[0] for sub in inst.subs)
+    insts -= returned
+    if insts:
+        file = inst.frame.f_code.co_filename
+        line = inst.frame.f_lineno
+        if len(insts) == 1:
+            raise error(error_str.format(file, line, inst.name, insts.pop()))
+        else:
+            raise error(error_str.format(file, line, inst.name, insts))
 
 
 def instances():
