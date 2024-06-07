@@ -71,6 +71,7 @@ class _error(object):
     PortInList = "Port in list is not supported"
     ListAsPort = "List of signals as a port is not supported"
     SignalInMultipleLists = "Signal in multiple list is not supported"
+    DuplicatedEntity = "Entity name is duplicated, probably due to a misuse of vhdl_entity_name"
 
 
 class _access(object):
