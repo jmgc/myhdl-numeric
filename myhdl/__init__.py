@@ -153,6 +153,7 @@ from ._always_comb import always_comb
 from ._always_seq import always_seq, ResetSignal
 from ._always import always
 from ._instance import instance
+from ._block import block
 from ._enum import enum, EnumType, EnumItemType
 from ._traceSignals import traceSignals
 from . import conversion
