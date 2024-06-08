@@ -40,7 +40,6 @@ import string
 from collections import namedtuple
 from io import StringIO
 
-from .._getHierarchy import _getHierarchy
 from .. import __version__
 from .._enum import EnumItemType, EnumType
 from .._intbv import intbv

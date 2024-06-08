@@ -38,7 +38,6 @@ import myhdl
 from .. import ToVerilogError, ToVerilogWarning
 from .._block import _Block
 from .._concat import concat
-from .._getHierarchy import _getHierarchy
 from .._intbv import intbv
 from .._modbv import modbv
 from .._delay import delay
