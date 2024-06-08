@@ -30,7 +30,7 @@ from . import StopSimulation, _SuspendSimulation
 from . import SimulationError
 from ._simulator import _simulator
 from ._Waiter import _Waiter, _inferWaiter, _SignalTupleWaiter
-from ._util import _flatten, _printExcInfo
+from ._util import _flatten_block, _printExcInfo
 from ._instance import _Instantiator
 
 
@@ -61,7 +61,7 @@ class Simulation(object):
 
         """
         _simulator._time = 0
-        arglist = _flatten(*args)
+        arglist = _flatten_block(*args)
         self._waiters, self._cosim = _makeWaiters(arglist)
         if not self._cosim and _simulator._cosim:
             warn("Cosimulation not registered as Simulation argument")
