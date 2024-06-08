@@ -22,10 +22,10 @@ import inspect
 from types import FunctionType
 
 from myhdl import InstanceError
-from myhdl._util import _isGenFunc, _makeAST
-from myhdl._Waiter import _inferWaiter
-from myhdl._resolverefs import _AttrRefTransformer
-from myhdl._visitors import _SigNameVisitor
+from ._util import _isGenFunc, _makeAST
+from ._Waiter import _inferWaiter
+from ._resolverefs import _AttrRefTransformer
+from ._visitors import _SigNameVisitor
 
 
 class _error:
@@ -36,10 +36,11 @@ _error.ArgType = "decorated object should be a generator function"
 
 class _CallInfo:
 
-    def __init__(self, name, modctxt, symdict):
+    def __init__(self, name, modctxt, symdict, frame):
         self.name = name
         self.modctxt = modctxt
         self.symdict = symdict
+        self.frame = frame
 
 
 def _getCallInfo():
@@ -53,13 +54,18 @@ def _getCallInfo():
     2: the block function that defines instances
     3: the caller of the block function, e.g. the BlockInstance.
     """
+    from ._block import _Block
     funcrec = inspect.stack()[2]
     name = funcrec[3]
     frame = funcrec[0]
     symdict = dict(frame.f_globals)
     symdict.update(frame.f_locals)
     modctxt = False
-    return _CallInfo(name, modctxt, symdict)
+    callerrec = inspect.stack()[3]
+    f_locals = callerrec[0].f_locals
+    if 'self' in f_locals:
+        modctxt = isinstance(f_locals['self'], _Block)
+    return _CallInfo(name, modctxt, symdict, frame)
 
 
 def instance(genfunc):

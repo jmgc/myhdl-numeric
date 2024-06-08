@@ -55,6 +55,18 @@ def _flatten(*args):
     return arglist
 
 
+def _flatten_block(*args):
+    from ._block import _Block
+    arglist = []
+    for arg in args:
+        if isinstance(arg, (list, tuple, set, _Block)):
+            for item in arg:
+                arglist.extend(_flatten_block(item))
+        else:
+            arglist.append(arg)
+    return arglist
+
+
 def _isTupleOfInts(obj):
     if not isinstance(obj, tuple):
         return False
@@ -102,10 +114,10 @@ def _makeAST(f):
 
 
 def _genfunc(gen):
-    from ._always_comb import _AlwaysComb
-    from ._always_seq import _AlwaysSeq
-    from ._always import _Always
-    from ._block import _Block
+    from myhdl._always_comb import _AlwaysComb
+    from myhdl._always_seq import _AlwaysSeq
+    from myhdl._always import _Always
+    from myhdl._block import _Block
     if isinstance(gen, (_AlwaysComb, _AlwaysSeq, _Always, _Block)):
         func = gen.func
     else:

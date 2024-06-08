@@ -5,6 +5,7 @@ import os
 import tempfile
 import subprocess
 import difflib
+import warnings
 
 from collections import namedtuple
 
@@ -115,7 +116,7 @@ class _VerificationClass(object):
         self._analyze_only = analyze_only
 
     def __call__(self, func, *args, **kwargs):
-
+        from .._block import _Block
         if not self.simulator:
             raise ValueError("No simulator specified")
         if self.simulator not in _simulators:
@@ -126,8 +127,18 @@ class _VerificationClass(object):
             name = toVerilog.name
         elif hdl == 'VHDL' and toVHDL.name is not None:
             name = toVHDL.name
+        elif isinstance(func, _Block):
+            name = func.func.__name__
         else:
-            name = func.__name__
+            warnings.warn(
+                "\n    analyze()/verify(): Deprecated usage: See http://dev.myhdl.org/meps/mep-114.html",
+                stacklevel=2,
+                category=DeprecationWarning,
+            )
+            try:
+                name = func.__name__
+            except:
+                raise TypeError(str(type(func)))
 
         vals = {}
         vals['topname'] = name
@@ -147,14 +158,25 @@ class _VerificationClass(object):
         ignore = hdlsim.ignore
         languageVersion = hdlsim.languageVersion
 
-        if hdl == "VHDL":
-            if languageVersion is not None:
-                toVHDL.version = languageVersion
+        if isinstance(func, _Block):
+            inst = func
+            if hdl == "VHDL":
+                if languageVersion is not None:
+                    toVHDL.version = languageVersion
+                else:
+                    toVHDL.version = 2008
+                func.convert(hdl='VHDL', **kwargs)
             else:
-                toVHDL.version = 2008
-            inst = toVHDL(func, *args, **kwargs)
+                func.convert(hdl='Verilog', **kwargs)
         else:
-            inst = toVerilog(func, *args, **kwargs)
+            if hdl == "VHDL":
+                if languageVersion is not None:
+                    toVHDL.version = languageVersion
+                else:
+                    toVHDL.version = 2008
+                inst = toVHDL(func, *args, **kwargs)
+            else:
+                inst = toVerilog(func, *args, **kwargs)
 
         if hdl == "VHDL":
             if not os.path.exists("work_%(topname)s" % vals):
@@ -191,8 +213,12 @@ class _VerificationClass(object):
 
         f = tempfile.TemporaryFile(mode='w+t')
         sys.stdout = f
-        sim = Simulation(inst)
-        sim.run()
+        if isinstance(inst, _Block):
+            func.run_sim()
+            func.quit_sim()
+        else:
+            sim = Simulation(inst)
+            sim.run()
         sys.stdout = sys.__stdout__
         f.flush()
         f.seek(0)

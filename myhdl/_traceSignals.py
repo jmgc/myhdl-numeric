@@ -27,17 +27,17 @@ import time
 import sys
 import shutil
 from . import __version__
+from ._block import _Block
 from ._enum import EnumItemType
 from ._simulator import _simulator
 from ._extractHierarchy import _HierExtr
 from . import TraceSignalsError
 from ._ShadowSignal import _TristateSignal, _TristateDriver
-import os
+import os, warnings
 
 
 path = os.path
 
-_tracing = 0
 _profileFunc = None
 
 
@@ -54,7 +54,8 @@ class _TraceSignalsClass(object):
     __slot__ = ("name",
                 "directory",
                 "timescale",
-                "tracelists"
+                "tracelists",
+                "filename",
                 )
 
     def __init__(self):
@@ -62,10 +63,10 @@ class _TraceSignalsClass(object):
         self.directory = None
         self.timescale = "1ns"
         self.tracelists = True
+        self.filename = None
 
     def __call__(self, dut, *args, **kwargs):
-        global _tracing
-        if _tracing:
+        if _simulator._tracing:
             return dut(*args, **kwargs)  # skip
         else:
             # clean start
@@ -79,7 +80,7 @@ class _TraceSignalsClass(object):
         if _simulator._tracing:
             raise TraceSignalsError(_error.MultipleTraces)
 
-        _tracing = 1
+        _simulator._tracing = 1
         try:
             if self.name is None:
                 name = dut.__name__
@@ -105,7 +106,7 @@ class _TraceSignalsClass(object):
             _writeVcdHeader(vcdfile, self.timescale)
             _writeVcdSigs(vcdfile, h.hierarchy, self.tracelists)
         finally:
-            _tracing = 0
+            _simulator._tracing = 0
 
         return h.top
 

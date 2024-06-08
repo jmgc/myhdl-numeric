@@ -36,12 +36,14 @@ import warnings
 
 import myhdl
 from .. import ToVerilogError, ToVerilogWarning
+from .._block import _Block
 from .._concat import concat
+from .._getHierarchy import _getHierarchy
 from .._intbv import intbv
 from .._modbv import modbv
 from .._delay import delay
 from .._enum import EnumItemType, EnumType
-from .._simulator import now
+from .._simulator import now, _simulator
 from .._extractHierarchy import (_HierExtr, _isMem, _getMemInfo, _MemInfo,
                                  _UserVerilogCode)
 from .._instance import _Instantiator
@@ -167,10 +169,9 @@ class _ToVerilogConvertor(object):
         else:
             # clean start
             sys.setprofile(None)
-        from myhdl import _traceSignals
-        if _traceSignals._tracing:
+        if _simulator._tracing:
             raise ToVerilogError("Cannot use toVerilog while tracing signals")
-        if not isinstance(func, Callable):
+        if not callable(func):
             raise ToVerilogError(_error.FirstArgType, "got %s" % type(func))
 
         _converting = 1

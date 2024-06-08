@@ -40,12 +40,13 @@ import string
 from collections import namedtuple
 from io import StringIO
 
+from .._getHierarchy import _getHierarchy
 from .. import __version__
 from .._enum import EnumItemType, EnumType
 from .._intbv import intbv
 from .._modbv import modbv
 from .._concat import concat
-from .._simulator import now
+from .._simulator import now, _simulator
 from .._Signal import posedge, negedge
 from .._delay import delay
 from .._misc import downrange
@@ -55,6 +56,7 @@ from .._extractHierarchy import (_HierExtr, _isMem, _isRom, _getMemInfo,
                                  _UserVhdlCode, _MemInfo,
                                  _RomInfo, _Constant, _getRomInfo,
                                  _makeMemInfo, _makeRomInfo)
+from .._block import _Block
 from .._instance import _Instantiator
 from ..conversion._misc import _error, _kind, _context, \
     _ConversionMixin, _Label, _genUniqueSuffix, _isConstant
@@ -133,6 +135,7 @@ class _GenerateHierarchy(object):
                             }
 
     def __call__(self, h, stdLogicPorts):
+        from .._extractHierarchy import _Instance
         p_entity_dict = {}
         p_offsprings_dict = {}
         p_v_entity_dict = {}
@@ -146,7 +149,8 @@ class _GenerateHierarchy(object):
             frame = p_entity.frame
 
             for p_subentity in entity_list[idx:]:
-                if id(p_subentity.frame.f_back) == id(frame):
+                if (isinstance(p_subentity, _Instance) and id(p_subentity.frame.f_back) == id(frame)) or \
+                        (isinstance(p_subentity, _Block) and id(p_subentity.callinfo.frame) == id(frame)):
                     p_subentitylist.append(p_subentity)
                     if p_subentity not in p_offsprings_dict:
                         p_offsprings_dict[p_subentity] = p_entity
@@ -168,7 +172,6 @@ class _GenerateHierarchy(object):
         objects_set = set()
 
         for p_entity in entity_list:
-            sigs_list = []
             basename = p_entity.name
 
             components_list = []
@@ -187,10 +190,15 @@ class _GenerateHierarchy(object):
                 continue
 
             for p_subentity in p_subentities:
-                new_name = "%s_%s" % (basename, p_subentity.name)
-                if new_name in entity_names:
-                    new_name = "%s_%s" % (new_name, name_counter)
-                    name_counter += 1
+                if p_subentity.vhdl_entity_name:
+                    new_name = p_subentity.name
+                    if new_name in entity_names:
+                        raise ToVHDLError(_error.DuplicatedEntity, new_name)
+                else:
+                    new_name = "%s_%s" % (basename, p_subentity.name)
+                    if new_name in entity_names:
+                        new_name = "%s_%s" % (new_name, name_counter)
+                        name_counter += 1
                 entity_names.add(new_name)
                 p_subentity.name = new_name
                 subentity = p_v_entity_dict[p_subentity]
@@ -200,7 +208,7 @@ class _GenerateHierarchy(object):
                 components_list.append(component)
                 component._clean_signals(1)
 
-            p_entity_obj = self._flatten(p_entity.obj)
+            p_entity_obj = self._flatten_block(p_entity.obj)
             # After having determined the signals and other elements, the
             # duplicated generators are deleted. It has to be done between
             # generating the signals and analyzing the top function to avoid
@@ -219,7 +227,11 @@ class _GenerateHierarchy(object):
             elargs = self._instance_args(p_entity)
 
             # Infer interface
-            intf = _analyzeTopFunc(p_entity.func, *elargs, **{})
+            if isinstance(p_entity.obj, _Block):
+                p_entity.obj._inferInterface()
+                intf = p_entity.obj
+            else:
+                intf = _analyzeTopFunc(p_entity.func, *elargs, **{})
             intf.name = p_entity.name
 
             # Updating the components ports
@@ -454,6 +466,18 @@ class _GenerateHierarchy(object):
             elif isinstance(arg, (list, tuple, set)):
                 for item in arg:
                     arglist.extend(self._flatten(item))
+            else:
+                arglist.append(arg)
+        return arglist
+
+    def _flatten_block(self, *args):
+        arglist = []
+        for arg in args:
+            if id(arg) in self.userCodeMap['vhdl']:
+                arglist.append(self.userCodeMap['vhdl'][id(arg)])
+            elif isinstance(arg, (list, tuple, set, _Block)):
+                for item in arg:
+                    arglist.extend(self._flatten_block(item))
             else:
                 arglist.append(arg)
         return arglist
@@ -1093,6 +1117,8 @@ class vhd_component(object):
         return tuple(self.entity.ports_dict)
 
     def _update(self):
+        if self.entity.name != self.name:
+            self.name = self.entity.name
         for p in self.entity.ports_dict.values():
             # change name to convert to std_logic, or
             # make sure signal name is equal to its port name
@@ -1192,15 +1218,17 @@ class _ToVHDLConvertor(object):
         else:
             # clean start
             sys.setprofile(None)
-        from myhdl import _traceSignals
-        if _traceSignals._tracing:
+        if _simulator._tracing:
             raise ToVHDLError("Cannot use toVHDL while tracing signals")
-        if not isinstance(func, Callable):
-            raise ToVHDLError(_error.FirstArgType, "got %s" % type(func))
+        if not isinstance(func, _Block):
+            if not callable(func):
+                raise ToVHDLError(_error.FirstArgType, "got %s" % type(func))
 
         _converting = 1
         if self.name is None:
             name = func.__name__
+            if isinstance(func, _Block):
+                name = func.func.__name__
         else:
             name = str(self.name)
 
@@ -1235,10 +1263,21 @@ class _ToVHDLConvertor(object):
         if not self.no_myhdl_package:
             pfile = open(ppath, 'w')
 
-        try:
-            h = _HierExtr(name, func, *args, **kwargs)
-        finally:
-            _converting = 0
+        if isinstance(func, _Block):
+            try:
+                h = _HierExtr(name, func)
+            finally:
+                _converting = 0
+        else:
+            warnings.warn(
+                "\n    toVHDL(): Deprecated usage: See http://dev.myhdl.org/meps/mep-114.html",
+                stacklevel=2,
+                category=DeprecationWarning,
+            )
+            try:
+                h = _HierExtr(name, func, *args, **kwargs)
+            finally:
+                _converting = 0
 
         hier = h.hierarchy[:]
         hier.reverse()

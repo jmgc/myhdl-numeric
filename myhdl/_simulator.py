@@ -37,11 +37,11 @@ class __simulator:
         self._tracing = 0
 
     def clear(self):
-        self._blocks = []
+        self._blocks.clear()
         self._cosim = 0
-        self._futureEvents = []
-        self._siglist = []
-        self._signals = []
+        self._futureEvents.clear()
+        self._siglist.clear()
+        self._signals.clear()
         self._tf = None
         self._time = 0
         self._tracing = 0

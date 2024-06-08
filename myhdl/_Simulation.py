@@ -30,7 +30,7 @@ from . import StopSimulation, _SuspendSimulation
 from . import SimulationError
 from ._simulator import _simulator
 from ._Waiter import _Waiter, _inferWaiter, _SignalTupleWaiter
-from ._util import _printExcInfo
+from ._util import _flatten, _printExcInfo
 from ._instance import _Instantiator
 
 
@@ -60,9 +60,8 @@ class Simulation(object):
                  a nested sequence of generators.
 
         """
-        _simulator.clear()
         _simulator._time = 0
-        arglist = Simulation._flatten(*args)
+        arglist = _flatten(*args)
         self._waiters, self._cosim = _makeWaiters(arglist)
         if not self._cosim and _simulator._cosim:
             warn("Cosimulation not registered as Simulation argument")
@@ -70,18 +69,6 @@ class Simulation(object):
         del _simulator._futureEvents[:]
         del _simulator._siglist[:]
         del _simulator._signals[:]
-
-    @staticmethod
-    def _flatten(*args):
-        from ._block import _Block
-        arglist = []
-        for arg in args:
-            if isinstance(arg, (list, tuple, set)):
-                for item in arg:
-                    arglist.extend(Simulation._flatten(item))
-            else:
-                arglist.append(arg)
-        return arglist
 
     def _finalize(self):
         cosim = self._cosim
