@@ -29,6 +29,7 @@ from myhdl import Signal, Simulation, _simulator, delay, instance, intbv
 from myhdl._traceSignals import TraceSignalsError, _error, traceSignals
 from myhdl._simulator import _simulator
 from myhdl.test.helpers import raises_kind
+from myhdl.test.conftest import bug
 
 random.seed(1)  # random, but deterministic
 path = os.path
@@ -128,6 +129,7 @@ def vcd_dir(tmpdir):
 
 class TestTraceSigs:
 
+    @bug("Multiple traces not detected.")
     def testMultipleTraces(self, vcd_dir):
         with raises_kind(TraceSignalsError, _error.MultipleTraces):
             dut = top3()

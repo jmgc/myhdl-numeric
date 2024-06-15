@@ -727,6 +727,8 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
                 _enumTypeSet.add(obj)
                 suf = _genUniqueSuffix.next()
                 obj._setName(n + suf)
+        if isinstance(obj, _Rom):
+            node.obj = obj.elObj
         if node.obj is None:  # attribute lookup failed
             self.raiseError(node, _error.UnsupportedAttribute, node.attr)
 
@@ -1457,6 +1459,8 @@ class _AnalyzeFuncVisitor(_AnalyzeVisitor):
     def visit_FunctionDef(self, node):
         self.refStack.push()
         argnames = _get_argnames(node)
+        if len(argnames) < len(self.args):
+            self.raiseError(node, _error.ArgSize)
         for i, arg in enumerate(self.args):
             n = argnames[i]
             self.tree.symdict[n] = self.getObj(arg)

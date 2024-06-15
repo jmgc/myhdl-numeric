@@ -1381,7 +1381,10 @@ class _ToVHDLConvertor(object):
         for sig in sigs_list:
             sig._clear()
 
-        return h.top
+        if isinstance(func, _Block):
+            return func
+        else:
+            return h.top
 
     @property
     def timescale(self):
@@ -3030,6 +3033,8 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
                     s = obj._toVHDL()
             elif (type(obj) is type) and issubclass(obj, Exception):
                 s = n
+            elif isinstance(obj, slice):
+                s = vhd_slice(obj.start, obj.stop).toStr()
             else:
                 self.raiseError(node, _error.UnsupportedType,
                                 "%s, %s" % (n, type(obj)))
@@ -3150,18 +3155,21 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
         self.write(pre)
         self.visit(node.value)
 
-        self.write("(")
-        # assert len(node.subs) == 1
-        if not isinstance(node.slice.vhd, (vhd_int, vhd_nat)):
-            self.write("to_integer(")
-        if isinstance(node.slice, (ast.Name, ast.Constant, ast.BinOp, ast.UnaryOp, ast.Call)):
-            self.visit(node.slice)
+        if isinstance(node.slice.vhd, vhd_slice):
+            self.write(node.slice.vhd.toStr())
         else:
-            self.visit(node.slice.value)
-        if not isinstance(node.slice.vhd, (vhd_int, vhd_nat)):
+            self.write("(")
+            # assert len(node.subs) == 1
+            if not isinstance(node.slice.vhd, (vhd_int, vhd_nat)):
+                self.write("to_integer(")
+            if isinstance(node.slice, (ast.Name, ast.Constant, ast.BinOp, ast.UnaryOp, ast.Call)):
+                self.visit(node.slice)
+            else:
+                self.visit(node.slice.value)
+            if not isinstance(node.slice.vhd, (vhd_int, vhd_nat)):
+                self.write(")")
             self.write(")")
-        self.write(")")
-        self.write(suf)
+            self.write(suf)
 
     def visit_stmt(self, body):
         for stmt in body:
@@ -4614,6 +4622,8 @@ def inferVhdlClass(obj):
         vhd = vhd_real
     elif isinstance(obj, (_MemInfo, _RomInfo, _Rom)):
         vhd = vhd_array
+    elif isinstance(obj, slice):
+        vhd = vhd_slice
     return vhd
 
 
@@ -4660,6 +4670,8 @@ def inferVhdlObj(obj):
         vhd = vhd()
     elif issubclass(vhd, vhd_array):
         vhd = vhd(obj.depth, inferVhdlObj(obj.elObj))
+    elif issubclass(vhd, vhd_slice):
+        vhd = vhd(obj.start, obj.stop)
     else:
         raise ToVHDLError('Unknown Type: %s' % vhd)
     return vhd
@@ -4692,17 +4704,21 @@ class _AnnotateTypesVisitor(ast.NodeVisitor, _ConversionMixin):
             node.vhd = vhd_int(-1)
         elif node.attr == 'is_signed':
             node.vhd = vhd_boolean()
-        elif node.value.vhd is None and isinstance(node.obj, EnumItemType):
-            node.vhd = vhd_enum(node.obj)
-            if node.attr.lower() in self.tree.vardict:
-                self.raiseError(node, _error.ShadowingEnum,
-                                f"Label: {node.attr}")
-            elif node.attr.lower() in self.tree.sigdict:
-                self.raiseError(node, _error.ShadowingEnum,
-                                f"Label: {node.attr}")
-            elif not check_correct_identifier(node.attr):
-                self.raiseError(node, _error.ReservedWord,
-                                f"Enumeration label: {node.attr}")
+        elif node.value.vhd is None:
+            if not hasattr(node, 'obj'):
+                self.raiseError(node, _error.UnsupportedAttribute,
+                                "Attribute: %s" % node.attr)
+            if isinstance(node.obj, EnumItemType):
+                node.vhd = vhd_enum(node.obj)
+                if node.attr.lower() in self.tree.vardict:
+                    self.raiseError(node, _error.ShadowingEnum,
+                                    f"Label: {node.attr}")
+                elif node.attr.lower() in self.tree.sigdict:
+                    self.raiseError(node, _error.ShadowingEnum,
+                                    f"Label: {node.attr}")
+                elif not check_correct_identifier(node.attr):
+                    self.raiseError(node, _error.ReservedWord,
+                                    f"Enumeration label: {node.attr}")
         else:
             node.vhd = copy(node.value.vhd)
         node.vhdOri = copy(node.vhd)
@@ -5025,7 +5041,7 @@ class _AnnotateTypesVisitor(ast.NodeVisitor, _ConversionMixin):
             node.obj = self.tree.vardict[node.id]
         try:
             node.vhd = inferVhdlObj(node.obj)
-        except ToVHDLError as error:
+        except Exception as error:
             self.raiseError(node, _error.UnsupportedType, str(error))
         node.vhdOri = copy(node.vhd)
 
@@ -5198,21 +5214,33 @@ class _AnnotateTypesVisitor(ast.NodeVisitor, _ConversionMixin):
 
     def accessIndex(self, node):
         self.generic_visit(node)
-        node.vhd = vhd_std_logic()  # XXX default
-        if isinstance(node.slice, (ast.Name, ast.Constant, ast.BinOp, ast.UnaryOp, ast.Call)):
-            self.visit(node.slice)
+        if isinstance(node.slice.vhd, vhd_slice):
+            t = type(node.value.vhd)
+            lower = node.slice.vhd.start
+            upper = node.slice.vhd.stop
+            if node.value.vhd.from_intbv and not isinstance(node.ctx, ast.Store):
+                node.vhd = vhd_unsigned(lower - upper)
+            else:
+                if issubclass(t, vhd_sfixed):
+                    node.vhd = t((lower - upper - 1, 0))
+                else:
+                    node.vhd = t(lower - upper)
         else:
-            node.slice.value.vhd = vhd_int()
-        obj = node.value.obj
-        if isinstance(obj, list):
-            assert len(obj)
-            node.vhd = inferVhdlObj(obj[0])
-        elif isinstance(obj, _Ram):
-            node.vhd = inferVhdlObj(obj.elObj)
-        elif isinstance(obj, _Rom):
-            node.vhd = inferVhdlObj(obj.rom[0])
-        elif isinstance(obj, (intbv, bitarray)):
-            node.vhd = vhd_std_logic()
+            node.vhd = vhd_std_logic()  # XXX default
+            if isinstance(node.slice, (ast.Name, ast.Constant, ast.BinOp, ast.UnaryOp, ast.Call)):
+                self.visit(node.slice)
+            else:
+                node.slice.value.vhd = vhd_int()
+            obj = node.value.obj
+            if isinstance(obj, list):
+                assert len(obj)
+                node.vhd = inferVhdlObj(obj[0])
+            elif isinstance(obj, _Ram):
+                node.vhd = inferVhdlObj(obj.elObj)
+            elif isinstance(obj, _Rom):
+                node.vhd = inferVhdlObj(obj.rom[0])
+            elif isinstance(obj, (intbv, bitarray)):
+                node.vhd = vhd_std_logic()
         node.vhdOri = copy(node.vhd)
 
     def visit_UnaryOp(self, node):

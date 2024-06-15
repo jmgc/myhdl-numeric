@@ -308,7 +308,9 @@ class _Block(object):
         """ Clear a number of 'global' attributes.
         This is a workaround function for cleaning up before converts.
         """
-        # workaround: elaborate again for the side effect on signal attibutes
+        # workaround: elaborate again for the side effect on signal attributes
+        _simulator.clear()
+
         self.func(*self.args, **self.kwargs)
         # reset number of calls in all blocks
         for b in _simulator._blocks:

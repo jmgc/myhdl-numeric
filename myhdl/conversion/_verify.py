@@ -159,15 +159,14 @@ class _VerificationClass(object):
         languageVersion = hdlsim.languageVersion
 
         if isinstance(func, _Block):
-            inst = func
             if hdl == "VHDL":
                 if languageVersion is not None:
                     toVHDL.version = languageVersion
                 else:
                     toVHDL.version = 2008
-                func.convert(hdl='VHDL', **kwargs)
+                inst = func.convert(hdl='VHDL', **kwargs)
             else:
-                func.convert(hdl='Verilog', **kwargs)
+                inst = func.convert(hdl='Verilog', **kwargs)
         else:
             if hdl == "VHDL":
                 if languageVersion is not None:
@@ -214,8 +213,7 @@ class _VerificationClass(object):
         f = tempfile.TemporaryFile(mode='w+t')
         sys.stdout = f
         if isinstance(inst, _Block):
-            func.run_sim()
-            func.quit_sim()
+            inst.run_sim()
         else:
             sim = Simulation(inst)
             sim.run()

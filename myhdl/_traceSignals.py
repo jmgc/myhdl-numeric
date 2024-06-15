@@ -110,6 +110,7 @@ class _TraceSignalsClass(object):
 
         return h.top
 
+
 traceSignals = _TraceSignalsClass()
 
 

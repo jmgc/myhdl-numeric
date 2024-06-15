@@ -30,6 +30,7 @@ from .. import ConversionError
 class _error(object):
     FirstArgType = "first argument should be a classic function"
     ArgType = "leaf cell type error"
+    ArgSize = "Incorrect number of arguments"
     NotSupported = "Not supported"
     TopLevelName = "Result of toVerilog call should be assigned to" \
                    " a top level name"

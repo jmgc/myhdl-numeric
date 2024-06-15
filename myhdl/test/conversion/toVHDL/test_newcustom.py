@@ -9,7 +9,7 @@ random.seed(2)
 
 from myhdl.test.conftest import bug
 
-from myhdl import (Signal, intbv, delay, instance, toVHDL,
+from myhdl import (Signal, intbv, delay, instance, toVHDL, Simulation,
                    always, always_comb, StopSimulation, conversion)
 
 from myhdl import ConversionError
@@ -297,3 +297,44 @@ def testIncErr():
         pass
     else:
         assert False
+
+
+def naming_second_level(clk_a, clk_b):
+    vhdl_name = "test_clock_generator"
+    dut_a = clockGen(clk_a)
+    dut_b = clockGen(clk_b)
+
+    @instance
+    def wait_logic():
+        for idx in range(10):
+            yield clk_a.posedge
+            print(idx)
+        yield clk_a.negedge
+        raise StopSimulation
+
+    return dut_a, dut_b, wait_logic
+
+
+def naming_test_bench():
+    clk_a = Signal(False)
+    clk_b = Signal(False)
+
+    vhdl_name = "second_level"
+    dut = naming_second_level(clk_a, clk_b)
+
+    return dut
+
+
+def test_name_entities_simulate():
+    sim = Simulation(naming_test_bench())
+    sim.run()
+
+
+def test_name_entities_analyze():
+    conversion.analyze(naming_test_bench)
+
+
+def test_name_entities_verify():
+    toVHDL.name = "vhdl_naming_verify"
+    assert conversion.verify(naming_test_bench) == 0
+    toVHDL.name = None
