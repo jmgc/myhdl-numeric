@@ -2284,6 +2284,8 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
             obj = self.tree.vardict[n]
         else:
             raise AssertionError("object not found")
+        if isinstance(node.value.vhd, vhd_array):
+            obj = getattr(obj, node.attr)
         if isinstance(obj, _Signal):
             if node.attr == 'next':
                 self.SigAss = obj._name
@@ -2314,6 +2316,10 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
             assert hasattr(obj, node.attr)
             e = getattr(obj, node.attr)
             self.write(e._toVHDL())
+        if isinstance(obj, (int, float)):
+            # Num
+            s = node.vhd.literal(obj, prefixed=True)
+            self.write(s)
 
     def visit_Assert(self, node):
         # XXX
@@ -4707,6 +4713,8 @@ class _AnnotateTypesVisitor(ast.NodeVisitor, _ConversionMixin):
             node.vhd = vhd_int(-1)
         elif node.attr == 'is_signed':
             node.vhd = vhd_boolean()
+        elif isinstance(node.value.vhd, vhd_array):
+            node.vhd = copy(node.value.vhd.type)
         elif node.value.vhd is None:
             if not hasattr(node, 'obj'):
                 self.raiseError(node, _error.UnsupportedAttribute,
