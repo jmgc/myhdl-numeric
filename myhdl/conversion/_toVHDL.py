@@ -2536,8 +2536,11 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
                 Visitor = _ConvertFunctionVisitor
             if not hasattr(node.tree, 'constdict'):
                 node.tree.constdict = self.tree.constdict
-            v = Visitor(node.tree, self.funcBuf)
-            v.visit(node.tree)
+            if hasattr(self, 'funcBuf'):
+                v = Visitor(node.tree, self.funcBuf)
+                v.visit(node.tree)
+            else:
+                self.raiseError(node, f"Unable to generate code for {ast.dump(node)}")
 
     def visit_Compare(self, node):
         n = node.vhd
