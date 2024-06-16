@@ -330,19 +330,22 @@ class _GenerateHierarchy(object):
                     self.enum_types[vhd_obj._type] = vhd_obj
 
             for name, rom in p_entity.romdict.items():
-                vhd_obj = inferVhdlObj(rom)
-                rom.orig_name = name
-                name = name.upper()
-                rom.name = name
-                vhd_consts_dict[name] = vhd_constant(name,
-                                                     rom,
-                                                     vhd_obj,
-                                                     False)
-                self.rom_types[vhd_obj.toStr(False)] = vhd_obj
-                if isinstance(vhd_obj, vhd_array):
-                    if isinstance(vhd_obj.type, vhd_enum):
-                        vhd_obj.type._type._setName(rom.name)
-                        self.enum_types[vhd_obj.type._type] = vhd_obj
+                if rom.used:
+                    vhd_obj = inferVhdlObj(rom)
+                    if vhd_obj.type is None:
+                        raise ToVHDLError(_error.InconsistentType, name)
+                    rom.orig_name = name
+                    name = name.upper()
+                    rom.name = name
+                    vhd_consts_dict[name] = vhd_constant(name,
+                                                         rom,
+                                                         vhd_obj,
+                                                         False)
+                    self.rom_types[vhd_obj.toStr(False)] = vhd_obj
+                    if isinstance(vhd_obj, vhd_array):
+                        if isinstance(vhd_obj.type, vhd_enum):
+                            vhd_obj.type._type._setName(rom.name)
+                            self.enum_types[vhd_obj.type._type] = vhd_obj
 
             components_list.sort(key=lambda x: x.name)
             architecture = vhd_architecture(list(sigs_dict.keys()) +
