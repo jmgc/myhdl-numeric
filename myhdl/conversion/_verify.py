@@ -65,9 +65,17 @@ registerSimulator(
 registerSimulator(
     name="nvc",
     hdl="VHDL",
-    analyze="nvc --work=work_%(topname)s_nvc -a pck_%(topname)s_myhdl_%(version)s.vhd %(topname)s.vhd",
-    elaborate="nvc --work=work_%(topname)s_nvc -e %(topname)s",
-    simulate="nvc --work=work_%(topname)s_nvc -r %(topname)s"
+    analyze="nvc --work=work_%(topname)s_nvc --std=08 -a %(file_name)s",
+    elaborate="nvc --work=work_%(topname)s_nvc --std=08 -e %(topname)s",
+    simulate="nvc --work=work_%(topname)s_nvc --std=08 -r %(topname)s",
+    languageVersion="2008"
+    )
+
+registerSimulator(
+    name="iverilog",
+    hdl="Verilog",
+    analyze="iverilog -o %(topname)s.o %(topname)s.v",
+    simulate="vvp %(topname)s.o"
     )
 
 registerSimulator(
@@ -89,13 +97,6 @@ registerSimulator(
     skipchars=2,
     ignore=("# **", "# //", "#    Time:", "# run -all"),
     languageVersion="2008"
-    )
-
-registerSimulator(
-    name="iverilog",
-    hdl="Verilog",
-    analyze="iverilog -o %(topname)s.o %(topname)s.v",
-    simulate="vvp %(topname)s.o"
     )
 
 registerSimulator(
