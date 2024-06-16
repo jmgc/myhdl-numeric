@@ -69,12 +69,11 @@ def test_block():
 
 @bug("Block analysis is not fully functional.", "Verilog")
 def test_block_analyze():
-    tb = block_test_bench()
-    assert tb.analyze_convert() == 0
+    assert conversion.analyze(block_test_bench) == 0
 
 
 @bug("Block analysis is not fully functional.", "Verilog")
 def test_block_verify():
-    tb = block_test_bench()
     conversion.toVerilog.name = 'test_block_verify'
-    assert tb.verify_convert() == 0
+    assert conversion.verify(block_test_bench) == 0
+    conversion.toVerilog.name = None
