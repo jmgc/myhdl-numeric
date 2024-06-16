@@ -38,5 +38,5 @@ def bug(issue_no, hdl='all'):
     if hdl == 'all':
         sims = all_sims
     else:
-        sims = [k for k, v in _simulators.items() if v.hdl.lower() == hdl]
+        sims = [k for k, v in _simulators.items() if v.hdl.lower() == hdl.lower()]
     return xfail(verify.simulator in sims, reason='issue '+issue_no)
