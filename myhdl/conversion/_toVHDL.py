@@ -3030,7 +3030,8 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
                 m.used = True
             elif _isRom(obj):
                 m = _getRomInfo(obj)
-                assert m.name
+                if not m.name:
+                    self.raiseError(f"Not VHDL name give: {m.orig_name}")
                 s = m.name
                 if not check_correct_identifier(s):
                     self.raiseError(node, _error.ReservedWord, s)
