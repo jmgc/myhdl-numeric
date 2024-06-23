@@ -438,20 +438,6 @@ class ConvSpec(object):
 defaultConvSpec = ConvSpec(**re_ConvSpec.match(r"%s").groupdict())
 
 
-def _getNritems(obj):
-    """Return the number of items in an objects' type"""
-    if isinstance(obj, _Signal):
-        obj = obj._init
-    if isinstance(obj, intbv):
-        return obj.max - obj.min
-    elif isinstance(obj, bitarray):
-        return 1 << len(obj)
-    elif isinstance(obj, EnumItemType):
-        return len(obj._type)
-    else:
-        raise TypeError("Unexpected type, missing final \'else:\'?")
-
-
 class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
 
     def __init__(self, tree):
@@ -1043,9 +1029,22 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
         node.isCase = True
         node.caseVar = var1
         node.caseItem = item1
-        if (node.else_ or (len(choices) == _getNritems(var1.obj))) and \
+        if (node.else_ or (len(choices) == self._getNritems(var1.obj, node))) and \
                 (not const_names):
             node.isFullCase = True
+
+    def _getNritems(self, obj, node):
+        """Return the number of items in an objects' type"""
+        if isinstance(obj, _Signal):
+            obj = obj._init
+        if isinstance(obj, intbv):
+            return obj.max - obj.min
+        elif isinstance(obj, bitarray):
+            return 1 << len(obj)
+        elif isinstance(obj, EnumItemType):
+            return len(obj._type)
+        else:
+            self.raiseError(node, _error.TypeMismatch, "Missing final \'else:\'?")
 
     def visit_ListComp(self, node):
         mem = node.obj = _Ram()
