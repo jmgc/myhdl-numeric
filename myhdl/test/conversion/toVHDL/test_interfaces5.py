@@ -1,6 +1,6 @@
 from myhdl import Signal, intbv, always_seq, ResetSignal, now, \
-    instance, delay, StopSimulation, Simulation, toVHDL
-from myhdl import ToVHDLError
+    instance, delay, StopSimulation, Simulation, toVHDL, delay
+from myhdl import ToVHDLError, always_comb, always_seq
 from myhdl.conversion import analyze, verify
 from myhdl.test.conftest import bug
 
@@ -11,7 +11,6 @@ expanded interface Signal is flagged as having multiple
 drivers.  This appears to be a name collision in the name
 expansion and was introduced in 08519b4.
 """
-
 
 class Intf1(object):
     def __init__(self, elements):
@@ -244,6 +243,85 @@ def test_seven_verify():
     assert verify(c_test_seven_signals) == 0
     #sim = Simulation(c_test_seven_signals())
     #sim.run()
+
+
+class ClkReset:
+    def __init__(self):
+        self.clk = Signal(False)
+        self.reset = ResetSignal(True, True, False)
+        self.value = Signal(False)
+
+
+def clk_reset_transfer(clk_in: Signal, reset_in: ResetSignal, value_in: Signal,
+                       clk_out: Signal, reset_out: ResetSignal, value_out: Signal):
+
+    @always_comb
+    def comb():
+        clk_out.next = clk_in
+        reset_out.next = reset_in
+        value_out.next = value_in
+
+    return comb
+
+def clk_reset_test_bench():
+    clk_0 = Signal(False)
+    reset_0 = ResetSignal(True, True, False)
+    clk_1 = Signal(False)
+    reset_1 = ResetSignal(True, True, False)
+    value_0 = Signal(False)
+    value_1 = Signal(False)
+    class_0 = ClkReset()
+    class_1 = ClkReset()
+
+    comb_signal = clk_reset_transfer(clk_0, reset_0, value_0, clk_1, reset_1, value_1)
+    comb_class = clk_reset_transfer(class_0.clk, class_0.reset, class_0.value,
+                                    class_1.clk, class_1.reset, class_1.value)
+
+    data_signal = Signal(intbv(0)[8:])
+
+    @always_seq(clk_1.posedge, reset_1)
+    def seq_signal():
+        if value_1:
+            print(now(), "%d" % data_signal)
+            data_signal.next = data_signal + 1
+
+    data_class = Signal(intbv(0)[8:])
+
+    @always_seq(class_1.clk.posedge, class_1.reset)
+    def seq_class():
+        if class_1.value:
+            print(now(), "%d" % data_class)
+            data_class.next = data_class + 1
+
+    @instance
+    def stimulus():
+        clk_0.next = False
+        reset_0.next = True
+        class_0.clk.next = False
+        class_0.reset.next = True
+        yield delay(10)
+        reset_0.next = False
+        class_0.reset.next = False
+        yield delay(10)
+        for _ in range(10):
+            clk_0.next = False
+            class_0.clk.next = True
+            yield delay(10)
+            clk_0.next = True
+            class_0.clk.next = False
+            yield delay(10)
+            value_0.next = not value_0
+            class_0.value.next = not class_0.value
+        clk_0.next = False
+        class_0.clk.next = True
+        yield delay(10)
+        raise StopSimulation
+
+    return comb_signal, comb_class, seq_signal, seq_class, stimulus
+
+
+def test_clk_reset():
+    assert verify(clk_reset_test_bench) == 0
 
 
 if __name__ == '__main__':

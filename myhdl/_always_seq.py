@@ -64,12 +64,14 @@ def always_seq(edge, reset):
         raise AlwaysSeqError(_error.EdgeType)
     edge.sig._read = True
     edge.sig._used = True
+    edge.sig._seq = True
     sigargs.append(edge.sig)
     if reset is not None:
         if not isinstance(reset, ResetSignal):
             raise AlwaysSeqError(_error.ResetType)
         reset._read = True
         reset._used = True
+        reset._seq = True
         sigargs.append(reset)
     sigdict = _get_sigdict(sigargs, callinfo.symdict)
 

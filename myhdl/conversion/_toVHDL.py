@@ -851,6 +851,9 @@ class vhd_signal(object):
         sig = self.signal
         if sig._driven:
             self.driven = sig._driven
+        # Clock or reset signal
+        if hasattr(sig, '_seq') and sig._seq:
+            sig._read = True
         if sig._read:
             self.read = sig._read
 

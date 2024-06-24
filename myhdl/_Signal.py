@@ -118,7 +118,7 @@ class _Signal(object):
                  '_setNextVal', '_copyVal2Next', '_printVcd',
                  '_driven', '_read', '_name', '_used', '_inList',
                  '_waiter', 'toVHDL', 'toVerilog', '_slicesigs',
-                 '_numeric', '_assign'
+                 '_numeric', '_assign', '_seq'
                  )
 
     def __init__(self, val=None):
@@ -188,6 +188,7 @@ class _Signal(object):
         self._slicesigs = []
         self._tracing = 0
         self._assign = None
+        self._seq = False
         sim._signals.append(self)
 
     def _clear(self):
