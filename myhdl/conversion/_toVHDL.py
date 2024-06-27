@@ -83,24 +83,24 @@ _profileFunc = None
 
 class _CheckCorrectIdentifier:
     _reserved_words = ["abs", "access", "after", "alias", "all",
-                        "and", "architecture", "array", "assert",
-                        "attribute", "begin", "block", "body", "buffer",
-                        "bus", "case", "component", "configuration",
-                        "constant", "disconnect", "downto", "else",
-                        "elseif", "end", "entity", "exit", "file", "for",
-                        "function", "generate", "generic", "group",
-                        "guarded", "if", "impure", "in", "inertial",
-                        "inout", "input", "is", "label", "library", "linkage",
-                        "literal", "loop", "map", "mod", "nand", "new",
-                        "next", "nor", "not", "null", "of", "on", "open",
-                        "or", "others", "out", "output", "package", "port",
-                        "postponed", "procedure", "process", "pure",
-                        "range", "record", "register", "reject", "rem",
-                        "report", "return", "rol", "ror", "select",
-                        "severity", "signal", "shared", "sla", "sll", "sra",
-                        "srl", "subtype", "then", "to", "transport", "type",
-                        "unaffected", "units", "until", "use", "variable",
-                        "wait", "when", "while", "with", "xnor", "xor"]
+                       "and", "architecture", "array", "assert",
+                       "attribute", "begin", "block", "body", "buffer",
+                       "bus", "case", "component", "configuration",
+                       "constant", "disconnect", "downto", "else",
+                       "elseif", "end", "entity", "exit", "file", "for",
+                       "function", "generate", "generic", "group",
+                       "guarded", "if", "impure", "in", "inertial",
+                       "inout", "input", "is", "label", "library", "linkage",
+                       "literal", "loop", "map", "mod", "nand", "new",
+                       "next", "nor", "not", "null", "of", "on", "open",
+                       "or", "others", "out", "output", "package", "port",
+                       "postponed", "procedure", "process", "pure",
+                       "range", "record", "register", "reject", "rem",
+                       "report", "return", "rol", "ror", "select",
+                       "severity", "signal", "shared", "sla", "sll", "sra",
+                       "srl", "subtype", "then", "to", "transport", "type",
+                       "unaffected", "units", "until", "use", "variable",
+                       "wait", "when", "while", "with", "xnor", "xor"]
 
     def __call__(self, name: str):
         _name = name.lower()
@@ -1196,7 +1196,7 @@ class _ToVHDLConvertor(object):
                  "version",
                  "one_file",
                  "vhdl_files",
-                 "verbose_asserts",
+                 "verbose_vhdl",
                  "_timescale"
                  )
 
@@ -1215,7 +1215,7 @@ class _ToVHDLConvertor(object):
         self.version = 2008
         self.one_file = True
         self.vhdl_files = []
-        self.verbose_asserts = True
+        self.verbose_vhdl = True
         self._timescale = "1 ns"
 
     def __call__(self, func, *args, **kwargs):
@@ -1301,7 +1301,7 @@ class _ToVHDLConvertor(object):
         for entity in hierarchy.entities_list:
             entity.architecture.name = arch
             entity.architecture.timescale = self._timescale
-            entity.architecture.verbose_asserts = self.verbose_asserts
+            entity.architecture.verbose_vhdl = self.verbose_vhdl
 
         entities_files = []
         cpname = "pck_" + name
@@ -1817,7 +1817,7 @@ def _convertGens(architecture, vfile):
             continue
         tree.constdict = constdict
         tree.timescale = architecture.timescale
-        tree.verbose_asserts = architecture.verbose_asserts
+        tree.verbose_vhdl = architecture.verbose_vhdl
         for n in tree.constdict:
             if n in tree.vardict:
                 obj = tree.vardict[n]
@@ -2338,7 +2338,7 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
         self.visit(node.test)
         self.indent()
         self.writeline()
-        if self.tree.verbose_asserts:
+        if self.tree.verbose_vhdl:
             if isinstance(node.msg, ast.JoinedStr):
                 self.write('report ')
                 self.visit(node.msg)
@@ -2351,7 +2351,8 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
                 self.write('report "*** AssertionError ***"')
         else:
             lineno = self.getLineNo(node)
-            self.write(f'report "AssertionError: File ""{self.tree.sourcefile}"", line {self.tree.lineoffset + lineno}')
+            self.write(
+                f'report "AssertionError: File ""{self.tree.sourcefile}"", line {self.tree.lineoffset + lineno}"')
         self.writeline()
         self.write("severity error;")
         self.dedent()
@@ -2559,7 +2560,7 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
                 node.tree.constdict = self.tree.constdict
             if hasattr(self, 'funcBuf'):
                 v = Visitor(node.tree, self.funcBuf)
-                node.tree.verbose_asserts = self.tree.verbose_asserts
+                node.tree.verbose_vhdl = self.tree.verbose_vhdl
                 v.visit(node.tree)
             else:
                 self.raiseError(node, f"Unable to generate code for {ast.dump(node)}")
@@ -3073,31 +3074,37 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
 
     def visit_Print(self, node):
         argnr = 0
-        for s in node.format:
-            if isinstance(s, str):
-                self.write('write(print, string\'("%s"));' % s.replace('"', '""'))
-            else:
-                a = node.args[argnr]
-                argnr += 1
-                if s.conv is int:
-                    a.vhd = vhd_int()
+        if self.tree.verbose_vhdl:
+            for s in node.format:
+                if isinstance(s, str):
+                    self.write('write(print, string\'("%s"));' % s.replace('"', '""'))
                 else:
-                    # if isinstance(a.vhdOri, vhd_vector):
-                    #    a.vhd = vhd_int()
-                    if isinstance(a.vhdOri, vhd_std_logic):
-                        a.vhd = vhd_boolean()
-                    elif isinstance(a.vhdOri, vhd_enum):
-                        a.vhd = vhd_string()
-                self.write("write(print, ")
-                self.context = _context.PRINT
-                self.visit(a)
-                self.context = None
-                if s.justified == 'LEFT':
-                    self.write(", justified=>LEFT")
-                if s.width:
-                    self.write(", field=>%s" % s.width)
-                self.write(")")
-                self.write(';')
+                    a = node.args[argnr]
+                    argnr += 1
+                    if s.conv is int:
+                        a.vhd = vhd_int()
+                    else:
+                        # if isinstance(a.vhdOri, vhd_vector):
+                        #    a.vhd = vhd_int()
+                        if isinstance(a.vhdOri, vhd_std_logic):
+                            a.vhd = vhd_boolean()
+                        elif isinstance(a.vhdOri, vhd_enum):
+                            a.vhd = vhd_string()
+                    self.write("write(print, ")
+                    self.context = _context.PRINT
+                    self.visit(a)
+                    self.context = None
+                    if s.justified == 'LEFT':
+                        self.write(", justified=>LEFT")
+                    if s.width:
+                        self.write(", field=>%s" % s.width)
+                    self.write(")")
+                    self.write(';')
+                self.writeline()
+        else:
+            lineno = self.getLineNo(node)
+            self.write(f'write(print, string\'('
+                       f'"Print at File ""{self.tree.sourcefile}"", line {self.tree.lineoffset + lineno}"));')
             self.writeline()
         self.write("writeline(output, print);")
 
@@ -5106,7 +5113,7 @@ class _AnnotateTypesVisitor(ast.NodeVisitor, _ConversionMixin):
                 self.raiseError(node, _error.UnsupportedType, "Bitwise operation not supported for int")
         high = 0
         if (isinstance(left, vhd_unsigned) & isinstance(right, vhd_signed)) or \
-            (isinstance(left, vhd_signed) & isinstance(right, vhd_unsigned)):
+                (isinstance(left, vhd_signed) & isinstance(right, vhd_unsigned)):
             high = 1
         if isinstance(node.op, ast.BitAnd):
             obj = left & right
