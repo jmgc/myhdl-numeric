@@ -2559,6 +2559,7 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
                 node.tree.constdict = self.tree.constdict
             if hasattr(self, 'funcBuf'):
                 v = Visitor(node.tree, self.funcBuf)
+                node.tree.verbose_asserts = self.tree.verbose_asserts
                 v.visit(node.tree)
             else:
                 self.raiseError(node, f"Unable to generate code for {ast.dump(node)}")
