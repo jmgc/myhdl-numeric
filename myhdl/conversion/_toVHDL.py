@@ -1196,6 +1196,7 @@ class _ToVHDLConvertor(object):
                  "version",
                  "one_file",
                  "vhdl_files",
+                 "verbose_asserts",
                  "_timescale"
                  )
 
@@ -1214,6 +1215,7 @@ class _ToVHDLConvertor(object):
         self.version = 2008
         self.one_file = True
         self.vhdl_files = []
+        self.verbose_asserts = True
         self._timescale = "1 ns"
 
     def __call__(self, func, *args, **kwargs):
@@ -1299,6 +1301,7 @@ class _ToVHDLConvertor(object):
         for entity in hierarchy.entities_list:
             entity.architecture.name = arch
             entity.architecture.timescale = self._timescale
+            entity.architecture.verbose_asserts = self.verbose_asserts
 
         entities_files = []
         cpname = "pck_" + name
@@ -1814,6 +1817,7 @@ def _convertGens(architecture, vfile):
             continue
         tree.constdict = constdict
         tree.timescale = architecture.timescale
+        tree.verbose_asserts = architecture.verbose_asserts
         for n in tree.constdict:
             if n in tree.vardict:
                 obj = tree.vardict[n]
@@ -1879,7 +1883,7 @@ opmap = {
 
 class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
 
-    def __init__(self, tree, buf):
+    def __init__(self, tree, buf, verbose_asserts=True):
         self.constdict = tree.constdict
         self.tree = tree
         self.buf = buf
@@ -1889,6 +1893,7 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
         # self.isLhs = False
         self.labelStack = []
         self.context = None
+        self.verbose_asserts = verbose_asserts
 
     def write(self, arg):
         self.buf.write("%s" % arg)
@@ -2333,16 +2338,20 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
         self.visit(node.test)
         self.indent()
         self.writeline()
-        if isinstance(node.msg, ast.JoinedStr):
-            self.write('report ')
-            self.visit(node.msg)
-            self.write('')
-        elif isinstance(node.msg, ast.Constant):
-            self.write('report ')
-            self.visit(node.msg)
-            self.write('')
+        if self.tree.verbose_asserts:
+            if isinstance(node.msg, ast.JoinedStr):
+                self.write('report ')
+                self.visit(node.msg)
+                self.write('')
+            elif isinstance(node.msg, ast.Constant):
+                self.write('report ')
+                self.visit(node.msg)
+                self.write('')
+            else:
+                self.write('report "*** AssertionError ***"')
         else:
-            self.write('report "*** AssertionError ***"')
+            lineno = self.getLineNo(node)
+            self.write(f'report "AssertionError: File ""{self.tree.sourcefile}"", line {self.tree.lineoffset + lineno}')
         self.writeline()
         self.write("severity error;")
         self.dedent()
