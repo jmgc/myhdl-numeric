@@ -3544,10 +3544,12 @@ class _ConvertAlwaysSeqVisitor(_ConvertVisitor):
             self.writeline()
             self.write("if (%s = '%s') then" % (reset, int(reset.active)))
             self.indent()
-            for s in sigregs:
+            sorted_names = sorted(sigregs)
+            for s in sorted_names:
                 self.writeline()
                 self.write("%s <= %s;" % (s, _convertInitVal(s, s._init)))
-            for v in varregs:
+            sorted_names = sorted(varregs)
+            for v in sorted_names:
                 n, reg, init = v
                 self.writeline()
                 self.write("%s := %s;" % (n, _convertInitVal(reg, init)))
