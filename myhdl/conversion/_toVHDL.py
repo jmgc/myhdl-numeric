@@ -1811,6 +1811,7 @@ def _convertGens(architecture, vfile):
                      for const in architecture.const_dict.values())
     blockBuf = StringIO()
     funcBuf = StringIO()
+
     for tree in genlist:
         if isinstance(tree, _UserVhdlCode):
             blockBuf.write(str(tree))
@@ -3544,11 +3545,11 @@ class _ConvertAlwaysSeqVisitor(_ConvertVisitor):
             self.writeline()
             self.write("if (%s = '%s') then" % (reset, int(reset.active)))
             self.indent()
-            sorted_names = sorted(sigregs)
+            sorted_names = sorted(sigregs, key=str)
             for s in sorted_names:
                 self.writeline()
                 self.write("%s <= %s;" % (s, _convertInitVal(s, s._init)))
-            sorted_names = sorted(varregs)
+            sorted_names = sorted(varregs, key=lambda v: v[0])
             for v in sorted_names:
                 n, reg, init = v
                 self.writeline()
