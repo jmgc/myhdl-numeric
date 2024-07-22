@@ -3302,7 +3302,7 @@ class _ConvertAlwaysVisitor(_ConvertVisitor):
             y = y.value
         assert isinstance(y, ast.Yield)
         senslist = y.senslist
-        senslist = self.manageEdges(w.body[1], senslist)
+        senslist = sorted(self.manageEdges(w.body[1], senslist))
         singleEdge = (len(senslist) == 1) and isinstance(senslist[0],
                                                          _WaiterList)
         self.write("%s: process (" % self.tree.name)
