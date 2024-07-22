@@ -3302,7 +3302,7 @@ class _ConvertAlwaysVisitor(_ConvertVisitor):
             y = y.value
         assert isinstance(y, ast.Yield)
         senslist = y.senslist
-        senslist = sorted(self.manageEdges(w.body[1], senslist))
+        senslist = sorted(list(self.manageEdges(w.body[1], senslist)), key=lambda sig: str(sig))
         singleEdge = (len(senslist) == 1) and isinstance(senslist[0],
                                                          _WaiterList)
         self.write("%s: process (" % self.tree.name)
@@ -3384,7 +3384,7 @@ class _ConvertAlwaysCombVisitor(_ConvertVisitor):
             return r
 
         self.writeDoc(node)
-        senslist = compressSensitivityList(self.tree.senslist)
+        senslist = sorted(list(compressSensitivityList(self.tree.senslist)), key=lambda sig: str(sig))
         self.write("%s: process (" % self.tree.name)
         for e in senslist[:-1]:
             self.write(e)
@@ -3436,7 +3436,7 @@ class _ConvertAlwaysDecoVisitor(_ConvertVisitor):
         self.writeDoc(node)
         assert self.tree.senslist
         senslist = self.tree.senslist
-        senslist = self.manageEdges(node.body[-1], senslist)
+        senslist = sorted(list(self.manageEdges(node.body[-1], senslist), key=lambda sig: str(sig)))
         singleEdge = (len(senslist) == 1) and isinstance(senslist[0],
                                                          _WaiterList)
         self.write("%s: process (" % self.tree.name)
