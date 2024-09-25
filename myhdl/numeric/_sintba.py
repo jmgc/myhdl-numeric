@@ -361,9 +361,6 @@ class sintba(bitarray):
         self._wrap()
         return self
 
-    def __int__(self):
-        return int(self._val)
-
     def __float__(self):
         return float(self._val)
 

@@ -590,8 +590,10 @@ class bitarray(object):
     def _not_implemented_unary(self):
         return NotImplemented
 
-    __neg__ = __pos__ = __abs__ = \
-        __int__ = __long__ = __float__ = _not_implemented_unary
+    __neg__ = __pos__ = __abs__ = __float__ = _not_implemented_unary
+
+    def __int__(self):
+        return int(self._val)
 
     def __invert__(self):
         result = type(self)(0, self._high, self._low)
