@@ -2279,7 +2279,10 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
         self.SigAss = True
         if isinstance(node.value, ast.Name):
             sig = self.tree.symdict[node.value.id]
-            self.SigAss = sig._name
+            if hasattr(sig, '_name'):
+                self.SigAss = sig._name
+            else:
+                self.raiseError(node, _error.UnsupportedAttribute, f"Signal name for {node.value.id} not found")
         self.visit(node.value)
         node.obj = self.getObj(node.value)
 
@@ -2599,9 +2602,8 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
                                               right.vhdOri.type)
                 isRomInfo = True
             else:
-                raise ToVHDLError("'in' rigth operand not valid. It "
-                                  "must be a tuple: %s" %
-                                  ast.dump(node))
+                self.raiseError(node, _error.UnsupportedType,
+                                f"Conversion {ast.dump(node)} not supported")
             operand = " %s" % opmap[ast.Or]
             self.write(in_pre)
             for idx, item in enumerate(items):
