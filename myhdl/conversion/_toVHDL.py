@@ -2275,7 +2275,8 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
             self.getAttr(node)
 
     def setAttr(self, node):
-        assert node.attr == 'next', ast.dump(node)
+        if node.attr != 'next':
+            self.raiseError(node, _error.UnsupportedAttribute, f"Signal attribute for {ast.dump(node)} is not next")
         self.SigAss = True
         if isinstance(node.value, ast.Name):
             sig = self.tree.symdict[node.value.id]
