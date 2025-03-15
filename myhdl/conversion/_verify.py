@@ -58,7 +58,7 @@ registerSimulator(
     hdl="VHDL",
     analyze="ghdl -a --std=08 --workdir=work_%(topname)s %(file_name)s",
     elaborate="ghdl -e --std=08 --workdir=work_%(topname)s -o %(unitname)s %(topname)s",
-    simulate="ghdl -r --workdir=work_%(topname)s %(unitname)s",
+    simulate="ghdl -r --workdir=work_%(topname)s %(unitname)s --vcd=%(topname)s.vcd",
     languageVersion="2008"
     )
 
