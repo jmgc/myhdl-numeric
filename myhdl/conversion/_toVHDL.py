@@ -1691,26 +1691,24 @@ def _writeSigDecls(f, architecture):
             print("    signal %s: %s;" % (signal.name,
                                           signal.vhd_type.toStr(False)),
                   file=f)
+        elif signal.internal is not None and isinstance(signal.vhd_type, vhd_enum):
+            print("    signal %s: %s := %s;" % (signal.name,
+                                                signal.vhd_type.toStr(False),
+                                                signal.vhd_type.literal(signal.internal)),
+                  file=f)
+        elif isinstance(signal.vhd_type, vhd_vector):
+            print("    signal %s: %s := (others => 'U');" % (signal.name,
+                                                signal.vhd_type.toStr(True)),
+                  file=f)
+        elif isinstance(signal.vhd_type, vhd_std_logic):
+            print("    signal %s: %s := 'U';" % (signal.name,
+                                                signal.vhd_type.toStr(True)),
+                  file=f)
+
         else:
-            if signal.internal is not None:
-                if isinstance(signal.vhd_type, vhd_enum):
-                    print("    signal %s: %s := %s;" % (signal.name,
-                                                        signal.vhd_type.toStr(False),
-                                                        signal.vhd_type.literal(signal.internal)),
-                          file=f)
-                else:
-                    print("    signal %s: %s := %s;" % (signal.name,
-                                                        signal.vhd_type.toStr(True),
-                                                        signal.vhd_type.literal(signal.internal)),
-                          file=f)
-            elif isinstance(signal.vhd_type, vhd_vector):
-                print("    signal %s: %s := (others => '0');" % (signal.name,
-                                                                 signal.vhd_type.toStr(True)),
-                      file=f)
-            else:
-                print("    signal %s: %s;" % (signal.name,
-                                              signal.vhd_type.toStr(True)),
-                      file=f)
+            print("    signal %s: %s;" % (signal.name,
+                                          signal.vhd_type.toStr(True)),
+                  file=f)
         if signal.signal_conversion:
             architecture.signal_conversions.extend(signal.signal_conversion)
     print(file=f)
