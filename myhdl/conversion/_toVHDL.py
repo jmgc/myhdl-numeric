@@ -1696,15 +1696,6 @@ def _writeSigDecls(f, architecture):
                                                 signal.vhd_type.toStr(False),
                                                 signal.vhd_type.literal(signal.internal)),
                   file=f)
-        elif isinstance(signal.vhd_type, vhd_vector):
-            print("    signal %s: %s := (others => 'U');" % (signal.name,
-                                                signal.vhd_type.toStr(True)),
-                  file=f)
-        elif isinstance(signal.vhd_type, vhd_std_logic):
-            print("    signal %s: %s := 'U';" % (signal.name,
-                                                signal.vhd_type.toStr(True)),
-                  file=f)
-
         else:
             print("    signal %s: %s;" % (signal.name,
                                           signal.vhd_type.toStr(True)),
