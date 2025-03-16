@@ -1487,8 +1487,6 @@ def _writeCustomPackage(f, name, hierarchy, fixed_point=False):
     print(file=f)
     print("package %s is" % name, file=f)
     print(file=f)
-    print("attribute enum_encoding: string;", file=f)
-    print(file=f)
     if hierarchy.enum_types:
         sortedList = list(hierarchy.enum_types.values())
         sortedList.sort(key=lambda x: x._name.join(x._type._names))
