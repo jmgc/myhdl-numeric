@@ -731,7 +731,7 @@ class vhd_slice(object):
             return "((%d - 1) downto %d)" % (self.start, self.stop)
 
 
-class vhd_assign(object):
+class vhd_assign:
     def __init__(self, *args):
         l = len(args)
         if l == 2:
@@ -779,7 +779,7 @@ class vhd_assign(object):
             return "%s <= %s;\n" % (target, source)
 
 
-class vhd_signal(object):
+class vhd_signal:
     def __init__(self, name, signal, vhd_type,
                  entity=None, architecture=None):
         self.name = name
@@ -965,7 +965,7 @@ class vhd_port(vhd_signal):
                     s._setName("VHDL")
 
 
-class vhd_constant(object):
+class vhd_constant:
     def __init__(self, name, value, vhd_type,
                  used=False, entity=None, architecture=None):
         self.name = name
@@ -986,7 +986,7 @@ class vhd_constant(object):
         self.value.name = self.name
 
 
-class vhd_variable(object):
+class vhd_variable:
     def __init__(self, name, value, vhd_type,
                  used=False, entity=None, architecture=None, process=None):
         self.name = name
@@ -998,7 +998,7 @@ class vhd_variable(object):
         self.process = process
 
 
-class vhd_entity(object):
+class vhd_entity:
     def __init__(self, name, ports_list, ports_dict, instance,
                  level=0, init_signals=False, architecture=None):
         self.name = name
@@ -1031,7 +1031,7 @@ class vhd_entity(object):
             self.architecture._clean_signals(level)
 
 
-class vhd_architecture(object):
+class vhd_architecture:
     def __init__(self, sigs_list, sigs_dict, const_dict,
                  process_list=[], components_list=[], entity=None):
         self.arch = ''
@@ -1081,7 +1081,7 @@ class vhd_architecture(object):
             component._clean_signals(level)
 
 
-class vhd_process(object):
+class vhd_process:
     def __init__(self, vars_list, vars_dict,
                  generator=None, entity=None, architecture=None):
         self.vars_list = vars_list
@@ -1108,7 +1108,7 @@ class vhd_process(object):
                     const_dict[key].used = True
 
 
-class vhd_component(object):
+class vhd_component:
     def __init__(self, name, entity, parent=None, architecture=None):
         self.name = name
         self.parent = parent
@@ -3682,7 +3682,7 @@ class _ConvertTaskVisitor(_ConvertVisitor):
 # type inference
 
 
-class vhd_type(object):
+class vhd_type:
     def __init__(self, size=0):
         self._name = ''
         self.size = size
