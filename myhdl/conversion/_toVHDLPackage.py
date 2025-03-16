@@ -389,7 +389,7 @@ package body pck_myhdl_%(version)s is
         constant i_high: natural := maximum(size, high) + 1;
         constant i_size: natural := size - 1;
     begin
-        return unsigned(to_unsigned(arg, i_high)(isize downto 0));
+        return unsigned(to_unsigned(arg, i_high)(i_size downto 0));
     end function c_n2u;
     
     function c_i2s (arg: integer) return signed is
