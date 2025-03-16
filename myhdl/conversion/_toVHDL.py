@@ -1594,7 +1594,8 @@ def _writePort(f, port, entity=True):
                 sl._setName('VHDL')
             port_type = "std_logic_vector(%d downto 0)" % (port.vhd_type.size - 1)
 
-    if port.direction == "in" or port.internal is None or (not port.init_signals) or isinstance(port.vhd_type, vhd_array):
+    if port.direction == "in" or port.internal is None or (not port.init_signals) or isinstance(port.vhd_type,
+                                                                                                vhd_array):
         f.write("\n        %s: %s %s" % (port.name,
                                          port.direction,
                                          port_type))
@@ -4011,7 +4012,7 @@ class vhd_boolean(vhd_type):
 
 
 class vhd_vector(vhd_type):
-    def __init__(self, size=0):
+    def __init__(self, size: int | tuple = 0):
         vhd_type.__init__(self, size)
         self._name = 'std_logic_vector_%s' % size
 
