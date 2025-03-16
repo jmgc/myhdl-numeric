@@ -47,8 +47,6 @@ use std.env.all;
 
 package pck_myhdl_%(version)s is
 
-    attribute enum_encoding: string;
-
     function stdl (arg: boolean) return std_logic;
 
     function stdl (arg: integer) return std_logic;
