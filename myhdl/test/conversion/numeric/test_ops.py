@@ -458,7 +458,7 @@ def augmOps(Bitand,
         # var = intbv(0)[min(64, len(left) + len(right)):]
         while True:
             yield left, right
-            #if left.min < 0 or right >= 0:
+            # if left.min < 0 or right >= 0:
             var = left.val
             var &= right.val
             Bitand.next = var
@@ -481,7 +481,7 @@ def augmOps(Bitand,
             var += right.val
             Sum.next = var
             if (left.min <= left and left < left.max and
-                right >= 0 and right < 26):
+                    right >= 0 and right < 26):
                 var = left.val
                 var <<= int(right.val)
                 LeftShift.next = var
@@ -507,8 +507,8 @@ def augmOps(Bitand,
 
 
 def augmBench(l, r):
-    l_scale = 2**l.low
-    r_scale = 2**r.low
+    l_scale = 2 ** l.low
+    r_scale = 2 ** r.low
     if l.is_signed:
         lv = (int(l.min * l_scale), 0, int(l.max * l_scale) - 1)
     else:
@@ -561,7 +561,6 @@ def augmBench(l, r):
             tmpN = seqN[i]
             right.next[:] = tmpN
             yield delay(10)
-
 
     @instance
     def check():
@@ -643,11 +642,10 @@ def multi_vectors():
           sintba(1, 4),
           sfixba(1, 7, 4),
           )
-    return set([(m, n, p)
-            for m in mv
-            for n in nv
-            for p in pv
-            ])
+    return [(idx, q, r, s) for idx, (q, r, s) in enumerate(set([(m, n, p)
+                                                                for m in mv
+                                                                for n in nv
+                                                                for p in pv]))]
 
 
 def vector():
@@ -688,9 +686,9 @@ def testResizeVer(delta, i, j):
     toVHDL.name = None
 
 
-@pytest.mark.parametrize("m, n, p", multi_vectors())
-def testMultiVer(m, n, p):
-    toVHDL.name = "MultiVer_" + gen_id(m, n, p)
+@pytest.mark.parametrize("idx, m, n, p", multi_vectors())
+def testMultiVer(idx, m, n, p):
+    toVHDL.name = "MultiVer_" + gen_id(idx, m, n, p)
     assert conversion.verify(multiBench, m, n, p) == 0, toVHDL.name
     toVHDL.name = None
 
@@ -703,7 +701,6 @@ def testUnaryVer(left):
 
 
 def swap_test_bench():
-
     @instance
     def calculus():
         a = bitarray(0b110, 3, 0)
@@ -745,7 +742,6 @@ def testSwap():
 
 
 def bitarray_numeric_test_bench():
-
     @instance
     def calculus():
         a = bitarray(0b00010110, 8, 0)
