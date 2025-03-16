@@ -4878,7 +4878,7 @@ class _AnnotateTypesVisitor(ast.NodeVisitor, _ConversionMixin):
                 high = l.size[0]
                 r_high = r.size[0]
                 low = l.size[1]
-                r_low = l.size[1]
+                r_low = r.size[1]
 
                 if r_high > high:
                     high = r_high
@@ -4913,7 +4913,7 @@ class _AnnotateTypesVisitor(ast.NodeVisitor, _ConversionMixin):
                 high = l.size[0]
                 r_high = r.size[0]
                 low = l.size[1]
-                r_low = l.size[1]
+                r_low = r.size[1]
 
                 if r_high > high:
                     high = r_high
