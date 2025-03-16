@@ -1217,7 +1217,7 @@ class _ToVHDLConvertor(object):
         self.architecture = "MyHDL"
         self.std_logic_ports = False
         self.version = 2008
-        self.init_signals = False
+        self.init_signals = True
         self.one_file = True
         self.vhdl_files = []
         self.verbose_vhdl = True
@@ -1986,6 +1986,8 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
             elif isinstance(ori, vhd_vector):
                 if vhd.size == ori.size:
                     pre, suf = "unsigned(", ")"
+                elif vhd.size > ori.size:
+                    pre, suf = "resize(unsigned(", f"), {vhd.size})"
                 else:
                     self.raiseError(node, _error.InconsistentType, f"Vector size mismatch {vhd.size} != {ori.size}")
             elif isinstance(ori, vhd_std_logic):
@@ -2011,6 +2013,8 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
             elif isinstance(ori, vhd_vector):
                 if vhd.size == ori.size:
                     pre, suf = "signed(", ")"
+                elif vhd.size > ori.size:
+                    pre, suf = "resize(signed(", f"), {vhd.size})"
                 else:
                     self.raiseError(node, _error.InconsistentType, f"Vector size mismatch {vhd.size} != {ori.size}")
             elif isinstance(ori, vhd_std_logic):
@@ -4869,6 +4873,20 @@ class _AnnotateTypesVisitor(ast.NodeVisitor, _ConversionMixin):
                     r = vhd_sfixed((sintba(right.value).high, 0))
                 else:
                     r = vhd_sfixed((r.MAX_SIZE, 0))
+
+            if isinstance(l, vhd_sfixed) and isinstance(r, vhd_sfixed):
+                high = l.size[0]
+                r_high = r.size[0]
+                low = l.size[1]
+                r_low = l.size[1]
+
+                if r_high > high:
+                    high = r_high
+                if r_low < low:
+                    low = r_low
+                l = vhd_sfixed((high, low))
+                r = vhd_sfixed((high, low))
+
         elif isinstance(r, vhd_sfixed):
             if isinstance(l, vhd_signed):
                 l = vhd_sfixed((l.size - 1, 0))
@@ -4890,6 +4908,20 @@ class _AnnotateTypesVisitor(ast.NodeVisitor, _ConversionMixin):
                     l = vhd_sfixed((sintba(left.value).high, 0))
                 else:
                     l = vhd_sfixed((l.MAX_SIZE, 0))
+
+            if isinstance(l, vhd_sfixed) and isinstance(r, vhd_sfixed):
+                high = l.size[0]
+                r_high = r.size[0]
+                low = l.size[1]
+                r_low = l.size[1]
+
+                if r_high > high:
+                    high = r_high
+                if r_low < low:
+                    low = r_low
+                l = vhd_sfixed((high, low))
+                r = vhd_sfixed((high, low))
+
         elif isinstance(l, vhd_std_logic) or \
                 isinstance(r, vhd_std_logic):
             l = r = vhd_std_logic()
@@ -4914,6 +4946,16 @@ class _AnnotateTypesVisitor(ast.NodeVisitor, _ConversionMixin):
                         r = vhd_signed(right.value.vhd.size + 2)
                 else:
                     r = vhd_signed(r.MAX_SIZE)
+
+            if isinstance(l, vhd_signed) and isinstance(r, vhd_signed):
+                high = l.size
+                r_high = r.size
+
+                if r_high > high:
+                    high = r_high
+                l = vhd_signed(high)
+                r = vhd_signed(high)
+
         elif isinstance(r, vhd_signed):
             if isinstance(l, vhd_unsigned):
                 l = vhd_signed(l.size + 1)
@@ -4935,6 +4977,16 @@ class _AnnotateTypesVisitor(ast.NodeVisitor, _ConversionMixin):
                         l = vhd_signed(left.value.vhd.size + 2)
                 else:
                     l = vhd_signed(l.MAX_SIZE)
+
+            if isinstance(l, vhd_signed) and isinstance(r, vhd_signed):
+                high = l.size
+                r_high = r.size
+
+                if r_high > high:
+                    high = r_high
+                l = vhd_signed(high)
+                r = vhd_signed(high)
+
         elif isinstance(l, vhd_unsigned):
             # It is important to distinguish between vhd_nat and vhd_int to
             # avoid unnecessary type casting that generates issues with ifs
@@ -4965,6 +5017,19 @@ class _AnnotateTypesVisitor(ast.NodeVisitor, _ConversionMixin):
                                     "Vector cannot be compared to an unsigned with bigger size")
             elif maybeNegative(r):
                 l = vhd_signed(l.size + 1)
+
+            high = l.size
+            r_high = r.size
+
+            if r_high > high:
+                high = r_high
+            if isinstance(l, vhd_signed) and isinstance(r, vhd_signed):
+                l = vhd_signed(high)
+                r = vhd_signed(high)
+            elif isinstance(l, vhd_unsigned) and isinstance(r, vhd_unsigned):
+                l = vhd_unsigned(high)
+                r = vhd_unsigned(high)
+
         elif isinstance(r, vhd_unsigned):
             if isinstance(l, vhd_nat):
                 if isinstance(left, ast.Constant):
@@ -4993,6 +5058,17 @@ class _AnnotateTypesVisitor(ast.NodeVisitor, _ConversionMixin):
                                     f"Vector cannot be compared to an unsigned with bigger size: {l.size}, {r.size}")
             elif maybeNegative(l):
                 r = vhd_signed(r.size + 1)
+
+            high = l.size
+            r_high = r.size
+
+            if isinstance(l, vhd_signed) and isinstance(r, vhd_signed):
+                l = vhd_signed(high)
+                r = vhd_signed(high)
+            elif isinstance(l, vhd_unsigned) and isinstance(r, vhd_unsigned):
+                l = vhd_unsigned(high)
+                r = vhd_unsigned(high)
+
         elif isinstance(l, vhd_vector):
             if len(node.ops) == 1 and isinstance(node.ops[0], (ast.Eq, ast.NotEq)):
                 if isinstance(r, vhd_vector):
