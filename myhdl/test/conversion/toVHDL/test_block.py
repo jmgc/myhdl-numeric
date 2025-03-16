@@ -43,7 +43,6 @@ def test_module_analyze():
 
 
 def test_module_verify():
-    conversion.verify.simulator = 'ghdl'
     conversion.toVHDL.name = 'test_module_verify'
     assert conversion.verify(module_test_bench) == 0
     conversion.toVHDL.name = None
