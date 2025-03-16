@@ -259,15 +259,17 @@ package body pck_myhdl_%(version)s is
     end function to_integer;
 
     function to_unsigned (arg: std_logic; size: natural) return unsigned is
-        variable res: unsigned(size-1 downto 0) := (others => '0');
+        variable res: unsigned(size-1 downto 0);
     begin
+        res := (others => '0');
         res(0):= arg;
         return res;
     end function to_unsigned;
 
     function to_signed (arg: std_logic; size: natural) return signed is
-        variable res: signed(size-1 downto 0) := (others => '0');
+        variable res: signed(size-1 downto 0);
     begin
+        res := (others => '0');
         res(0) := arg;
         return res; 
     end function to_signed;
