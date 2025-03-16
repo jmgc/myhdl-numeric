@@ -673,6 +673,7 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
     def getAttr(self, node):
         self.visit(node.value)
         node.obj = None
+        n = None
         if isinstance(node.value, ast.Name):
             n = node.value.id
             if (n not in self.tree.vardict) and (n not in self.tree.symdict):
