@@ -386,9 +386,10 @@ package body pck_myhdl_%(version)s is
     
     function c_n2u (arg: natural; size: natural) return unsigned is
         constant high: natural := ceil_log2(natural'high);
-        constant i_high: natural := maximum(size, high);
+        constant i_high: natural := maximum(size, high) + 1;
+        constant i_size: natural := size - 1;
     begin
-        return unsigned(to_unsigned(arg, i_high + 1)((size-1) downto 0));
+        return unsigned(to_unsigned(arg, i_high)(isize downto 0));
     end function c_n2u;
     
     function c_i2s (arg: integer) return signed is
