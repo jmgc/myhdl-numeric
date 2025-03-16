@@ -231,8 +231,9 @@ package body pck_myhdl_%(version)s is
     end function to_unsigned;
 
     function to_signed (arg: boolean; size: natural) return signed is
-        variable res: signed(size-1 downto 0) := (others => '0');
+        variable res: signed(size-1 downto 0);
     begin
+        res := (others => '0');
         if arg then
             res(0) := '1';
         end if;
