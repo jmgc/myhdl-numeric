@@ -355,7 +355,7 @@ class _GenerateHierarchy(object):
                                             components_list=components_list)
 
             entity = vhd_entity(p_entity.name, intf.argnames, vhd_ports_dict,
-                                p_entity, p_entity.level, architecture)
+                                p_entity, p_entity.level, architecture=architecture)
             architecture.entity = entity
 
             for port in entity.ports_dict.values():
@@ -946,6 +946,7 @@ class vhd_port(vhd_signal):
         vhd_signal.__init__(self, name, signal, vhd_type, entity=entity)
         self.direction = direction
         self.convert = False
+        self.init_signals = False
 
     def _update(self):
         if self.convert:
@@ -999,13 +1000,14 @@ class vhd_variable(object):
 
 class vhd_entity(object):
     def __init__(self, name, ports_list, ports_dict, instance,
-                 level=0, architecture=None):
+                 level=0, init_signals=False, architecture=None):
         self.name = name
         self.basename = ''
         self.ports_list = ports_list
         self.ports_dict = ports_dict
         self.instance = instance
         self.level = level
+        self.init_signals = init_signals
         self.architecture = architecture
 
     def _update(self):
@@ -1302,6 +1304,7 @@ class _ToVHDLConvertor(object):
         arch = self.architecture
 
         for entity in hierarchy.entities_list:
+            entity.init_signals = self.init_signals
             entity.architecture.name = arch
             entity.architecture.timescale = self._timescale
             entity.architecture.verbose_vhdl = self.verbose_vhdl
@@ -1557,6 +1560,7 @@ def _writeEntityHeader(f, entity, doc):
             raise ToVHDLError(f"Duplicate port names in entity {entity.name}")
         for portname in entity.ports_list:
             p = entity.ports_dict[portname]
+            p.init_signals = entity.init_signals
             f.write("%s" % c)
             c = ';'
             _writePort(f, p, entity=True)
@@ -1590,7 +1594,7 @@ def _writePort(f, port, entity=True):
                 sl._setName('VHDL')
             port_type = "std_logic_vector(%d downto 0)" % (port.vhd_type.size - 1)
 
-    if port.direction == "in" or port.internal is None or isinstance(port.vhd_type, vhd_array):
+    if port.direction == "in" or port.internal is None or (not port.init_signals) or isinstance(port.vhd_type, vhd_array):
         f.write("\n        %s: %s %s" % (port.name,
                                          port.direction,
                                          port_type))
@@ -1729,7 +1733,8 @@ def _writeCompDecls(f, entity, lib):
         c = ''
         for port_name in component.entity.ports_list:
             p = component.entity.ports_dict[port_name]
-            f.write("%s" % c)
+            p.init_signals = entity.init_signals
+            f.write(f"{c}")
             c = ';'
             _writePort(f, p, False)
         f.write("\n        );\n")
