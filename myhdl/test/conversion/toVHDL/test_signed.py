@@ -1,8 +1,9 @@
 
 
-from myhdl import instance, Signal, intbv, delay, StopSimulation
+from myhdl import instance, Signal, intbv, delay, StopSimulation, toVHDL
 from myhdl.conversion import verify
 from random import randrange
+from ... import gen_id
 import pytest
 
 NRTESTS = 10
@@ -139,7 +140,9 @@ def binaryBench(Ll, Ml, Lr, Mr):
     (-25, -12, -123, -66),
 ])
 def testBinaryOps(Ll, Ml, Lr, Mr):
+    toVHDL.name = "BinaryVer_" + gen_id(Ll, Ml, Lr, Mr)
     assert verify(binaryBench, Ll, Ml, Lr, Mr) == 0
+    toVHDL.name = None
 
 
 def unaryOps(BoolNot,
@@ -196,7 +199,9 @@ def unaryBench(m):
     7,
 ])
 def testUnaryOps(m):
+    toVHDL.name = "BinaryVer_" + gen_id(m)
     assert verify(unaryBench, m) == 0
+    toVHDL.name = None
 
 
 def augmOps(LeftShift,
@@ -300,7 +305,9 @@ def augmBench(Ll, Ml, Lr, Mr):
     (-25, -12, -123, -66),
 ])
 def testAugmOps(Ll, Ml, Lr, Mr):
+    toVHDL.name = "BinaryVer_" + gen_id(Ll, Ml, Lr, Mr)
     assert verify(augmBench, Ll, Ml, Lr, Mr) == 0
+    toVHDL.name = None
 
 
 def expressions(a, b, clk):
