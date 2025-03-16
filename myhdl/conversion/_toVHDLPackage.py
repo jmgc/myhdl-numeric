@@ -399,16 +399,18 @@ package body pck_myhdl_%(version)s is
 
     function c_i2u (arg: integer; size: natural) return unsigned is
         constant high: natural := ceil_log2(natural'high);
-        constant i_high: natural := maximum(size, high);
+        constant i_high: natural := maximum(size, high) + 1;
+        constant i_size: natural := size - 1;
     begin
-        return unsigned(to_signed(arg, i_high + 1)((size-1) downto 0));
+        return unsigned(to_signed(arg, i_high)(i_size downto 0));
     end function c_i2u;
 
     function c_i2s (arg: integer; size: natural) return signed is
         constant high: natural := ceil_log2(natural'high) + 1;
-        constant i_high: natural := maximum(size + 1, high);
+        constant i_high: natural := maximum(size + 1, high) + 1;
+        constant i_size: natural := size - 1;
     begin
-        return to_signed(arg, i_high + 1)((size-1) downto 0);
+        return to_signed(arg, i_high)(i_size downto 0);
     end function c_i2s;
 
     function c_u2u (arg: unsigned; size: natural) return unsigned is
