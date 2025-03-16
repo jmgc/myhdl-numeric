@@ -1042,6 +1042,7 @@ class vhd_architecture(object):
         self.entity = entity
         self.signal_conversions = []
         self.timescale = None
+        self.init_signals = False
 
     def _clean_signal_names(self):
         for signal in self.sigs_dict.values():
@@ -1194,6 +1195,7 @@ class _ToVHDLConvertor(object):
                  "use_fixed_point",
                  "std_logic_ports",
                  "version",
+                 "init_signals",
                  "one_file",
                  "vhdl_files",
                  "verbose_vhdl",
@@ -1213,6 +1215,7 @@ class _ToVHDLConvertor(object):
         self.architecture = "MyHDL"
         self.std_logic_ports = False
         self.version = 2008
+        self.init_signals = False
         self.one_file = True
         self.vhdl_files = []
         self.verbose_vhdl = True
@@ -1302,6 +1305,7 @@ class _ToVHDLConvertor(object):
             entity.architecture.name = arch
             entity.architecture.timescale = self._timescale
             entity.architecture.verbose_vhdl = self.verbose_vhdl
+            entity.architecture.init_signals = self.init_signals
 
         entities_files = []
         cpname = "pck_" + name
@@ -1688,18 +1692,29 @@ def _writeSigDecls(f, architecture):
             raise ToVHDLError(f"Invalid signal identifier {signal.name} in entity {architecture.entity.name}")
 
         if isinstance(signal.vhd_type, vhd_array):
-            print("    signal %s: %s;" % (signal.name,
-                                          signal.vhd_type.toStr(False)),
+            print(f"    signal {signal.name}: {signal.vhd_type.toStr(False)};",
                   file=f)
-        elif signal.internal is not None and isinstance(signal.vhd_type, vhd_enum):
-            print("    signal %s: %s := %s;" % (signal.name,
-                                                signal.vhd_type.toStr(False),
-                                                signal.vhd_type.literal(signal.internal)),
-                  file=f)
+        elif signal.internal is not None and architecture.init_signals:
+            if isinstance(signal.vhd_type, vhd_enum):
+                print(
+                    f"    signal {signal.name}: {signal.vhd_type.toStr(False)} := "
+                    f"{signal.vhd_type.literal(signal.internal)};",
+                    file=f)
+            else:
+                print(
+                    f"    signal {signal.name}: {signal.vhd_type.toStr(True)} := "
+                    f"{signal.vhd_type.literal(signal.internal)};",
+                    file=f)
         else:
-            print("    signal %s: %s;" % (signal.name,
-                                          signal.vhd_type.toStr(True)),
-                  file=f)
+            if isinstance(signal.vhd_type, vhd_enum):
+                print(
+                    f"    signal {signal.name}: {signal.vhd_type.toStr(False)};",
+                    file=f)
+            else:
+                print(
+                    f"    signal {signal.name}: {signal.vhd_type.toStr(True)};",
+                    file=f)
+
         if signal.signal_conversion:
             architecture.signal_conversions.extend(signal.signal_conversion)
     print(file=f)
