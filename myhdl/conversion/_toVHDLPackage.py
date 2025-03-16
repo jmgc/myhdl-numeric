@@ -221,8 +221,9 @@ package body pck_myhdl_%(version)s is
 
 
     function to_unsigned (arg: boolean; size: natural) return unsigned is
-        variable res: unsigned(size-1 downto 0) := (others => '0');
+        variable res: unsigned(size-1 downto 0);
     begin
+        res := (others => '0');
         if arg then
             res(0):= '1';
         end if;
@@ -323,9 +324,10 @@ package body pck_myhdl_%(version)s is
     end function tern_op;
 
     function ceil_log2 (arg: integer) return natural is
-        variable value: natural := 0;
-        variable result: natural := 0;
+        variable value: natural;
+        variable result: natural;
     begin
+        result := 0;
         if arg < 0 then
             value := -arg;
             result := 1;
