@@ -601,9 +601,9 @@ def vectors():
               sfixba(1, 4, 0),
               sfixba(1, 7, 3),
               )
-    return [(left, right)
-            for left in lefts
-            for right in rights
+    return [(left, right, lidx, ridx)
+            for lidx, left in enumerate(lefts)
+            for ridx, right in enumerate(rights)
             ]
 
 
@@ -659,16 +659,16 @@ def vector():
             )
 
 
-@pytest.mark.parametrize("left, right", vectors())
-def test_AugmentedVer(left, right):
-    toVHDL.name = "AugmentedVer_" + gen_id(left, right)
+@pytest.mark.parametrize("left, right, lidx, ridx", vectors())
+def test_AugmentedVer(left, right, lidx, ridx):
+    toVHDL.name = "AugmentedVer_" + gen_id(lidx, ridx)
     assert conversion.verify(augmBench, left, right) == 0, toVHDL.name
     toVHDL.name = None
 
 
-@pytest.mark.parametrize("left, right", vectors())
-def test_BinaryVer(left, right):
-    toVHDL.name = "BinaryVer_" + gen_id(left, right)
+@pytest.mark.parametrize("left, right, lidx, ridx", vectors())
+def test_BinaryVer(left, right, lidx, ridx):
+    toVHDL.name = "BinaryVer_" + gen_id(lidx, ridx)
     assert conversion.verify(binaryBench, left, right) == 0, toVHDL.name
     toVHDL.name = None
 
