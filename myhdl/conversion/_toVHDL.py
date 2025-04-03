@@ -2961,11 +2961,13 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
                 s = "False"
         elif n == 'True':
             if isinstance(node.vhd, vhd_std_logic):
-                assert node.vhd.size == 1
                 s = "'1'"
+                if node.vhd.size != 1:
+                    self.raiseError(node, _error.InconsistentBitWidth)
             elif isinstance(node.vhd, vhd_vector):
-                assert node.vhd.size == 1
                 s = '"1"'
+                if node.vhd.size != 1:
+                    self.raiseError(node, _error.InconsistentBitWidth)
             else:
                 s = "True"
         elif n == 'None':
