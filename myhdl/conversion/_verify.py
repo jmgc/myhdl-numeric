@@ -262,6 +262,8 @@ class _VerificationClass(object):
             if ignore:
                 for p in ignore:
                     glines = [line for line in glines if not line.startswith(p)]
+            if skipchars:
+                glines = [line[skipchars:] for line in glines]
         else:
             glines = glines[skiplines:]
             if ignore:
