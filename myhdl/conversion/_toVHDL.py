@@ -3208,6 +3208,7 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
 
         if isinstance(node.slice.vhd, vhd_slice):
             self.write(node.slice.vhd.toStr())
+            self.write(suf)
         else:
             self.write("(")
             # assert len(node.subs) == 1
