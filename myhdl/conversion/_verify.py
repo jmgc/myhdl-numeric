@@ -255,7 +255,7 @@ class _VerificationClass(object):
         if firstline and lastline:
             firstidx = [idx for idx, line in enumerate(glines) if line.startswith(firstline)]
             if firstidx:
-                glines = glines[max(firstidx):]
+                glines = glines[max(firstidx) + 1:]
             lastidx = [idx for idx, line in enumerate(glines) if line.startswith(lastline)]
             if lastidx:
                 glines = glines[:min(lastidx)]
