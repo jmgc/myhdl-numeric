@@ -259,6 +259,9 @@ class _VerificationClass(object):
             lastidx = [idx for idx, line in enumerate(glines) if line.startswith(lastline)]
             if lastidx:
                 glines = glines[:min(lastidx)]
+            if ignore:
+                for p in ignore:
+                    glines = [line for line in glines if not line.startswith(p)]
         else:
             glines = glines[skiplines:]
             if ignore:
