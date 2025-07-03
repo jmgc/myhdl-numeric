@@ -29,12 +29,14 @@ sim = namedtuple('sim',
                   'skiplines',
                   'skipchars',
                   'ignore',
-                  'languageVersion'])
+                  'languageVersion',
+                  'firstline',
+                  'lastline'])
 
 
 def registerSimulator(name=None, hdl=None, analyze=None, elaborate=None,
                       simulate=None, skiplines=None, skipchars=None,
-                      ignore=None, languageVersion=None):
+                      ignore=None, languageVersion=None, firstline=None, lastline=None):
     if not isinstance(name, str) or (name.strip() == ""):
         raise ValueError("Invalid simulator name")
     if hdl not in ("VHDL", "Verilog"):
@@ -51,7 +53,7 @@ def registerSimulator(name=None, hdl=None, analyze=None, elaborate=None,
         languageVersion = None
 
     _simulators[name] = sim(name, hdl, analyze, elaborate, simulate,
-                            skiplines, skipchars, ignore, languageVersion)
+                            skiplines, skipchars, ignore, languageVersion, firstline, lastline)
 
 registerSimulator(
     name="ghdl",
@@ -96,7 +98,9 @@ registerSimulator(
     skiplines=6,
     skipchars=2,
     ignore=("# **", "# //", "#    Time:", "# run -all"),
-    languageVersion="2008"
+    languageVersion="2008",
+    firstline="# run -all",
+    lastline="# ** Failure: End of Simulation"
     )
 
 registerSimulator(
@@ -156,6 +160,8 @@ class _VerificationClass(object):
         simulate = hdlsim.simulate % vals
         skiplines = hdlsim.skiplines
         skipchars = hdlsim.skipchars
+        firstline = hdlsim.firstline
+        lastline = hdlsim.lastline
         ignore = hdlsim.ignore
         languageVersion = hdlsim.languageVersion
 
@@ -246,16 +252,24 @@ class _VerificationClass(object):
         g.seek(0)
 
         glines = g.readlines()
-        glines = glines[skiplines:]
-        if ignore:
-            for p in ignore:
-                glines = [line for line in glines if not line.startswith(p)]
-        glines = [line.replace('\0', '') for line in glines]
-        # limit diff window to the size of the MyHDL output
-        # this is a hack to remove an eventual simulator postamble
-        if len(glines) > len(flines):
-            glines = glines[:len(flines)]
-        glines = [line[skipchars:] for line in glines]
+        if firstline and lastline:
+            firstidx = [idx for idx, line in enumerate(glines) if line.startswith(firstline)]
+            if firstidx:
+                glines = glines[max(firstidx):]
+            lastidx = [idx for idx, line in enumerate(glines) if line.startswith(lastline)]
+            if lastidx:
+                glines = glines[:min(lastidx)]
+        else:
+            glines = glines[skiplines:]
+            if ignore:
+                for p in ignore:
+                    glines = [line for line in glines if not line.startswith(p)]
+            glines = [line.replace('\0', '') for line in glines]
+            # limit diff window to the size of the MyHDL output
+            # this is a hack to remove an eventual simulator postamble
+            if len(glines) > len(flines):
+                glines = glines[:len(flines)]
+            glines = [line[skipchars:] for line in glines]
         flinesNorm = [line.lower() for line in flines]
         glinesNorm = [line.lower() for line in glines]
         g = difflib.unified_diff(flinesNorm, glinesNorm, fromfile=hdlsim.name,
