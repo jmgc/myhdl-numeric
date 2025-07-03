@@ -245,7 +245,8 @@ class _VerificationClass(object):
         g.flush()
         g.seek(0)
 
-        glines = g.readlines()[skiplines:]
+        glines = g.readlines()
+        glines = glines[skiplines:]
         if ignore:
             for p in ignore:
                 glines = [line for line in glines if not line.startswith(p)]
