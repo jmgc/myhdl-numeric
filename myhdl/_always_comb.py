@@ -36,7 +36,7 @@ _error.NrOfArgs = "always_comb argument should be a function without arguments"
 _error.Scope = "always_comb argument should be a local function"
 _error.SignalAsInout = "signal (%s) used as inout in always_comb function argument"
 _error.EmbeddedFunction = "embedded functions in always_comb function argument not supported"
-_error.EmptySensitivityList = "sensitivity list is empty"
+_error.EmptySensitivityList = "sensitivity list is empty: "
 
 
 def always_comb(func):
@@ -68,7 +68,8 @@ class _AlwaysComb(_Always):
                 senslist.extend(s)
         self.senslist = tuple(senslist)
         if len(self.senslist) == 0:
-            raise AlwaysCombError(_error.EmptySensitivityList)
+            raise AlwaysCombError(_error.EmptySensitivityList +
+                                  f"{self.name}\n{callinfo.filename}:{callinfo.lineno:d}")
 
     def genfunc(self):
         senslist = self.senslist

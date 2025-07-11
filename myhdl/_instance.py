@@ -36,11 +36,13 @@ _error.ArgType = "decorated object should be a generator function"
 
 class _CallInfo:
 
-    def __init__(self, name, modctxt, symdict, frame):
+    def __init__(self, name, modctxt, symdict, frame, filename=None):
         self.name = name
         self.modctxt = modctxt
         self.symdict = symdict
         self.frame = frame
+        self.filename = filename
+        self.lineno = frame.f_lineno
 
 
 def _getCallInfo():
@@ -58,6 +60,7 @@ def _getCallInfo():
     funcrec = inspect.stack()[2]
     name = funcrec[3]
     frame = funcrec[0]
+    filename = funcrec[1]
     symdict = dict(frame.f_globals)
     symdict.update(frame.f_locals)
     modctxt = False
@@ -65,7 +68,7 @@ def _getCallInfo():
     f_locals = callerrec[0].f_locals
     if 'self' in f_locals:
         modctxt = isinstance(f_locals['self'], _Block)
-    return _CallInfo(name, modctxt, symdict, frame)
+    return _CallInfo(name, modctxt, symdict, frame, filename)
 
 
 def instance(genfunc):
