@@ -100,7 +100,7 @@ registerSimulator(
     ignore=("# **", "# //", "#    Time:", "# run -all"),
     languageVersion="2008",
     firstline="# run -all",
-    lastline="# ** Failure: End of Simulation"
+    lastline=("# ** Failure: End of Simulation", "#    Time:")
     )
 
 registerSimulator(
@@ -256,7 +256,11 @@ class _VerificationClass(object):
             firstidx = [idx for idx, line in enumerate(glines) if line.startswith(firstline)]
             if firstidx:
                 glines = glines[max(firstidx) + 1:]
-            lastidx = [idx for idx, line in enumerate(glines) if line.startswith(lastline)]
+            if isinstance(lastline, tuple):
+                lastidx = [idx for idx, line in enumerate(glines) for lastlin in lastline
+                           if line.startswith(lastlin)]
+            else:
+                lastidx = [idx for idx, line in enumerate(glines) if line.startswith(lastline)]
             if lastidx:
                 glines = glines[:min(lastidx)]
             if ignore:
