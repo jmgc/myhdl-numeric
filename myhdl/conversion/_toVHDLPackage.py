@@ -81,14 +81,6 @@ package pck_myhdl_%(version)s is
 
     function tern_op(cond: boolean; if_true: signed; if_false: signed) return signed;
     
-    function tern_op(cond: std_logic; if_true: std_logic; if_false: std_logic) return std_logic;
-
-    function tern_op(cond: std_logic; if_true: std_logic_vector; if_false: std_logic_vector) return std_logic_vector;
-
-    function tern_op(cond: std_logic; if_true: unsigned; if_false: unsigned) return unsigned;
-
-    function tern_op(cond: std_logic; if_true: signed; if_false: signed) return signed;
-    
     function ceil_log2(arg: integer) return natural;
     
     function swap(arg: std_logic_vector) return std_logic_vector;
@@ -186,8 +178,6 @@ package pck_myhdl_%(version)s is
     function c_str2f (value: std_logic_vector) return sfixed;
 
     function tern_op (cond: boolean; if_true: sfixed; if_false: sfixed) return sfixed;
-
-    function tern_op (cond: std_logic; if_true: sfixed; if_false: sfixed) return sfixed;
 
     function slice (arg: sfixed) return sfixed;
 
@@ -344,53 +334,6 @@ package body pck_myhdl_%(version)s is
             return if_true;
         else
             return if_false;
-        end if;
-    end function tern_op;
-
-    function tern_op(cond: std_logic; if_true: std_logic; if_false: std_logic) return std_logic is
-    begin
-        if cond = '1'then
-            return if_true;
-        elsif cond = '0' then
-            return if_false;
-        else
-            return 'X';
-        end if;
-    end function tern_op;
-
-    function tern_op(cond: std_logic; if_true: std_logic_vector; if_false: std_logic_vector) return std_logic_vector is
-        variable error_result: std_logic_vector(if_true'high downto 0) := (others => 'X');
-    begin
-        if cond = '1' then
-            return if_true;
-        elsif cond = '0' then
-            return if_false;
-        else
-            return error_result;
-        end if;
-    end function tern_op;
-
-    function tern_op(cond: std_logic; if_true: unsigned; if_false: unsigned) return unsigned is
-        variable error_result: unsigned(if_true'high downto 0) := (others => 'X');
-    begin
-        if cond = '1' then
-            return if_true;
-        elsif cond = '0' then
-            return if_false;
-        else
-            return error_result;
-        end if;
-    end function tern_op;
-
-    function tern_op(cond: std_logic; if_true: signed; if_false: signed) return signed is
-        variable error_result: signed(if_true'high downto 0) := (others => 'X');
-    begin
-        if cond = '1' then
-            return if_true;
-        elsif cond = '0' then
-            return if_false;
-        else
-            return error_result;
         end if;
     end function tern_op;
 
@@ -715,18 +658,6 @@ package body pck_myhdl_%(version)s is
             return if_true;
         else
             return if_false;
-        end if;
-    end function tern_op;
-
-    function tern_op(cond: std_logic; if_true: sfixed; if_false: sfixed) return sfixed is
-        variable error_result: sfixed(if_true'high downto if_true'low) := (others => 'X');
-    begin
-        if cond = '1' then
-            return if_true;
-        elsif cond = '0' then
-            return if_false;
-        else
-            return error_result;
         end if;
     end function tern_op;
 
