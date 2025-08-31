@@ -39,7 +39,6 @@ from copy import copy
 import string
 from collections import namedtuple
 from io import StringIO
-
 from .. import __version__
 from .._enum import EnumItemType, EnumType
 from .._intbv import intbv
@@ -1488,12 +1487,12 @@ def _writeCustomPackage(f, name, hierarchy, fixed_point=False):
     print("package %s is" % name, file=f)
     print(file=f)
     if hierarchy.enum_types:
-        sortedList = list(hierarchy.enum_types.values())
-        sortedList.sort(key=lambda x: x._name.join(x._type._names))
-        for t in sortedList:
+        enum_sortedList = list(hierarchy.enum_types.values())
+        enum_sortedList.sort(key=lambda x: x._name.join(x._type._names))
+        for t in enum_sortedList:
             suf = _genUniqueSuffix.next()
             t._name = t._name + suf
-        for t in sortedList:
+        for t in enum_sortedList:
             print("%s" % t.toStr(True), file=f)
             print(file=f)
             print(f"function tern_op(cond: in boolean; "
@@ -1526,7 +1525,7 @@ def _writeCustomPackage(f, name, hierarchy, fixed_point=False):
     if hierarchy.enum_types:
         print(f"package body {name} is", file=f)
         print(file=f)
-        for t in sortedList:
+        for t in enum_sortedList:
             print(f"""function tern_op(cond: in boolean; if_true: in {t.toStr(False)}; if_false: in {t.toStr(False)}) return {t.toStr(False)} is
 begin
     if cond then
@@ -2460,7 +2459,7 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
                 if isinstance(self.SigAss, str):
                     msg += ", or incorrect attribute used for signal (%s)" % \
                            self.SigAss
-                raise ToVHDLError(msg)
+                self.raiseError(node, _error.NotASignal, msg)
             self.SigAss = False
         else:
             self.write(' := ')
