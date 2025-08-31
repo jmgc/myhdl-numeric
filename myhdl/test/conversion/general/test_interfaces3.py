@@ -7,33 +7,33 @@ from myhdl import Signal, intbv, instance, always_comb, always_seq, delay, \
 from myhdl.conversion import analyze, verify
 
 
-class Intf1(object):
+class Intf1:
     def __init__(self, x):
         self.x = Signal(intbv(0, min=x.min, max=x.max))
 
 
-class Intf2(object):
+class Intf2:
     def __init__(self, y):
         self.y = Signal(intbv(0, min=y.min, max=y.max))
 
 
-class ZBus(object):
+class ZBus:
     def __init__(self, z):
         self.z = Signal(intbv(0, min=z.min, max=z.max))
 
 
-class Intf3(object):
+class Intf3:
     def __init__(self, z):
         self.z = ZBus(z)
 
 
-class IntfWithConstant1(object):
+class IntfWithConstant1:
     def __init__(self):
         self.const1 = 707
         self.const2 = 3
 
 
-class IntfWithConstant2(object):
+class IntfWithConstant2:
     def __init__(self):
         self.a = 9
         self.b = 10

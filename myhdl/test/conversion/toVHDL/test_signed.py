@@ -70,7 +70,7 @@ def binaryBench(Ll, Ml, Lr, Mr):
     M = 2**14
 
     Bitand = Signal(intbv(0, min=-2**17, max=2**17))
-    LeftShift = Signal(intbv(0)[64:])
+    LeftShift = Signal(intbv(0, min=-2**64, max=2**64))
     Modulo = Signal(intbv(0)[M:])
     Mul = Signal(intbv(0, min=-2**17, max=2**17))
     RightShift = Signal(intbv(0, min=-M, max=M))
@@ -140,11 +140,8 @@ def binaryBench(Ll, Ml, Lr, Mr):
     (-25, -12, -123, -66),
 ])
 def testBinaryOps(Ll, Ml, Lr, Mr):
-    init_signals = toVHDL.init_signals
     toVHDL.name = "BinaryVer_" + gen_id(Ll, Ml, Lr, Mr)
-    toVHDL.init_signals = False
     assert verify(binaryBench, Ll, Ml, Lr, Mr) == 0, f"Failed for {Ll} {Ml} {Lr} {Mr}, toVHDL.name={toVHDL.name}"
-    toVHDL.init_signals = init_signals
     toVHDL.name = None
 
 

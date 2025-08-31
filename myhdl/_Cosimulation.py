@@ -44,7 +44,7 @@ _error.SimulationEnd = "Premature simulation end"
 _error.OSError = "OSError"
 
 
-class Cosimulation(object):
+class Cosimulation:
 
     """ Cosimulation class. """
 

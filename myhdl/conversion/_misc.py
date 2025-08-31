@@ -27,7 +27,7 @@ import traceback as tb
 from .. import ConversionError
 
 
-class _error(object):
+class _error:
     FirstArgType = "first argument should be a classic function"
     ArgType = "leaf cell type error"
     ArgSize = "Incorrect number of arguments"
@@ -75,22 +75,22 @@ class _error(object):
     DuplicatedEntity = "Entity name is duplicated, probably due to a misuse of vhdl_entity_name"
 
 
-class _access(object):
+class _access:
     INPUT, OUTPUT, INOUT, UNKNOWN = range(4)
 
 
-class _kind(object):
+class _kind:
     NORMAL, DECLARATION, ALWAYS, INITIAL, ALWAYS_DECO, \
         ALWAYS_COMB, SIMPLE_ALWAYS_COMB, ALWAYS_SEQ, \
         TASK, REG \
         = range(10)
 
 
-class _context(object):
+class _context:
     BOOLEAN, YIELD, PRINT, SIGNED, UNKNOWN = range(5)
 
 
-class _ConversionMixin(object):
+class _ConversionMixin:
     def getLineNo(self, node):
         lineno = 0
         if isinstance(node, (ast.stmt, ast.expr)):
@@ -174,7 +174,7 @@ def _LabelGenerator():
 _genLabel = _LabelGenerator()
 
 
-class _Label(object):
+class _Label:
     def __init__(self, name):
         self.name = next(_genLabel) + '_' + name
         self.isActive = False
@@ -185,7 +185,7 @@ class _Label(object):
 
 # this can be made more sophisticated to deal with existing suffixes
 # also, may require reset facility
-class _UniqueSuffixGenerator(object):
+class _UniqueSuffixGenerator:
     def __init__(self):
         self.i = 0
 

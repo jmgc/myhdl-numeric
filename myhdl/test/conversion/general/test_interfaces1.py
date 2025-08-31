@@ -7,7 +7,7 @@ from myhdl import intbv, Signal, ResetSignal, always_seq, instance, delay, \
 from myhdl.conversion import analyze, verify
 
 
-class MyIntf(object):
+class MyIntf:
     def __init__(self):
         self.x = Signal(intbv(2, min=0, max=16))
         self.y = Signal(intbv(3, min=0, max=18))

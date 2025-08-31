@@ -12,7 +12,7 @@ drivers.  This appears to be a name collision in the name
 expansion and was introduced in 08519b4.
 """
 
-class Intf1(object):
+class Intf1:
     def __init__(self, elements):
         if elements > 1:
             self.sig1 = Signal(False)

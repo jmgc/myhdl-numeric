@@ -102,7 +102,7 @@ def Signal(val=None, delay=None):
         return _Signal(val)
 
 
-class _Signal(object):
+class _Signal:
 
     """ _Signal class.
 
@@ -686,7 +686,7 @@ class _DelayedSignal(_Signal):
         self._delay = delay
 
 
-class _SignalWrap(object):
+class _SignalWrap:
 
     def __init__(self, sig, next, timeStamp):
         self.sig = sig

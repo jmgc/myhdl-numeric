@@ -122,7 +122,7 @@ class _CheckCorrectIdentifier:
 check_correct_identifier = _CheckCorrectIdentifier()
 
 
-class _GenerateHierarchy(object):
+class _GenerateHierarchy:
     def __init__(self):
         self.entities_list = []
         self.mem_types = {}
@@ -711,7 +711,7 @@ class _GenerateHierarchy(object):
                     pass
 
 
-class vhd_slice(object):
+class vhd_slice:
     def __init__(self, start, stop=None):
         self.start = int(start)
         self.stop = None
@@ -1180,7 +1180,7 @@ def _makeDoc(doc, indent=''):
     return doc
 
 
-class _ToVHDLConvertor(object):
+class _ToVHDLConvertor:
     Port = namedtuple('Port', ['name', 'portname', 'direction', 'convert',
                                'signal'])
 
@@ -1496,6 +1496,11 @@ def _writeCustomPackage(f, name, hierarchy, fixed_point=False):
         for t in sortedList:
             print("%s" % t.toStr(True), file=f)
             print(file=f)
+            print(f"function tern_op(cond: in boolean; "
+                  f"if_true: in {t.toStr(False)}; "
+                  f"if_false: in {t.toStr(False)}) "
+                  f"return {t.toStr(False)};", file=f)
+
     array_types = set()
     if hierarchy.mem_types:
         sortedList = list(hierarchy.mem_types.values())
@@ -1516,8 +1521,22 @@ def _writeCustomPackage(f, name, hierarchy, fixed_point=False):
             print("%s;" % t.toStr(True), file=f)
             array_types.add(t.toStr(True))
     print(file=f)
-    print("end package %s;" % name, file=f)
+    print("end %s;" % name, file=f)
     print(file=f)
+    if hierarchy.enum_types:
+        print(f"package body {name} is", file=f)
+        print(file=f)
+        for t in sortedList:
+            print(f"""function tern_op(cond: in boolean; if_true: in {t.toStr(False)}; if_false: in {t.toStr(False)}) return {t.toStr(False)} is
+begin
+    if cond then
+        return if_true;
+    else
+        return if_false;
+    end if;
+end function tern_op;""", file=f)
+            print(file=f)
+        print(f"end {name};", file=f)
 
 
 def _writeModuleHeader(f, pckName, lib, useClauses, version="93",
@@ -4657,7 +4676,7 @@ class vhd_sfixed(vhd_type):
         node.vhdOri.size = (left_high, left_low)
 
 
-class vhd_array(object):
+class vhd_array:
     def __init__(self, length, tipe):
         self._name = "t_array_%s_%s" % (length, tipe)
         self.high = length - 1

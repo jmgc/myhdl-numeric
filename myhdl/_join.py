@@ -20,7 +20,7 @@
 """ Module that provides join class """
 
 
-class join(object):
+class join:
 
     """ Join trigger objects to form a single trigger object. """
     

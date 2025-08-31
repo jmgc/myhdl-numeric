@@ -117,7 +117,7 @@ def _makeDoc(doc, indent=''):
     return doc
 
 
-class _ToVerilogConvertor(object):
+class _ToVerilogConvertor:
     __slots__ = ("name",
                  "directory",
                  "timescale",

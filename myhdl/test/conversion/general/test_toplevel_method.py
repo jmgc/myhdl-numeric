@@ -6,7 +6,7 @@ from myhdl.conversion._misc import _error
 from myhdl.conversion import analyze
 
 
-class HdlObj(object):
+class HdlObj:
     def __init__(self):
         pass
 
@@ -37,7 +37,7 @@ def _func(x, y):
     return _hdl
 
 
-class HdlObjObj(object):
+class HdlObjObj:
     def __init__(self):
         pass
 
@@ -78,7 +78,7 @@ class HdlObjAttrSimple:
         return hdl
 
 
-class HdlObjNotSelf(object):
+class HdlObjNotSelf:
     def __init__(this):
         pass
 

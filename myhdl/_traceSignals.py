@@ -49,7 +49,7 @@ _error.ArgType = "traceSignals first argument should be a classic function"
 _error.MultipleTraces = "Cannot trace multiple instances simultaneously"
 
 
-class _TraceSignalsClass(object):
+class _TraceSignalsClass:
 
     __slot__ = ("name",
                 "directory",

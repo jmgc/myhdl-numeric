@@ -8,7 +8,7 @@ from myhdl.conversion import analyze, verify
 from myhdl.test.conftest import bug
 
 
-class Intf(object):
+class Intf:
     def __init__(self):
         self.x = Signal(intbv(1, min=-1111, max=1111))
         self.y = Signal(intbv(2, min=-2211, max=2211))

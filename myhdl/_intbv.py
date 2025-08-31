@@ -24,7 +24,7 @@
 from myhdl._bin import bin
 import builtins
 
-class intbv(object):
+class intbv:
 
     def __init__(self, val=0, min=None, max=None, _nrbits=0):
         if _nrbits:

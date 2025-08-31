@@ -16,7 +16,7 @@ def tristate_obuf(A, Y, OE):
     return hdl
 
 
-class OBuf(object):
+class OBuf:
     def __init__(self):
         self.Y  = TristateSignal(True)
         self.A  = Signal(False)

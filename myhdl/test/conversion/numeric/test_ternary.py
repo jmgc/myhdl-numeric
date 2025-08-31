@@ -2,18 +2,22 @@ from __future__ import absolute_import, print_function
 
 import unittest
 from myhdl import always, Signal, sfixba, always_comb, instance, delay, \
-    StopSimulation, toVHDL, conversion
+    StopSimulation, toVHDL, conversion, enum
 import os
 path = os.path
 
 
 def ternary1(dout, clk, rst):
+    enum_values = enum('TRUE_ENUM', 'FALSE_ENUM')
+
+    value = Signal(enum_values.FALSE_ENUM)
 
     @always(clk.posedge, rst.negedge)
     def logic():
         if rst == 0:
             dout.next = 0
         else:
+            value.next = enum_values.TRUE_ENUM if dout < 127 else enum_values.FALSE_ENUM
             dout.next = (dout + 1) if dout < 127 else 0
 
     return logic

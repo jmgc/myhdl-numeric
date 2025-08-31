@@ -112,7 +112,7 @@ registerSimulator(
     )
 
 
-class _VerificationClass(object):
+class _VerificationClass:
 
     __slots__ = ("simulator", "_analyze_only")
 

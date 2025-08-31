@@ -44,7 +44,7 @@ _error.MultipleCosim = "Only a single cosimulator argument allowed"
 _error.DuplicatedArg = "Duplicated argument"
 
 
-class Simulation(object):
+class Simulation:
 
     """ Simulation class.
 

@@ -38,7 +38,7 @@ from ._compat import ast_parse
 schedule = _simulator._futureEvents.append
 
 
-class _Waiter(object):
+class _Waiter:
 
     __slots__ = ('caller', 'generator', 'hasRun', 'nrTriggers', 'semaphore')
 
@@ -193,7 +193,7 @@ class _SignalTupleWaiter(_Waiter):
             actives[id(wl)] = wl
 
 
-class _kind(object):
+class _kind:
     SIGNAL_TUPLE = 1
     EDGE_TUPLE = 2
     SIGNAL = 3

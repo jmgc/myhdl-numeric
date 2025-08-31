@@ -401,11 +401,11 @@ class ReferenceStack(list):
         return False
 
 
-class _Ram(object):
+class _Ram:
     __slots__ = ['elObj', 'depth']
 
 
-class _Rom(object):
+class _Rom:
     __slots__ = ['elObj', 'rom']
 
     def __init__(self, rom):
@@ -422,7 +422,7 @@ re_ConvSpec = re.compile(r"%(?P<justified>[-]?)"
                          "(?P<width>[0-9]*)(?P<conv>[sd])")
 
 
-class ConvSpec(object):
+class ConvSpec:
     def __init__(self, **kwargs):
         self.justified = "RIGHT"
         self.width = 0

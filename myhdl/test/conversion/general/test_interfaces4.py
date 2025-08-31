@@ -15,14 +15,14 @@ expansion and was introduced in 08519b4.
 """
 
 
-class Intf1(object):
+class Intf1:
     def __init__(self):
         self.sig1 = Signal(bool(0))
         self.sig2 = Signal(bool(0))
         self.sig3 = Signal(modbv(0)[8:])
 
 
-class Intf2(object):
+class Intf2:
     def __init__(self):
         self.sig1 = Signal(bool(0))
         self.sig2 = Signal(bool(0))

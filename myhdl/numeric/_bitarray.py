@@ -25,7 +25,7 @@ from copy import copy
 import warnings
 
 
-class bitarray(object):
+class bitarray:
 
     def __init__(self, *args, **kwargs):
         value, high, low = self._get_arguments(*args, **kwargs)

@@ -31,7 +31,7 @@ from copy import copy
 import warnings
 
 
-class fixmath(object):
+class fixmath:
     """Fixed Point math
 
     Attributes:

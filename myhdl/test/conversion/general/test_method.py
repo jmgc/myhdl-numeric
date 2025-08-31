@@ -4,7 +4,7 @@ from myhdl import *
 from myhdl.conversion import verify, toVHDL, toVerilog
 
 
-class HdlObj(object):
+class HdlObj:
     def __init__(self):
         pass
 
@@ -35,7 +35,7 @@ def _func(x, y):
     return _hdl
 
 
-class HdlObjObj(object):
+class HdlObjObj:
     def __init__(self):
         pass
 
@@ -56,7 +56,7 @@ class HdlObjObj(object):
         return hdl, ifx1, ifx2
 
 
-class HdlObjAttrSimple(object):
+class HdlObjAttrSimple:
     def __init__(self):
         self.AConstant = 3
 
@@ -75,7 +75,7 @@ class HdlObjAttrSimple(object):
         return hdl
 
 
-class HdlObjAttr(object):
+class HdlObjAttr:
     def __init__(self, clk, srst, x, y):
         self.clk = clk
         self.srst = srst

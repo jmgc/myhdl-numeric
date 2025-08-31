@@ -50,7 +50,7 @@ class _error:
     MissingInstances = "\n{}:{}\nIn block {} there are instances not returned: {}"
 
 
-class _CallInfo(object):
+class _CallInfo:
 
     def __init__(self, name, modctxt, symdict, frame):
         self.name = name
@@ -98,7 +98,7 @@ def _getCallInfo():
     return _CallInfo(name, modctxt, symdict, frame)
 
 
-class _bound_function_wrapper(object):
+class _bound_function_wrapper:
 
     def __init__(self, bound_func, srcfile, srcline):
         self.srcfile = srcfile
@@ -123,7 +123,7 @@ class _bound_function_wrapper(object):
                       self.srcline, *args, **kwargs)
 
 
-class block(object):
+class block:
 
     def __init__(self, func):
         self.srcfile = inspect.getsourcefile(func)
@@ -147,7 +147,7 @@ class block(object):
                       self.srcline, *args, **kwargs)
 
 
-class _Block(object):
+class _Block:
 
     def __init__(self, func, deco, name, srcfile, srcline, *args, **kwargs):
         calls = deco.calls

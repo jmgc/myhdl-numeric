@@ -1,7 +1,7 @@
 import pytest
 
 
-class raises_kind(object):
+class raises_kind:
     def __init__(self, exc, kind):
         self.exc = exc
         self.kind = kind

@@ -25,13 +25,13 @@
 from myhdl._bin import bin
 
 
-class EnumType(object):
+class EnumType:
     def __init__(self):
         raise TypeError("class EnumType is only intended for type"
                         " checking on subclasses")
 
 
-class EnumItemType(object):
+class EnumItemType:
     def __init__(self):
         raise TypeError("class EnumItemType is only intended for type"
                         " checking on subclasses")
