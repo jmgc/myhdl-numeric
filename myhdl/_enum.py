@@ -157,8 +157,23 @@ def enum(*names, **kwargs):
 
         __str__ = __repr__
 
+        def is_equal(self, other):
+            if not isinstance(other, EnumType):
+                return False
+            else:
+                if self._names == other._names and \
+                   self._nrbits == other._nrbits and \
+                   self._encoding == other._encoding and \
+                   self._codedict == other._codedict:
+                    return True
+                else:
+                    return False
+
         def _setName(self, name):
-            typename = "t_enum_%s" % name
+            if name.startswith("t_enum_"):
+                typename = name
+            else:
+                typename = "t_enum_%s" % name.lower()
             self.__dict__['_name'] = typename
 
         def _toVHDL(self):

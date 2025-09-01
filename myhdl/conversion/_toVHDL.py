@@ -59,7 +59,7 @@ from .._instance import _Instantiator
 from ..conversion._misc import _error, _kind, _context, \
     _ConversionMixin, _Label, _genUniqueSuffix, _isConstant
 from ..conversion._analyze import _analyzeSigs, _analyzeMems, \
-    _analyzeGens, _analyzeTopFunc, _Ram, _Rom, _enumTypeSet
+    _analyzeGens, _analyzeTopFunc, _Ram, _Rom
 from .._Signal import _Signal, _WaiterList, _SliceSignal, _isListOfSigs
 from .._ShadowSignal import ConcatSignal
 from ..conversion._toVHDLPackage import _package
@@ -131,6 +131,7 @@ class _GenerateHierarchy:
         self.userCodeMap = {'verilog': {},
                             'vhdl': {}
                             }
+        self._enumTypeDict = {}
 
     def __call__(self, h, stdLogicPorts):
         from .._extractHierarchy import _Instance
@@ -218,6 +219,9 @@ class _GenerateHierarchy:
 
             self._check_generators(p_entity_obj)
             gen_list = _analyzeGens(p_entity_obj, absnames)
+
+            self._analyzeEnums(gen_list)
+
             sigs_list, mems_list, _ = _analyzeSigs([p_entity], hdl='VHDL',
                                                    initlevel=p_entity.level - 1)
             _annotateTypes(gen_list)
@@ -458,6 +462,22 @@ class _GenerateHierarchy:
             entity._clean_signals()
 
         return self
+
+    def _analyzeEnums(self, gen_list):
+        for gen in gen_list:
+            if not isinstance(gen, _UserVhdlCode):
+                for e in gen.enumTypes:
+                    for t in self._enumTypeDict.values():
+                        if e.is_equal(t):
+                            e._setName(t._name)
+                            break
+                    else:
+                        if e._name in self._enumTypeDict:
+                            suf = _genUniqueSuffix.next()
+                            e._setName(e._name + suf)
+                            self._enumTypeDict[e._name] = e
+                        else:
+                            self._enumTypeDict[e._name] = e
 
     def _flatten(self, *args):
         arglist = []
@@ -1200,7 +1220,7 @@ class _ToVHDLConvertor:
                  "one_file",
                  "vhdl_files",
                  "verbose_vhdl",
-                 "_timescale"
+                 "_timescale",
                  )
 
     def __init__(self):
@@ -1294,10 +1314,9 @@ class _ToVHDLConvertor:
         hier.reverse()
 
         stdLogicPorts = self.std_logic_ports
+
         genHier = _GenerateHierarchy()
         hierarchy = genHier(h, stdLogicPorts)
-
-        _enumTypeSet.clear()
 
         lib = self.library
         arch = self.architecture
@@ -1486,20 +1505,24 @@ def _writeCustomPackage(f, name, hierarchy, fixed_point=False):
     print(file=f)
     print("package %s is" % name, file=f)
     print(file=f)
+
+    enum_list = []
     if hierarchy.enum_types:
+        enum_names = set()
         enum_sortedList = list(hierarchy.enum_types.values())
         enum_sortedList.sort(key=lambda x: x._name.join(x._type._names))
+
         for t in enum_sortedList:
-            suf = _genUniqueSuffix.next()
-            t._name = t._name + suf
-        for t in enum_sortedList:
-            print("%s" % t.toStr(True), file=f)
-            print(file=f)
-            print(f"function tern_op(cond: in boolean; "
-                  f"if_true: in {t.toStr(False)}; "
-                  f"if_false: in {t.toStr(False)}) "
-                  f"return {t.toStr(False)};", file=f)
-            print(file=f)
+            if t.toStr(False) not in enum_names:
+                enum_names.add(t.toStr(False))
+                enum_list.append(t)
+                print("%s" % t.toStr(True), file=f)
+                print(file=f)
+                print(f"function tern_op(cond: in boolean; "
+                      f"if_true: in {t.toStr(False)}; "
+                      f"if_false: in {t.toStr(False)}) "
+                      f"return {t.toStr(False)};", file=f)
+                print(file=f)
 
     array_types = set()
     if hierarchy.mem_types:
@@ -1523,10 +1546,10 @@ def _writeCustomPackage(f, name, hierarchy, fixed_point=False):
     print(file=f)
     print("end %s;" % name, file=f)
     print(file=f)
-    if hierarchy.enum_types:
+    if enum_list:
         print(f"package body {name} is", file=f)
         print(file=f)
-        for t in enum_sortedList:
+        for t in enum_list:
             print(f"""function tern_op(cond: in boolean; if_true: in {t.toStr(False)}; if_false: in {t.toStr(False)}) return {t.toStr(False)} is
 begin
     if cond then
@@ -1710,16 +1733,6 @@ def _writeConstants(f, architecture):
         if not check_correct_identifier(n):
             raise ToVHDLError(f"Invalid constant identifier: {n} in entity {architecture.entity.name}")
     f.write("\n")
-
-
-def _writeTypeDefs(f):
-    f.write("\n")
-    sortedList = list(_enumTypeSet)
-    sortedList.sort(key=lambda x: x._name)
-    for t in sortedList:
-        f.write("%s\n" % t._toVHDL())
-    f.write("\n")
-
 
 def _writeSigDecls(f, architecture):
     sorted_list = list(architecture.sigs_dict.values())
@@ -3987,7 +4000,7 @@ class vhd_enum(vhd_type):
     def __init__(self, tipe):
         vhd_type.__init__(self)
         self._type = tipe
-        self._name = "enum_%s" % tipe.__dict__['_name']
+        self._name = f"enum_{tipe._name}"
 
     def literal(self, value, prefixed=False):
         return str(value)
@@ -3996,7 +4009,7 @@ class vhd_enum(vhd_type):
         if constr:
             return self._type._toVHDL()
         else:
-            return self._type.__dict__['_name']
+            return self._type._name
 
 
 class vhd_std_logic(vhd_type):

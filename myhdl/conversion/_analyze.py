@@ -53,7 +53,6 @@ from ..numeric._conversion import numeric_functions_dict, \
     numeric_attributes_dict
 from ..numeric._bitarray import bitarray
 
-_enumTypeSet = set()
 
 
 def _makeName(n, prefixes, case=None):
@@ -170,6 +169,7 @@ def _analyzeGens(top, absnames):
             tree = g.ast
             tree.symdict = f.__globals__.copy()
             tree.callstack = []
+            tree.enumTypes = set()
             # handle free variables
             tree.nonlocaldict = {}
             if f.__code__.co_freevars:
@@ -200,6 +200,7 @@ def _analyzeGens(top, absnames):
             tree.symdict.update(f.f_locals)
             tree.nonlocaldict = {}
             tree.callstack = []
+            tree.enumTypes = set()
             tree.name = absnames.get(id(g), str(_Label("BLOCK"))).upper()
             v = _AttrRefTransformer(tree)
             v.visit(tree)
@@ -462,6 +463,7 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
         self.myhdlObjects = set(val for _, val in
                                 inspect.getmembers(sys.modules["myhdl"],
                                                    inspect.isclass))
+        self._enumTypeSet = tree.enumTypes
         modules = inspect.getmembers(sys.modules["myhdl"],
                                      inspect.ismodule)
         for _, module in modules:
@@ -710,10 +712,9 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
             if not hasattr(obj, node.attr):
                 self.raiseError(node, f"{node.value.id}.{node.attr}")
             node.obj = getattr(obj, node.attr)
-            if obj not in _enumTypeSet:
-                _enumTypeSet.add(obj)
-                suf = _genUniqueSuffix.next()
-                obj._setName(n + suf)
+            if obj not in self._enumTypeSet:
+                self._enumTypeSet.add(obj)
+                obj._setName(n)
         if isinstance(obj, _Rom):
             node.obj = obj.elObj
         if node.obj is None:  # attribute lookup failed
@@ -854,6 +855,7 @@ class _AnalyzeVisitor(ast.NodeVisitor, _ConversionMixin):
             tree.name = _Label(fname)
             tree.symdict = f.__globals__.copy()
             tree.nonlocaldict = {}
+            tree.enumTypes = set()
             if fname in self.tree.callstack:
                 self.raiseError(node, _error.NotSupported, "Recursive call")
             tree.callstack = self.tree.callstack[:]

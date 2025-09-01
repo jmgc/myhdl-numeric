@@ -62,3 +62,6 @@ class TestEnum:
         e = copy.deepcopy(t_State.SEARCH)
         assert e == t_State.SEARCH
         assert e != t_State.CONFIRM
+
+    def testEnumEquality(self):
+        assert t_State.is_equal(t_Homograph)
