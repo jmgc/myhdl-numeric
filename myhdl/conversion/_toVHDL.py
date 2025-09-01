@@ -1499,6 +1499,7 @@ def _writeCustomPackage(f, name, hierarchy, fixed_point=False):
                   f"if_true: in {t.toStr(False)}; "
                   f"if_false: in {t.toStr(False)}) "
                   f"return {t.toStr(False)};", file=f)
+            print(file=f)
 
     array_types = set()
     if hierarchy.mem_types:
