@@ -16,6 +16,7 @@ def hierarchy_level(clk, reset, z, a):
     return logic
 
 def hierarchy_level_2(clk, reset, z, a):
+    value = (3, 5)
     y = Signal(intbv(0)[3:])
     comp1 = hierarchy_level(clk, reset, y, a)
     comp2 = hierarchy_level(clk, reset, z, y)
@@ -93,13 +94,16 @@ def hierarchy_case(hierarchy_dut):
             yield delay(PERIOD // 2 + 1)
             clk.next = not clk
 
+    values = tuple(range(10))
+
     @instance
     def stimulus():
         reset.next = True
         yield delay(10)
         reset.next = False
         for i in range(10):
-            a.next = i % 5
+            value = values[i]
+            a.next = value % 5
             yield clk.posedge
             print(f"a={int(a)}, z={int(z)}")
         raise StopSimulation

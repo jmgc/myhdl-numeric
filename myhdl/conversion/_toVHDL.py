@@ -79,16 +79,26 @@ _profileFunc = None
 
 
 class _EntitySignature:
-    def __init__(self, name, filename, positions, argnames, ports_dict):
+    def __init__(self, name, filename, positions, argnames, ports_dict, constants):
         self.name = name
         self.filename = filename
         self.positions = positions
         self.argnames = argnames
         self.ports_dict = ports_dict
-        self.ports_types = {name: _EntitySignature._port_type(self.ports_dict[name]) for name in self.argnames}
+        self.const_dict = constants
+        if self.argnames:
+            self.argnames.sort()
+            self.ports_types = {name: _EntitySignature._port_type(self.ports_dict[name])
+                                for name in self.argnames}
+        else:
+            self.ports_types = {}
+        if self.const_dict:
+            self.ports_types.update({name: _EntitySignature._const_type(self.const_dict[name])
+                                     for name in sorted(self.const_dict)})
 
     @staticmethod
-    def _port_type(value):
+    def _port_type(port):
+        value = port.signal
         if isinstance(value, _Signal):
             port_type = (type(value), value._type)
             if value.high is not None:
@@ -106,15 +116,23 @@ class _EntitySignature:
             return (value,)
 
     @staticmethod
-    def fromFrame(frame):
+    def _const_type(const):
+        value = const.value
+        if isinstance(value, _Constant):
+            return (value.value,)
+        elif isinstance(value, _RomInfo):
+            return value.mem
+        else:
+            return (value,)
+
+    @staticmethod
+    def fromEntityFrame(entity, frame):
         frame_info = inspect.getframeinfo(frame)
         entity_name = frame_info.function
         # Giving names to port to port signals
         values = inspect.getargvalues(frame)
-
-        ports_dict = {name: values.locals[name] for name in values.args}
-
-        return _EntitySignature(frame_info.function, frame_info.filename, frame_info.positions, values.args, ports_dict)
+        return _EntitySignature(entity_name, frame_info.filename, frame_info.positions,
+                                entity.ports_list, entity.ports_dict, entity.architecture.const_dict)
 
     def _concat(self):
         return ((self.name, self.filename) + tuple(self.positions) +
@@ -224,7 +242,6 @@ class _GenerateHierarchy:
         objects_set = set()
 
         for p_entity in entity_list:
-            signature = _EntitySignature.fromFrame(p_entity.frame)
 
             basename = p_entity.name
 
@@ -513,6 +530,8 @@ class _GenerateHierarchy:
                 s._name = None
             for m in revert_mems_list:
                 m.name = None
+
+            signature = _EntitySignature.fromEntityFrame(entity, p_entity.frame)
 
             if signature not in self._signatures_dict:
                 self._check_names(signature)
