@@ -1,15 +1,15 @@
-from myhdl import Signal, intbv, always_seq, always_comb, instance, delay, StopSimulation, \
+from myhdl import Signal, intbv, always_seq, instance, delay, StopSimulation, \
     ResetSignal, conversion
 import shutil
 import os
 
-def hierarchy_level(clk, reset, z, a):
+def hierarchy_level(clk, reset, z, a, value):
     y = Signal(z.val)
     @always_seq(clk.posedge, reset)
     def logic():
         if a == 1:
             y.next = 0
-        elif a in (2, 3):
+        elif a == value:
             y.next = 1
         else:
             y.next = 3
@@ -20,17 +20,16 @@ def hierarchy_level(clk, reset, z, a):
 
     return logic, Logic
 
-def hierarchy_level_2(clk, reset, z, a):
-    value = (3, 5)
+def hierarchy_level_2(clk, reset, z, a, value):
     y = Signal(intbv(0)[3:])
-    comp = hierarchy_level(clk, reset, y, a)
-    Comp = hierarchy_level(clk, reset, z, y)
+    comp = hierarchy_level(clk, reset, y, a, value*5)
+    Comp = hierarchy_level(clk, reset, z, y, value*3)
     return comp, Comp
 
-def hierarchy_level_1(clk, reset, z, a):
+def hierarchy_level_1(clk, reset, z, a, value=2):
     y = Signal(intbv(0)[4:])
-    comp1 = hierarchy_level_2(clk, reset, y, a)
-    comp2 = hierarchy_level_2(clk, reset, z, y)
+    comp1 = hierarchy_level_2(clk, reset, y, a, value=value)
+    comp2 = hierarchy_level_2(clk, reset, z, y, value=value*2)
     return comp1, comp2
 
 
@@ -40,7 +39,7 @@ def test_hierarchy_analyse():
     a = Signal(intbv(0)[3:])
     z = Signal(intbv(0)[4:])
 
-    assert conversion.analyze(hierarchy_level_1, clk, reset, z, a) == 0
+    assert conversion.analyze(hierarchy_level_1, clk, reset, z, a, 2) == 0
 
 def test_hierarchy_analyse_multiple_files():
     clk = Signal(False)
@@ -53,7 +52,7 @@ def test_hierarchy_analyse_multiple_files():
     conversion.toVHDL.directory = "hierarchy_multiple_files"
     shutil.rmtree(conversion.toVHDL.directory, ignore_errors=True)
     os.mkdir(conversion.toVHDL.directory)
-    assert conversion.analyze(hierarchy_level_1, clk, reset, z, a) == 0
+    assert conversion.analyze(hierarchy_level_1, clk, reset, z, a, 3) == 0
     instance_entity = conversion.toVHDL.instance_entity
     conversion.toVHDL.directory = None
     conversion.toVHDL.one_file = one_file
@@ -64,7 +63,7 @@ def test_hierarchy_analyse_equal():
     a = Signal(intbv(0)[3:])
     z = Signal(intbv(0)[3:])
 
-    assert conversion.analyze(hierarchy_level_2, clk, reset, z, a) == 0
+    assert conversion.analyze(hierarchy_level_2, clk, reset, z, a, 5) == 0
 
 def test_hierarchy_analyse_multiple_files_equal():
     clk = Signal(False)
@@ -77,43 +76,67 @@ def test_hierarchy_analyse_multiple_files_equal():
     conversion.toVHDL.directory = "hierarchy_multiple_files_equal"
     shutil.rmtree(conversion.toVHDL.directory, ignore_errors=True)
     os.mkdir(conversion.toVHDL.directory)
-    assert conversion.analyze(hierarchy_level_2, clk, reset, z, a) == 0
+    assert conversion.analyze(hierarchy_level_2, clk, reset, z, a, 2) == 0
     instance_entity = conversion.toVHDL.instance_entity
     conversion.toVHDL.directory = None
     conversion.toVHDL.one_file = one_file
 
-def hierarchy_case(hierarchy_dut):
-    clk = Signal(False)
-    reset = ResetSignal(True, True, False)
-    a = Signal(intbv(0)[3:])
-    z = Signal(intbv(0)[4:])
-
-    dut = hierarchy_dut(clk, reset, z, a)
-
-    PERIOD = 10
-
+def clock_gen(clk, period):
     @instance
     def clockgen():
         clk.next = False
         while True:
-            yield delay(PERIOD // 2 + 1)
+            yield delay(period // 2 + 1)
             clk.next = not clk
+
+    return clockgen
+
+def hierarchy_case(hierarchy_dut):
+    clk1 = Signal(False)
+    reset1 = ResetSignal(True, True, False)
+    a1 = Signal(intbv(0)[3:])
+    z1 = Signal(intbv(0)[4:])
+    clk2 = Signal(False)
+    reset2 = ResetSignal(True, True, False)
+    a2 = Signal(intbv(0)[3:])
+    z2 = Signal(intbv(0)[4:])
+
+    dut1 = hierarchy_dut(clk1, reset1, z1, a1, 2)
+    dut2 = hierarchy_dut(clk2, reset2, z2, a2, 2*2)
+
+    PERIOD = 10
+
+    clk_gen1 = clock_gen(clk1, PERIOD)
+    clk_gen2 = clock_gen(clk2, PERIOD * 2)
 
     values = tuple(range(10))
 
     @instance
-    def stimulus():
-        reset.next = True
+    def stimulus1():
+        reset1.next = True
         yield delay(10)
-        reset.next = False
+        reset1.next = False
         for i in range(10):
             value = values[i]
-            a.next = value % 5
-            yield clk.posedge
-            print(f"a={int(a)}, z={int(z)}")
+            a1.next = value % 5
+            yield clk1.posedge
+            print(f"a={int(a1)}, z={int(z1)}")
         raise StopSimulation
 
-    return dut, clockgen, stimulus
+    @instance
+    def stimulus2():
+        reset2.next = True
+        yield delay(5)
+        reset2.next = False
+        for i in range(10):
+            value = values[i]
+            a2.next = value % 2
+            yield clk2.posedge
+            print(f"a={int(a2)}, z={int(z2)}")
+
+        raise StopSimulation
+
+    return dut1, dut2, clk_gen1, clk_gen2, stimulus1, stimulus2
 
 def test_hierarchy_verify():
 

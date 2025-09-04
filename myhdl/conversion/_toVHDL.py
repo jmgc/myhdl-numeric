@@ -203,8 +203,6 @@ class _GenerateHierarchy:
                             'vhdl': {}
                             }
         self._enumTypeDict = {}
-        self._signatures_dict = dict()
-        self._signatures_names = dict()
 
     def __call__(self, h, stdLogicPorts):
         from .._extractHierarchy import _Instance
@@ -214,6 +212,8 @@ class _GenerateHierarchy:
         entity_list = self._flatten(h.hierarchy[:])
         self.userCodeMap = h.userCodeMap
         absnames = h.names
+
+        entity_names_dict = dict()
 
         # Search the associated entities (components)
         for idx, p_entity in enumerate(entity_list):
@@ -274,6 +274,7 @@ class _GenerateHierarchy:
                         new_name = p_subentity.name.upper() + _genUniqueSuffix.next()
 
                 entity_names.add(new_name)
+                entity_names_dict[f"{basename}.{new_name}"] = basename
                 p_subentity.name = new_name
                 subentity = p_v_entity_dict[p_subentity]
                 subentity.basename = basename
@@ -541,27 +542,11 @@ class _GenerateHierarchy:
             for m in revert_mems_list:
                 m.name = None
 
-            signature = _EntitySignature.fromEntityFrame(entity, p_entity.frame)
-
-            if signature not in self._signatures_dict:
-                self._check_names(signature)
-                self._signatures_dict[signature] = entity
-
-
             p_v_entity_dict[p_entity] = entity
-            self.entities_list.append(entity)
+            self.entities_list.append((entity, p_entity))
 
             entity._clean_signals()
-            entity.signature = signature
         return self
-
-    def _check_names(self, signature):
-        if signature not in self._signatures_names:
-            names = set(self._signatures_names.values())
-            new_name = signature.name
-            while signature.name in names:
-                signature.name = new_name + _genUniqueSuffix.next()
-            self._signatures_names[signature] = signature.name
 
     def _analyzeEnums(self, gen_list):
         for gen in gen_list:
@@ -1426,7 +1411,7 @@ class _ToVHDLConvertor:
         lib = self.library
         arch = self.architecture
 
-        for entity in hierarchy.entities_list:
+        for entity, _ in hierarchy.entities_list:
             entity.init_signals = self.init_signals
             entity.architecture.name = arch
             entity.architecture.timescale = self._timescale
@@ -1440,10 +1425,11 @@ class _ToVHDLConvertor:
 
         sigs_list = []
 
+        signature_names = dict()
         signatures = set()
         self.instance_entity.clear()
 
-        for entity in hierarchy.entities_list:
+        for entity, p_entity in hierarchy.entities_list:
             sfile = StringIO()
             _genUniqueSuffix.reset()
 
@@ -1458,35 +1444,40 @@ class _ToVHDLConvertor:
 
             self._convert_filter(entity)
 
-            if entity.signature in signatures:
-                continue
-            else:
-                signatures.add(entity.signature)
-
             gfile = StringIO()
 
             _writeModuleHeader(sfile, cpname, lib, useClauses,
                                version=version, fixed_point=fixed_point)
-            entity_name = genHier._signatures_names[entity.signature]
-            _writeEntityHeader(sfile, entity, doc, entity_name)
-            _writeFuncDecls(sfile)
-            _writeCompDecls(sfile, entity, lib, genHier._signatures_names)
-            _writeUserCompDecls(sfile, compDecls)
-            _writeSigDecls(sfile, entity.architecture)
+
             # Write to a memory buffer to ensure the constants are properly
             # managed
             _convertGens(entity.architecture, gfile)
+            signature = _EntitySignature.fromEntityFrame(entity, p_entity.frame)
+
+            _ToVHDLConvertor._check_names(signature, signature_names)
+            entity.signature = signature
+            entity_name = signature_names[entity.signature]
+            _writeEntityHeader(sfile, entity, doc, entity_name)
+            _writeFuncDecls(sfile)
+            _writeCompDecls(sfile, entity, lib, signature_names)
+            _writeUserCompDecls(sfile, compDecls)
+            _writeSigDecls(sfile, entity.architecture)
             # Write the constans declarations.
             _writeConstants(sfile, entity.architecture)
             # Writting the processes
             sfile.write(gfile.getvalue())
             gfile.close()
 
-            _writeCompUnits(sfile, entity, genHier._signatures_names)
+            _writeCompUnits(sfile, entity, signature_names)
 
             _writeModuleFooter(sfile, arch)
 
             sfile.write("\n")
+
+            if signature in signatures:
+                continue
+
+            signatures.add(signature)
 
             entities_files.append((entity_name, sfile.getvalue()))
             self.instance_entity[entity.name] = entity_name
@@ -1534,6 +1525,15 @@ class _ToVHDLConvertor:
             return func
         else:
             return h.top
+
+    @staticmethod
+    def _check_names(signature, signature_names):
+        if signature not in signature_names:
+            names = set(signature_names.values())
+            new_name = signature.name
+            while signature.name in names:
+                signature.name = new_name + _genUniqueSuffix.next()
+            signature_names[signature] = signature.name
 
     @property
     def timescale(self):
