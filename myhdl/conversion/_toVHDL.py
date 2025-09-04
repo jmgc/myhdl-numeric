@@ -1464,9 +1464,14 @@ class _ToVHDLConvertor:
             _writeSigDecls(sfile, entity.architecture)
             # Write the constans declarations.
             _writeConstants(sfile, entity.architecture)
+
             # Writting the processes
             sfile.write(gfile.getvalue())
             gfile.close()
+
+            for assign in entity.architecture.signal_conversions:
+                print("    %s" % assign.toStr(), file=sfile)
+            print(file=sfile)
 
             _writeCompUnits(sfile, entity, signature_names)
 
@@ -1725,7 +1730,7 @@ def _writeEntityHeader(f, entity, doc, entity_name):
     print(f"end entity {entity_name};", file=f)
     print(doc, file=f)
     print(file=f)
-    print(f"architecture {entity.architecture.name} of { entity_name} is", file=f)
+    print(f"architecture {entity.architecture.name} of {entity_name} is", file=f)
     print(file=f)
 
 
@@ -1916,6 +1921,7 @@ def _writeCompDecls(f, entity, lib, signature_names):
                 f"        use entity {lib}.{entity_name}({component.entity.architecture.name});\n\n")
         components_entity_names.add(entity_name)
 
+
 def _checkPort(port):
     if isinstance(port.signal, _Signal):
         name = port.signal._name
@@ -2026,8 +2032,10 @@ def _convertGens(architecture, vfile):
         process.generator.name = vhdl_name
 
     genlist = [process.generator for process in sorted(architecture.process_list, key=lambda x: x.generator.name)]
-    constdict = dict((const.value.orig_name, const.value)
-                     for const in architecture.const_dict.values())
+    constdict = {const.value.orig_name: const.value
+                 for const in architecture.const_dict.values()}
+    for const in architecture.const_dict.values():
+        const.used = False
     blockBuf = StringIO()
     funcBuf = StringIO()
 
@@ -2062,9 +2070,6 @@ def _convertGens(architecture, vfile):
         vfile.write("    %s\n" % line)
     funcBuf.close()
     print("begin", file=vfile)
-    print(file=vfile)
-    for assign in architecture.signal_conversions:
-        print("    %s" % assign.toStr(), file=vfile)
     print(file=vfile)
     lines = blockBuf.getvalue()
     for line in lines.split("\n"):
@@ -2824,6 +2829,7 @@ class _ConvertVisitor(ast.NodeVisitor, _ConversionMixin):
                 items = c.mem
                 t_pre, t_suf = self.inferCast(right, right.vhd.type,
                                               right.vhdOri.type)
+                c.used = True
                 isRomInfo = True
             else:
                 self.raiseError(node, _error.UnsupportedType,

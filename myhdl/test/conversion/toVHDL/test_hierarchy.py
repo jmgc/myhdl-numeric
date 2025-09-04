@@ -123,16 +123,19 @@ def hierarchy_case(hierarchy_dut):
             print(f"a={int(a1)}, z={int(z1)}")
         raise StopSimulation
 
+    mem_data = (3, 1, 4, 1, 5, 9, 2, 6, 5, 3)
+
     @instance
     def stimulus2():
         reset2.next = True
         yield delay(5)
         reset2.next = False
-        for i in range(10):
+
+        for i in range(len(values)):
+            assert 0 not in mem_data
             value = values[i]
             a2.next = value % 2
             yield clk2.posedge
-            print(f"a={int(a2)}, z={int(z2)}")
 
         raise StopSimulation
 
@@ -145,5 +148,8 @@ def test_hierarchy_verify():
 def test_hierarchy_name_verify():
 
     conversion.toVHDL.name = "my_hierarchy"
+    ports = conversion.toVHDL.std_logic_ports
+    conversion.toVHDL.std_logic_ports = True
     assert conversion.verify(hierarchy_case, hierarchy_level_1) == 0
+    conversion.toVHDL.std_logic_ports = ports
     conversion.toVHDL.name = None
