@@ -238,7 +238,6 @@ class _GenerateHierarchy:
 
         entity_list.reverse()
 
-        entity_names = set()
         name_counter = 0
 
         objects_set = set()
@@ -262,16 +261,18 @@ class _GenerateHierarchy:
                 p_parent_subentities.extend(p_subentities)
                 continue
 
+            entity_names = set()
+
             for p_subentity in p_subentities:
                 if p_subentity.vhdl_entity_name:
                     new_name = p_subentity.name
                     if new_name in entity_names:
                         raise ToVHDLError(_error.DuplicatedEntity, new_name)
                 else:
-                    new_name = "%s_%s" % (basename, p_subentity.name)
-                    if new_name in entity_names:
-                        new_name = "%s_%s" % (new_name, name_counter)
-                        name_counter += 1
+                    new_name = p_subentity.name.upper()
+                    while new_name in entity_names:
+                        new_name = p_subentity.name.upper() + _genUniqueSuffix.next()
+
                 entity_names.add(new_name)
                 p_subentity.name = new_name
                 subentity = p_v_entity_dict[p_subentity]
