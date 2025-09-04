@@ -118,3 +118,9 @@ def hierarchy_case(hierarchy_dut):
 def test_hierarchy_verify():
 
     assert conversion.verify(hierarchy_case, hierarchy_level_1) == 0
+
+def test_hierarchy_name_verify():
+
+    conversion.toVHDL.name = "my_hierarchy"
+    assert conversion.verify(hierarchy_case, hierarchy_level_1) == 0
+    conversion.toVHDL.name = None

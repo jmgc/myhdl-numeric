@@ -58,18 +58,18 @@ def registerSimulator(name=None, hdl=None, analyze=None, elaborate=None,
 registerSimulator(
     name="ghdl",
     hdl="VHDL",
-    analyze="ghdl -a --std=08 --workdir=work_%(topname)s %(file_name)s",
-    elaborate="ghdl -e --std=08 --workdir=work_%(topname)s -o %(unitname)s %(topname)s",
-    simulate="ghdl -r --workdir=work_%(topname)s %(unitname)s --vcd=%(topname)s.vcd",
+    analyze="ghdl -a --std=08 --workdir=work_%(unitname)s %(file_name)s",
+    elaborate="ghdl -e --std=08 --workdir=work_%(unitname)s -o %(unitname)s %(topname)s",
+    simulate="ghdl -r --workdir=work_%(unitname)s %(unitname)s --vcd=%(unitname)s.vcd",
     languageVersion="2008"
     )
 
 registerSimulator(
     name="nvc",
     hdl="VHDL",
-    analyze="nvc --work=work_%(topname)s_nvc --std=08 -a %(file_name)s",
-    elaborate="nvc --work=work_%(topname)s_nvc --std=08 -e %(topname)s",
-    simulate="nvc --work=work_%(topname)s_nvc --std=08 -r %(topname)s",
+    analyze="nvc --work=work_%(unitname)s_nvc --std=08 -a %(file_name)s",
+    elaborate="nvc --work=work_%(unitname)s_nvc --std=08 -e %(topname)s",
+    simulate="nvc --work=work_%(unitname)s_nvc --std=08 -r %(topname)s",
     languageVersion="2008"
     )
 
@@ -93,8 +93,8 @@ registerSimulator(
 registerSimulator(
     name="vcom",
     hdl="VHDL",
-    analyze="vcom -2008 -work work_%(topname)s_vcom %(file_name)s",
-    simulate='vsim work_%(topname)s_vcom.%(topname)s -quiet -t %(timescale)s -c -do "run -all; quit -f"',
+    analyze="vcom -2008 -work work_%(unitname)s_vcom %(file_name)s",
+    simulate='vsim work_%(unitname)s_vcom.%(topname)s -quiet -t %(timescale)s -c -do "run -all; quit -f"',
     skiplines=6,
     skipchars=2,
     ignore=("# **", "# //", "#    Time:", "# run -all"),
@@ -145,8 +145,18 @@ class _VerificationClass:
             except:
                 raise TypeError(str(type(func)))
 
+        topname = name.lower()
+        if hdl == 'VHDL':
+            if isinstance(func, _Block):
+                topname = func.func.__name__
+            else:
+                try:
+                    topname = func.__name__
+                except:
+                    raise TypeError(str(type(func)))
+
         vals = {}
-        vals['topname'] = name
+        vals['topname'] = topname
         vals['unitname'] = name.lower()
         vals['version'] = _version
         if hdl == "VHDL" and toVHDL.timescale is not None:
@@ -185,15 +195,15 @@ class _VerificationClass:
                 inst = toVerilog(func, *args, **kwargs)
 
         if hdl == "VHDL":
-            if not os.path.exists("work_%(topname)s" % vals):
-                os.mkdir("work_%(topname)s" % vals)
+            if not os.path.exists("work_%(unitname)s" % vals):
+                os.mkdir("work_%(unitname)s" % vals)
         if hdlsim.name in ('vlog', 'vcom'):
             if not os.path.exists("work_vsim"):
                 try:
                     subprocess.call("vlib work_%(topname)s_vlog" % vals, shell=True)
-                    subprocess.call("vlib work_%(topname)s_vcom" % vals, shell=True)
+                    subprocess.call("vlib work_%(unitname)s_vcom" % vals, shell=True)
                     subprocess.call("vmap work_%(topname)s_vlog work_%(topname)s_vlog" % vals, shell=True)
-                    subprocess.call("vmap work_%(topname)s_vcom work_%(topname)s_vcom" % vals, shell=True)
+                    subprocess.call("vmap work_%(unitname)s_vcom work_%(unitname)s_vcom" % vals, shell=True)
                 except:
                     pass
 
