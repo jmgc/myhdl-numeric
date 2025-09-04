@@ -314,6 +314,7 @@ class _HierExtr:
         self.skip = 0
         self.hierarchy = hierarchy = []
         self.absnames = absnames = {}
+        self.names = names = {}
         self.level = 0
 
         if isinstance(dut, _Block):
@@ -333,7 +334,6 @@ class _HierExtr:
         # streamline hierarchy
         hierarchy.reverse()
         # walk the hierarchy to define relative and absolute names
-        names = {}
         top_inst = hierarchy[0]
         obj, subs = top_inst.obj, top_inst.subs
         if isinstance(top_inst, _Block):

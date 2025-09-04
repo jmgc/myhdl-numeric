@@ -118,12 +118,14 @@ class _EntitySignature:
     @staticmethod
     def _const_type(const):
         value = const.value
-        if isinstance(value, _Constant):
+        if not value.used:
+            return tuple()
+        elif isinstance(value, _Constant):
             return (value.value,)
         elif isinstance(value, _RomInfo):
             return value.mem
         else:
-            return (value,)
+            assert False
 
     @staticmethod
     def fromEntityFrame(entity, frame):
@@ -211,7 +213,7 @@ class _GenerateHierarchy:
         p_v_entity_dict = {}
         entity_list = self._flatten(h.hierarchy[:])
         self.userCodeMap = h.userCodeMap
-        absnames = h.absnames
+        absnames = h.names
 
         # Search the associated entities (components)
         for idx, p_entity in enumerate(entity_list):
@@ -423,7 +425,14 @@ class _GenerateHierarchy:
                             self.enum_types[vhd_obj.type._type] = vhd_obj
 
             components_list.sort(key=lambda x: x.name)
-            components = {c.name.upper(): c for c in components_list}
+            component_names = set()
+            for c in components_list:
+                component_name = c.name.upper()
+                while component_name in component_names:
+                    component_name = c.name.upper() + _genUniqueSuffix.next()
+                c.name = component_name
+                component_names.add(component_name)
+            components = {c.name: c for c in components_list}
             assert len(components) == len(components_list)
             architecture = vhd_architecture(list(sigs_dict.keys()) +
                                             list(mems_dict.keys()),
@@ -2006,7 +2015,16 @@ def _writeModuleFooter(f, arch):
 
 
 def _convertGens(architecture, vfile):
-    genlist = [process.generator for process in architecture.process_list]
+    python_names = set()
+    for process in architecture.process_list:
+        p_name = process.generator.name.upper()
+        vhdl_name = p_name
+        while vhdl_name in python_names:
+            vhdl_name = p_name + _genUniqueSuffix.next()
+        python_names.add(vhdl_name)
+        process.generator.name = vhdl_name
+
+    genlist = [process.generator for process in sorted(architecture.process_list, key=lambda x: x.generator.name)]
     constdict = dict((const.value.orig_name, const.value)
                      for const in architecture.const_dict.values())
     blockBuf = StringIO()

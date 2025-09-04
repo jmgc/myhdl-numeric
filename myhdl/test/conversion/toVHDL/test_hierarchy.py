@@ -1,26 +1,31 @@
-from myhdl import Signal, intbv, always_seq, instance, delay, StopSimulation, \
+from myhdl import Signal, intbv, always_seq, always_comb, instance, delay, StopSimulation, \
     ResetSignal, conversion
 import shutil
 import os
 
 def hierarchy_level(clk, reset, z, a):
+    y = Signal(z.val)
     @always_seq(clk.posedge, reset)
     def logic():
         if a == 1:
-            z.next = 0
+            y.next = 0
         elif a in (2, 3):
-            z.next = 1
+            y.next = 1
         else:
-            z.next = 3
+            y.next = 3
 
-    return logic
+    @always_seq(clk.posedge, reset)
+    def Logic():
+        z.next = y + 1
+
+    return logic, Logic
 
 def hierarchy_level_2(clk, reset, z, a):
     value = (3, 5)
     y = Signal(intbv(0)[3:])
-    comp1 = hierarchy_level(clk, reset, y, a)
-    comp2 = hierarchy_level(clk, reset, z, y)
-    return comp1, comp2
+    comp = hierarchy_level(clk, reset, y, a)
+    Comp = hierarchy_level(clk, reset, z, y)
+    return comp, Comp
 
 def hierarchy_level_1(clk, reset, z, a):
     y = Signal(intbv(0)[4:])
