@@ -113,28 +113,34 @@ def hierarchy_case(hierarchy_dut):
 
     @instance
     def stimulus1():
+        a1.next = 0
         reset1.next = True
-        yield delay(10)
+        yield delay(9)
         reset1.next = False
+        yield clk1.posedge
         for i in range(10):
             value = values[i]
             a1.next = value % 5
             yield clk1.posedge
-            print(f"a={int(a1)}, z={int(z1)}")
         raise StopSimulation
 
     mem_data = (3, 1, 4, 1, 5, 9, 2, 6, 5, 3)
 
     @instance
     def stimulus2():
+        a2.next = 0
         reset2.next = True
-        yield delay(5)
+        yield delay(2)
         reset2.next = False
-
+        yield clk2.posedge
         for i in range(len(values)):
             assert 0 not in mem_data
-            value = values[i]
-            a2.next = value % 2
+            value = mem_data[i]
+            print(f"value={value}")
+            if value < a2.max:
+                a2.next = value
+            else:
+                a2.next = a2.max - 1
             yield clk2.posedge
 
         raise StopSimulation

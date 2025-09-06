@@ -31,12 +31,13 @@ sim = namedtuple('sim',
                   'ignore',
                   'languageVersion',
                   'firstline',
-                  'lastline'])
+                  'lastline',
+                  'cleaner'])
 
 
 def registerSimulator(name=None, hdl=None, analyze=None, elaborate=None,
                       simulate=None, skiplines=None, skipchars=None,
-                      ignore=None, languageVersion=None, firstline=None, lastline=None):
+                      ignore=None, languageVersion=None, firstline=None, lastline=None, cleaner=None):
     if not isinstance(name, str) or (name.strip() == ""):
         raise ValueError("Invalid simulator name")
     if hdl not in ("VHDL", "Verilog"):
@@ -53,7 +54,11 @@ def registerSimulator(name=None, hdl=None, analyze=None, elaborate=None,
         languageVersion = None
 
     _simulators[name] = sim(name, hdl, analyze, elaborate, simulate,
-                            skiplines, skipchars, ignore, languageVersion, firstline, lastline)
+                            skiplines, skipchars, ignore, languageVersion, firstline, lastline, cleaner)
+
+def _ghdl_cleaner(log_data):
+    return [line for line in log_data
+            if '(assertion warning)' not in line]
 
 registerSimulator(
     name="ghdl",
@@ -61,7 +66,8 @@ registerSimulator(
     analyze="ghdl -a --std=08 --workdir=work_%(unitname)s %(file_name)s",
     elaborate="ghdl -e --std=08 --workdir=work_%(unitname)s -o %(unitname)s %(topname)s",
     simulate="ghdl -r --workdir=work_%(unitname)s %(unitname)s --vcd=%(unitname)s.vcd",
-    languageVersion="2008"
+    languageVersion="2008",
+    cleaner=_ghdl_cleaner
     )
 
 registerSimulator(
@@ -173,6 +179,7 @@ class _VerificationClass:
         firstline = hdlsim.firstline
         lastline = hdlsim.lastline
         ignore = hdlsim.ignore
+        cleaner = hdlsim.cleaner
         languageVersion = hdlsim.languageVersion
 
         if isinstance(func, _Block):
@@ -261,7 +268,10 @@ class _VerificationClass:
         g.flush()
         g.seek(0)
 
-        glines = g.readlines()
+        if cleaner:
+            glines = cleaner(g.readlines())
+        else:
+            glines = g.readlines()
         if firstline and lastline:
             firstidx = [idx for idx, line in enumerate(glines) if line.startswith(firstline)]
             if firstidx:

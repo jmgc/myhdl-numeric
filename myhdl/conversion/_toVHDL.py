@@ -1469,9 +1469,7 @@ class _ToVHDLConvertor:
             sfile.write(gfile.getvalue())
             gfile.close()
 
-            for assign in entity.architecture.signal_conversions:
-                print("    %s" % assign.toStr(), file=sfile)
-            print(file=sfile)
+            _writeSignalConversions(sfile, entity.architecture)
 
             _writeCompUnits(sfile, entity, signature_names)
 
@@ -1942,11 +1940,26 @@ def _checkPort(port):
     return port.name, name
 
 
+def _writeSignalConversions(f, architecture):
+    if architecture.signal_conversions:
+        print("    -- Begin signal conversions", file=f)
+        print(file=f)
+        for assign in architecture.signal_conversions:
+            print("    %s" % assign.toStr(), file=f)
+        print("    -- End signal conversions", file=f)
+        print(file=f)
+
+
 def _writeCompUnits(f, entity, signature_names):
+    first = False
     for unit_name in entity.architecture.components:
         component = entity.architecture.components[unit_name]
         entity_name = signature_names[component.entity.signature]
         if len(component.entity.ports_list) > 0:
+            if not first:
+                first = True
+                print("    -- Begin units connection", file=f)
+                print(file=f)
             f.write(f"    U_{unit_name} : {entity_name}\n")
             f.write("        port map (")
             c = ''
@@ -2010,6 +2023,9 @@ def _writeCompUnits(f, entity, signature_names):
                 c = ",\n                  "
             f.write("\n                  );\n")
             f.write('\n')
+    if first:
+        print("    -- End units connection", file=f)
+        print(file=f)
 
 
 def _writeUserCompDecls(f, compDecls):
@@ -2067,13 +2083,19 @@ def _convertGens(architecture, vfile):
         v.visit(tree)
     lines = funcBuf.getvalue()
     for line in lines.split("\n"):
-        vfile.write("    %s\n" % line)
+        vfile.write(f"    {line}\n")
     funcBuf.close()
     print("begin", file=vfile)
     print(file=vfile)
+
     lines = blockBuf.getvalue()
-    for line in lines.split("\n"):
-        vfile.write("    %s\n" % line)
+
+    if lines:
+        print("    -- Begin process definitions", file=vfile)
+        for line in lines.split("\n"):
+            vfile.write(f"    {line}\n")
+        print("    -- End process definitions", file=vfile)
+        print(file=vfile)
     blockBuf.close()
 
 
@@ -3574,7 +3596,7 @@ class _ConvertAlwaysVisitor(_ConvertVisitor):
             self.dedent()
         self.writeline()
         self.write("end process %s;" % self.tree.name)
-        self.writeline(2)
+        self.writeline(1)
 
 
 class _ConvertInitialVisitor(_ConvertVisitor):
@@ -3598,7 +3620,7 @@ class _ConvertInitialVisitor(_ConvertVisitor):
         self.dedent()
         self.writeline()
         self.write("end process %s;" % self.tree.name)
-        self.writeline(2)
+        self.writeline(1)
 
 
 class _ConvertAlwaysCombVisitor(_ConvertVisitor):
@@ -3640,7 +3662,7 @@ class _ConvertAlwaysCombVisitor(_ConvertVisitor):
         self.dedent()
         self.writeline()
         self.write("end process %s;" % self.tree.name)
-        self.writeline(2)
+        self.writeline(1)
 
 
 class _ConvertSimpleAlwaysCombVisitor(_ConvertVisitor):
@@ -3662,7 +3684,7 @@ class _ConvertSimpleAlwaysCombVisitor(_ConvertVisitor):
     def visit_FunctionDef(self, node, *args):
         self.writeDoc(node)
         self.visit_stmt(node.body)
-        self.writeline(2)
+        self.writeline(1)
 
 
 class _ConvertAlwaysDecoVisitor(_ConvertVisitor):
@@ -3705,7 +3727,7 @@ class _ConvertAlwaysDecoVisitor(_ConvertVisitor):
             self.dedent()
         self.writeline()
         self.write("end process %s;" % self.tree.name)
-        self.writeline(2)
+        self.writeline(1)
 
 
 def _convertInitVal(reg, init):
@@ -3812,7 +3834,7 @@ class _ConvertAlwaysSeqVisitor(_ConvertVisitor):
             self.dedent()
         self.writeline()
         self.write("end process %s;" % self.tree.name)
-        self.writeline(2)
+        self.writeline(1)
 
 
 class _ConvertFunctionVisitor(_ConvertVisitor):
@@ -3852,7 +3874,7 @@ class _ConvertFunctionVisitor(_ConvertVisitor):
         self.dedent()
         self.writeline()
         self.write("end function %s;" % self.tree.name)
-        self.writeline(2)
+        self.writeline(1)
 
     def visit_Return(self, node):
         self.write("return ")
@@ -3899,7 +3921,7 @@ class _ConvertTaskVisitor(_ConvertVisitor):
         self.dedent()
         self.writeline()
         self.write("end procedure %s;" % self.tree.name)
-        self.writeline(2)
+        self.writeline(1)
 
 
 # type inference
